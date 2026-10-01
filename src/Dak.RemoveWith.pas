@@ -12,7 +12,7 @@ implementation
 uses
   System.Diagnostics, System.Generics.Collections, System.IOUtils, System.SysUtils,
   Dak.CommandOutput, Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Model, Dak.RemoveWith.Output,
-  Dak.Paths, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction,
+  Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction,
   Dak.Utils;
 
 procedure LogRemoveWithProgress(const aOptions: TAppOptions; const aMessage: string);
@@ -82,20 +82,6 @@ begin
   finally
     lFiles.Free;
   end;
-end;
-
-function NewRemoveWithRunId: string;
-var
-  lGuid: TGUID;
-begin
-  if CreateGUID(lGuid) <> 0 then
-    Exit(FormatDateTime('yyyymmddhhnnsszzz', Now));
-
-  Result := GUIDToString(lGuid);
-  Result := StringReplace(Result, '{', '', [rfReplaceAll]);
-  Result := StringReplace(Result, '}', '', [rfReplaceAll]);
-  Result := StringReplace(Result, '-', '', [rfReplaceAll]);
-  Result := LowerCase(Result);
 end;
 
 procedure WriteRemoveWithOutput(const aOptions: TAppOptions; const aOutputText: string);
@@ -191,9 +177,14 @@ begin
   end;
 
   lTotalStopwatch := TStopwatch.StartNew;
-  lRunId := NewRemoveWithRunId;
-  lWorkspaceRoot := DakProjectPath(DakProjectRootForProjectPath(lProjectPath), ['remove-with', lRunId]);
-  TDirectory.CreateDirectory(lWorkspaceRoot);
+  // DAK-385: the run id is the short token that names the workspace; exclusive creation keeps concurrent runs
+  // of one project apart.
+  if not TryCreateRemoveWithWorkspace(lProjectPath, lWorkspaceRoot, lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitToolFailure);
+  end;
+  lRunId := ExtractFileName(lWorkspaceRoot);
   LogRemoveWithProgress(aOptions, Format('start mode=%s project=%s workspace=%s',
     [RemoveWithModeToText(aOptions.fRemoveWithMode), lProjectPath, lWorkspaceRoot]));
 

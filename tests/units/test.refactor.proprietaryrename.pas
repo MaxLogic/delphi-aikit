@@ -113,7 +113,7 @@ end;
 
 function TRefactorProprietaryRenameTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 function TRefactorProprietaryRenameTests.FindMaxTdbProject(const aFixtureDir: string): string;

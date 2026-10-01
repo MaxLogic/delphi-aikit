@@ -597,6 +597,8 @@ type
     [Test]
     procedure ConcurrentSameProjectApplySerializesWholeTransaction;
     [Test]
+    procedure HeldBuildMutexAllowsIndependentProjectApply;
+    [Test]
     procedure ApplyModeTextReportsTransactionStatus;
   end;
 
@@ -904,8 +906,7 @@ implementation
 uses
   System.Threading,
   Winapi.Windows,
-  maxLogic.ioutils,
-  DelphiAST, DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer;
+  AutoFree, DelphiAST, DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer, maxLogic.ioutils;
 
 const
   cAstParallelIterations = 24;
@@ -3875,7 +3876,7 @@ end;
 
 function TRemoveWithSemanticBinderTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithSemanticBinderTests.BuildResolverFixture(out aInventory: TRemoveWithFactSet;
@@ -5116,7 +5117,7 @@ end;
 
 function TRemoveWithResolverTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 function TRemoveWithResolverTests.FindClassification(const aResult: TRemoveWithResolverResult;
@@ -5296,7 +5297,7 @@ end;
 
 function TRemoveWithInheritedOverrideGoldenTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 function TRemoveWithInheritedOverrideGoldenTests.RunInheritedOverrideFixture(out aExitCode: Cardinal): string;
@@ -5370,7 +5371,7 @@ end;
 
 function TRemoveWithInterfaceResolverTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 function TRemoveWithInterfaceResolverTests.RunInterfaceFixture(out aExitCode: Cardinal): string;
@@ -5445,7 +5446,7 @@ end;
 
 function TRemoveWithHelperPrecedenceGoldenTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 function TRemoveWithHelperPrecedenceGoldenTests.RunHelperPrecedenceFixture(out aExitCode: Cardinal): string;
@@ -5530,7 +5531,7 @@ end;
 
 function TRemoveWithGlobalScopeGoldenTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 function TRemoveWithGlobalScopeGoldenTests.RunGlobalScopeFixture(out aExitCode: Cardinal): string;
@@ -5604,7 +5605,7 @@ end;
 
 function TRemoveWithIndexedPropertyTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithIndexedPropertyTests.BuildIndexedPropertyFixture(out aInventory: TRemoveWithFactSet);
@@ -5919,7 +5920,7 @@ end;
 
 function TRemoveWithPlannerTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 function TRemoveWithPlannerTests.FindPlannedStatement(const aPlanResult: TRemoveWithPlanResult;
@@ -6398,7 +6399,7 @@ end;
 
 function TRemoveWithCliTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithCliTests.CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath,
@@ -6600,7 +6601,7 @@ end;
 
 function TRemoveWithRewriteShapeTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithRewriteShapeTests.CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string;
@@ -7344,7 +7345,7 @@ end;
 
 function TRemoveWithTempAggregationTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithTempAggregationTests.CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string;
@@ -7595,7 +7596,7 @@ end;
 
 function TRemoveWithTransactionTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithTransactionTests.AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
@@ -8230,6 +8231,74 @@ begin
     'Expected remove-with build verification not to mutate process environment state.');
   Assert.IsTrue(ContainsText(lBuildRunnerSource, 'fBuildDiagnosticsDir'),
     'Expected build diagnostics to be a typed option instead of a process-wide environment mutation.');
+end;
+
+procedure TRemoveWithTransactionTests.HeldBuildMutexAllowsIndependentProjectApply;
+var
+  g: TGarbos;
+  lProjects, lLogs: array[0..1] of string;
+  lExits: array[0..1] of Cardinal;
+  lCompleted: array[0..1] of Boolean;
+  lExe, lUnitPath, lError, lLogPath: string;
+  lMutex: THandle;
+  lTask: ITask;
+  lJson: TJSONObject;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-held-project',
+    'ApplyUnit.pas', lProjects[0], lUnitPath);
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-independent-project',
+    'ApplyUnit.pas', lProjects[1], lUnitPath);
+  EnsureResolverBuilt;
+  lExe := CommandExePath;
+  lLogs[0] := UniqueTempPath('remove-with-held.json');
+  lLogs[1] := UniqueTempPath('remove-with-independent.json');
+  lMutex := CreateMutex(nil, True, PChar(BuildVerificationMutexNameForTest(lProjects[0])));
+  Assert.AreNotEqual(THandle(0), lMutex);
+  try
+    lTask := TTask.Run(
+      procedure
+      begin
+        try
+          lCompleted[0] := RunProcessWithTimeout(lExe, 'remove-with --project ' + QuoteArg(lProjects[0]) +
+            ' --all --mode apply --format json' + RemoveWithCliBuildOptions('apply'),
+            RepoRoot, lLogs[0], 45000, lExits[0]);
+        except
+          on E: Exception do
+            lError := E.ClassName + ': ' + E.Message;
+        end;
+      end);
+    Assert.IsFalse(lTask.Wait(3000), 'Same-project apply must wait for its build mutex');
+    lCompleted[1] := RunProcessWithTimeout(lExe, 'remove-with --project ' + QuoteArg(lProjects[1]) +
+      ' --all --mode apply --format json' + RemoveWithCliBuildOptions('apply'),
+      RepoRoot, lLogs[1], 45000, lExits[1]);
+    Assert.IsTrue(lCompleted[1], lLogs[1]);
+    Assert.AreEqual(Cardinal(0), lExits[1], lLogs[1]);
+    Assert.IsFalse(lTask.Wait(0), 'Independent apply must finish while the first project remains locked');
+  finally
+    if not ReleaseMutex(lMutex) then
+      RaiseLastOSError;
+    CloseHandle(lMutex);
+    if lTask <> nil then
+      lTask.Wait;
+  end;
+  Assert.AreEqual('', lError, lLogs[0]);
+  for var i := 0 to 1 do
+  begin
+    Assert.IsTrue(lCompleted[i], lLogs[i]);
+    Assert.AreEqual(Cardinal(0), lExits[i], lLogs[i]);
+    lJson := TJSONObject.ParseJSONValue(ReadUtf8TextFile(lLogs[i])) as TJSONObject;
+    GC(lJson, g);
+    Assert.IsNotNull(lJson, 'The apply command must return a JSON object: ' + lLogs[i]);
+    Assert.AreEqual('applied', lJson.GetValue<string>('status'));
+    Assert.AreEqual('passed', lJson.GetValue<string>('verification.status'));
+    for var lName in ['stdoutLog', 'stderrLog'] do
+    begin
+      lLogPath := lJson.GetValue<string>('verification.' + lName);
+      Assert.IsTrue(TFile.Exists(lLogPath), lLogPath);
+      Assert.IsTrue(StartsText(IncludeTrailingPathDelimiter(TPath.GetFullPath(ExtractFileDir(lProjects[i]))),
+        TPath.GetFullPath(lLogPath)), 'Build diagnostics must remain in the owning workspace: ' + lLogPath);
+    end;
+  end;
 end;
 
 procedure TRemoveWithTransactionTests.ConcurrentSameProjectApplySerializesWholeTransaction;
@@ -8976,7 +9045,7 @@ end;
 
 function TRemoveWithApplyReportTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithApplyReportTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
@@ -9146,7 +9215,7 @@ end;
 
 function TRemoveWithNoEditAndRollbackTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithNoEditAndRollbackTests.AssertBytesEqual(const aExpected, aActual: TBytes;
@@ -9369,7 +9438,7 @@ end;
 
 function TRemoveWithScopedDeclarationSafetyTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithScopedDeclarationSafetyTests.AssertBytesEqual(const aExpected, aActual: TBytes;
@@ -9537,7 +9606,7 @@ end;
 
 function TRemoveWithExpressionRoleRewriteTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithExpressionRoleRewriteTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
@@ -9681,7 +9750,7 @@ end;
 
 function TRemoveWithComplexSourceModelTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithComplexSourceModelTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
@@ -9781,7 +9850,7 @@ end;
 
 function TRemoveWithExternalRoutineTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithExternalRoutineTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
@@ -9919,7 +9988,7 @@ end;
 
 function TRemoveWithIntrinsicSymbolTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithIntrinsicSymbolTests.AssertClassification(const aClassifications: TJSONArray;
@@ -10064,7 +10133,7 @@ end;
 
 function TRemoveWithControlCharacterLiteralTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithControlCharacterLiteralTests.AssertNoClassification(const aClassifications: TJSONArray;
@@ -10191,7 +10260,7 @@ end;
 
 function TRemoveWithImplementationGlobalTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithImplementationGlobalTests.AssertClassification(const aClassifications: TJSONArray;
@@ -10310,7 +10379,7 @@ end;
 
 function TRemoveWithNestedRoutineScopeTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithNestedRoutineScopeTests.AssertClassification(const aClassifications: TJSONArray;
@@ -10429,7 +10498,7 @@ end;
 
 function TRemoveWithEnumConstTypeAliasTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithEnumConstTypeAliasTests.AssertClassification(const aClassifications: TJSONArray;
@@ -10548,7 +10617,7 @@ end;
 
 function TRemoveWithConditionalDirectiveTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithConditionalDirectiveTests.AssertNoClassification(const aClassifications: TJSONArray;
@@ -10671,7 +10740,7 @@ end;
 
 function TRemoveWithUnresolvedReasonReportTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithUnresolvedReasonReportTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
@@ -10754,7 +10823,7 @@ end;
 
 function TRemoveWithSymbolMapParityReportTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithSymbolMapParityReportTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
@@ -10839,7 +10908,7 @@ end;
 
 function TRemoveWithCorpusSmokeTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithCorpusSmokeTests.AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
@@ -10976,7 +11045,7 @@ end;
 
 function TRemoveWithBoundRewriteTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithBoundRewriteTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
@@ -11092,7 +11161,7 @@ end;
 
 function TRemoveWithHardeningApplyTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithHardeningApplyTests.AssertBytesEqual(const aExpected, aActual: TBytes;
@@ -11329,7 +11398,7 @@ end;
 
 function TRemoveWithProprietaryProjectTests.CommandExePath: string;
 begin
-  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  Result := ResolverExePath;
 end;
 
 procedure TRemoveWithProprietaryProjectTests.AssertBytesEqual(const aExpected, aActual: TBytes;

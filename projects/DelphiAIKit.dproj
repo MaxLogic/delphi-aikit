@@ -105,7 +105,8 @@
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
-        <DCC_ExeOutput>..\bin</DCC_ExeOutput>
+        <DCC_ExeOutput Condition="'$(Config)'=='Debug'">..\bin\Debug</DCC_ExeOutput>
+        <DCC_ExeOutput Condition="'$(Config)'!='Debug'">..\bin</DCC_ExeOutput>
         <DCC_DcuOutput>.\dcu\$(Platform)\$(Config)</DCC_DcuOutput>
         <CfgDependentOn>..\lib\MaxLogicFoundation\MaxLogicDefault.optset</CfgDependentOn>
     </PropertyGroup>
@@ -168,6 +169,8 @@
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
         <DCC_RangeChecking>true</DCC_RangeChecking>
         <DCC_IntegerOverflowCheck>true</DCC_IntegerOverflowCheck>
+        <!-- The Debug candidate is laid out like a release: tracked runtime data sits next to it. dak.ini stays host-only. -->
+        <PostBuildEvent>copy /Y "$(PROJECTDIR)..\bin\palcmd-map.json" "$(PROJECTDIR)..\bin\Debug\palcmd-map.json"</PostBuildEvent>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Android64)'!=''">
         <BT_BuildType>Debug</BT_BuildType>
@@ -203,6 +206,9 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="..\src\Dak.Consistency.Command.pas"/>
+    <DCCReference Include="..\src\Dak.Signature.Command.pas"/>
+        <DCCReference Include="..\src\Dak.Consistency.Dfm.pas"/>
         <DCCReference Include="..\src\dak.analyze.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.Workspace.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.WorkspaceCommand.pas"/>
@@ -227,6 +233,8 @@
         <DCCReference Include="..\src\Dak.Analysis.WorkflowFinish.pas"/>
         <DCCReference Include="..\src\Dak.PascalAnalyzer.Help.pas"/>
         <DCCReference Include="..\src\dak.build.pas"/>
+        <DCCReference Include="..\src\Dak.Build.Enrichment.pas"/>
+        <DCCReference Include="..\src\Dak.Lsp.Protocol.pas"/>
         <DCCReference Include="..\src\Dak.CommandOutput.pas"/>
         <DCCReference Include="..\src\dak.cli.pas"/>
         <DCCReference Include="..\src\Dak.DfmText.pas"/>
@@ -238,6 +246,7 @@
         <DCCReference Include="..\src\dak.messages.pas"/>
         <DCCReference Include="..\src\dak.macroexpander.pas"/>
         <DCCReference Include="..\src\dak.msbuild.pas"/>
+        <DCCReference Include="..\src\Dak.MsBuild.Args.pas"/>
         <DCCReference Include="..\src\dak.output.pas"/>
         <DCCReference Include="..\src\dak.project.pas"/>
         <DCCReference Include="..\src\dak.registry.pas"/>

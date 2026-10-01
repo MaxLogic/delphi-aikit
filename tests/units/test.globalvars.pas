@@ -54,12 +54,25 @@ uses
   Dak.GlobalVars.Model,
   Dak.Semantics.Session,
   Dak.Types,
+  DelphiSemantics.Cache,
   MaxLogic.ioUtils,
   Test.Support;
 
+function DelphiSemanticsParserVersion: string;
+var
+  lCache: TDelphiSemanticUnitCache;
+begin
+  lCache := TDelphiSemanticUnitCache.Create(Default(TDelphiSemanticCacheOptions));
+  try
+    Result := lCache.ParserVersion;
+  finally
+    lCache.Free;
+  end;
+end;
+
 function TGlobalVarsTests.FixtureProjectPath: string;
 begin
-  Result := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)), 'fixtures',
+  Result := TPath.GetFullPath(CombinePath([RepoRoot, 'tests', 'fixtures',
     'GlobalVarsFixture.dproj']));
 end;
 
@@ -143,7 +156,7 @@ begin
   lBuilder := TStringBuilder.Create;
   try
     lFiles := TDirectory.GetFiles(TPath.GetFullPath(CombinePath([
-      TPath.GetDirectoryName(ParamStr(0)), '..', 'src'])), 'dak.globalvars*.pas');
+      RepoRoot, 'src'])), 'dak.globalvars*.pas');
     for lFileName in lFiles do
     begin
       lBuilder.AppendLine(TFile.ReadAllText(lFileName, TEncoding.UTF8));
@@ -320,7 +333,8 @@ begin
     Assert.IsNotEmpty(lProvenance.GetValue<TJSONObject>('dak').GetValue<string>(
       'sourceRevision'));
     lDelphiSemantics := lProvenance.GetValue<TJSONObject>('delphiSemantics');
-    Assert.AreEqual('DelphiSemantics.Model.Parser.20',
+    // The default parser version is defined inside DelphiSemantics; a default-configured cache exposes it.
+    Assert.AreEqual(DelphiSemanticsParserVersion,
       lDelphiSemantics.GetValue<string>('parserVersion'));
     Assert.IsNotEmpty(lDelphiSemantics.GetValue<string>('modelVersion'));
     Assert.AreEqual('9', lDelphiSemantics.GetValue<string>('cacheSchemaVersion'));
@@ -619,8 +633,8 @@ var
   lOutputFileName: string;
   lSourceFileName: string;
 begin
-  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)),
-    'fixtures', 'GlobalVarsFixture.Globals.pas']));
+  lSourceFileName := TPath.GetFullPath(CombinePath([RepoRoot,
+    'tests', 'fixtures', 'GlobalVarsFixture.Globals.pas']));
   lOutputFileName := TPath.Combine(TPath.GetTempPath,
     'global-vars-fixture-same-stamp-size.json');
   lOriginalContent := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
@@ -893,7 +907,7 @@ var
   lSourceFileName: string;
   lSourceText: string;
 begin
-  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)), '..',
+  lSourceFileName := TPath.GetFullPath(CombinePath([RepoRoot,
     'src', 'Dak.GlobalVars.Cache.pas']));
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
@@ -916,7 +930,7 @@ var
   lSourceFileName: string;
   lSourceText: string;
 begin
-  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)), '..',
+  lSourceFileName := TPath.GetFullPath(CombinePath([RepoRoot,
     'src', 'Dak.GlobalVars.Cache.pas']));
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
@@ -933,8 +947,8 @@ var
   lSkillPath: string;
   lSkillText: string;
 begin
-  lSkillPath := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)),
-    '..', 'agentskills', 'dak-global-vars', 'SKILL.md']));
+  lSkillPath := TPath.GetFullPath(CombinePath([RepoRoot,
+    'agentskills', 'dak-global-vars', 'SKILL.md']));
   lSkillText := TFile.ReadAllText(lSkillPath, TEncoding.UTF8);
 
   Assert.IsTrue(ContainsText(lSkillText, '--delphi'));

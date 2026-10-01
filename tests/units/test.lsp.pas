@@ -21,6 +21,8 @@ type
     [Test]
     procedure LspUsesDakIniDelphiVersionFallback;
     [Test]
+    procedure LspDiscoveryPrefersExplicitPathThenResolvedInstall;
+    [Test]
     procedure LspUsesRsvarsAndEnvOptionsOverrides;
     [Test]
     procedure LspHardFailsWhenRealDelphiContextCannotBeBuilt;
@@ -32,63 +34,42 @@ type
     procedure LspReportsWorkspaceWriteFailureCleanly;
     [Test]
     procedure LspWritesProbeSettingsFileWithFileUris;
+    [Test]
+    [TestCase('Win32', '0')]
+    [TestCase('Win64', '1')]
+    procedure LspCompilerDllResolvesExactPlatformDll(aVariant: Integer);
+    [Test]
+    procedure LspLegacySettingsWritersOmitDllName;
   end;
 
+  // Runner orchestration tests that need no LSP server: pure wire builders, owned
+  // file preparation, and failures surfaced through TryRunLspRequest by native
+  // test child modes that never implement the protocol.
   [TestFixture]
-  TLspFixtureTests = class
+  TLspRunnerTests = class
   private
-    function CreateScriptFile(const aScenarioName, aScriptJson: string): string;
+    function PrepareContext(const aScenarioName: string; out aContext: TLspContext): string;
   public
     [Test]
-    procedure FakeServerSupportsInitializeAndShutdown;
+    procedure LspRequestPreparationReplacesStaleContextFile;
     [Test]
-    procedure FakeServerReturnsScriptedDefinitionAndHoverPayloads;
+    procedure LspRequestWireSequenceUsesCanonicalSettings;
     [Test]
-    procedure FakeServerCanSimulateEmptyAndErrorResponses;
+    [TestCase('Missing executable', '0')]
+    [TestCase('Invalid executable', '1')]
+    [TestCase('Missing compiler DLL still starts the server', '2')]
+    procedure LspRunnerReportsExecutableFailures(aVariant: Integer);
     [Test]
-    procedure FakeServerAssertsContextFileHandshakeAndNotifications;
+    [TestCase('Initialize error response', '0')]
+    [TestCase('Probe initialize error response', '1')]
+    [TestCase('Unresponsive initialize', '2')]
+    procedure LspRunnerReportsStageForServerFailures(aVariant: Integer);
     [Test]
-    procedure FakeServerAssertsSettingsFileHandshakeAndNotifications;
-  end;
-
-  [TestFixture]
-  TLspRunnerTests = class(TLspContextTests)
-  private
-    function BuildRunnerOptions(const aDprojPath: string): TAppOptions;
-    function CreateScriptFile(const aScenarioName, aScriptJson: string): string;
-  public
-    [Test]
-    procedure LspDiscoveryPrefersExplicitPathThenResolvedInstall;
-    [Test]
-    procedure LspRunnerInitializesOpensRequestsAndShutsDownAgainstFakeServer;
-    [Test]
-    procedure LspRunnerReportsSpecificDiscoveryAndInitFailures;
-    [Test]
-    procedure LspDefinitionReturnsNormalizedLocations;
-    [Test]
-    procedure LspPositionConversionUsesOneBasedCliAndZeroBasedProtocol;
-    [Test]
-    procedure LspDefinitionNormalizesHostQualifiedPlusUris;
-    [Test]
-    procedure LspHoverReturnsContentsAndOptionalRange;
-    [Test]
-    procedure LspHoverTextOutputStaysCompact;
-    [Test]
-    procedure LspHoverRepresentsEmptyResultsExplicitly;
-    [Test]
-    procedure LspSymbolsRequestDocumentSymbolsForFile;
-    [Test]
-    procedure LspSymbolsFlattenHierarchicalDocumentSymbols;
-    [Test]
-    procedure LspSymbolsRespectQueryAndLimitAfterFlattening;
-    [Test]
-    procedure LspSymbolsRepresentEmptyResultsExplicitly;
-    [Test]
-    procedure LspProbeContextFileModeUsesOwnedHandshake;
-    [Test]
-    procedure LspProbeSettingsFileModeUsesSettingsHandshake;
-    [Test]
-    procedure LspRunnerTimesOutNonResponsiveServer;
+    [TestCase('Resolved', '0')]
+    [TestCase('Unsupported platform', '1')]
+    [TestCase('Missing DLL', '2')]
+    [TestCase('Ambiguous DLL', '3')]
+    procedure LspCompilerDllWarningNamesReasonWithoutRefusing(aVariant: Integer);
   end;
 
   [TestFixture]
@@ -109,15 +90,21 @@ type
     procedure RealDelphi23DefinitionMatchesFixtureGoldenAnswer;
     [Test]
     procedure RealDelphi23SymbolsMatchFixtureGoldenAnswer;
+    [Test]
+    procedure RealDelphi23ProbePreservesBothHandshakeModes;
+    [Test]
+    procedure RealDelphi23HoverMatchesFixtureGoldenAnswer;
+    [Test]
+    procedure RealDelphi23UnsupportedPlatformWarnsAndStillAnswers;
   end;
 
 implementation
 
 uses
-  System.Classes, System.IOUtils, System.StrUtils, System.SysUtils,
-  Winapi.Windows,
+  System.Classes, System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  Winapi.TlHelp32, Winapi.Windows,
   DelphiSemantics.Lsp,
-  Dak.Lsp.Runner,
+  Dak.Lsp.Protocol, Dak.Lsp.Runner,
   Test.Support;
 
 var
@@ -138,479 +125,6 @@ end;
 function FilePathToUri(const aPath: string): string;
 begin
   Result := TDelphiSemanticLspBoundary.FilePathToUri(aPath);
-end;
-
-function JsonEscape(const aValue: string): string;
-begin
-  Result := StringReplace(aValue, '\', '\\', [rfReplaceAll]);
-  Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
-end;
-
-function ProcessHasExited(aProcessId: Cardinal): Boolean;
-var
-  lHandle: THandle;
-begin
-  lHandle := OpenProcess(SYNCHRONIZE, False, aProcessId);
-  if lHandle = 0 then
-    Exit(True);
-  try
-    Result := WaitForSingleObject(lHandle, 0) = WAIT_OBJECT_0;
-  finally
-    CloseHandle(lHandle);
-  end;
-end;
-
-const
-  CFakeLspScriptEnvVar = 'DAK_FAKE_LSP_SCRIPT';
-
-var
-  GFakeLspBuilt: Boolean = False;
-  GFakeLspExePath: string = '';
-
-function CmdExePath: string;
-begin
-  Result := GetEnvironmentVariable('ComSpec');
-  if Result = '' then
-    Result := 'C:\Windows\System32\cmd.exe';
-end;
-
-function FakeLspFixtureDir: string;
-begin
-  Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspFixture');
-end;
-
-function FakeLspProjectPath: string;
-begin
-  Result := TPath.Combine(FakeLspFixtureDir, 'FakeDelphiLsp.dproj');
-end;
-
-function FakeLspSourcePaths: TArray<string>;
-begin
-  Result := [
-    TPath.Combine(FakeLspFixtureDir, 'FakeDelphiLsp.dpr'),
-    TPath.Combine(FakeLspFixtureDir, 'FakeDelphiLspMain.pas'),
-    FakeLspProjectPath
-  ];
-end;
-
-function FakeLspExePath: string;
-begin
-  Result := TPath.Combine(FakeLspFixtureDir, 'bin\FakeDelphiLsp.exe');
-end;
-
-function FakeLspExeIsCurrent(const aExePath: string): Boolean;
-var
-  lExeStamp: TDateTime;
-  lSourcePath: string;
-begin
-  Result := False;
-  if not FileExists(aExePath) then
-    Exit(False);
-  lExeStamp := TFile.GetLastWriteTimeUtc(aExePath);
-  for lSourcePath in FakeLspSourcePaths do
-  begin
-    if FileExists(lSourcePath) and (TFile.GetLastWriteTimeUtc(lSourcePath) > lExeStamp) then
-      Exit(False);
-  end;
-  Result := True;
-end;
-
-procedure EnsureFakeLspFixtureBuilt;
-var
-  lArgs: string;
-  lBat: string;
-  lCmdArgs: string;
-  lExit: Cardinal;
-  lLog: string;
-begin
-  GFakeLspExePath := FakeLspExePath;
-  if GFakeLspBuilt and FakeLspExeIsCurrent(GFakeLspExePath) then
-    Exit;
-  if FakeLspExeIsCurrent(GFakeLspExePath) then
-  begin
-    GFakeLspBuilt := True;
-    Exit;
-  end;
-
-  lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
-  lArgs := QuoteArg(FakeLspProjectPath) + ' -config Release -platform Win32 -ver 23';
-  lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
-  lLog := TPath.Combine(TempRoot, 'build-fake-delphi-lsp.log');
-
-  if not RunProcess(CmdExePath, lCmdArgs, RepoRoot, lLog, lExit) then
-    Assert.Fail('Failed to start FakeDelphiLsp build.');
-  if lExit <> 0 then
-    Assert.Fail('FakeDelphiLsp build failed, exit=' + lExit.ToString + '. See: ' + lLog);
-  if not FileExists(GFakeLspExePath) then
-    Assert.Fail('FakeDelphiLsp.exe missing after build: ' + GFakeLspExePath);
-  GFakeLspBuilt := True;
-end;
-
-type
-  TLspJsonRpcClient = class
-  private
-    fInput: THandleStream;
-    fOutput: THandleStream;
-    fProcessHandle: THandle;
-    fThreadHandle: THandle;
-    function ReadLine(out aLine: string; out aError: string): Boolean;
-    function ReadMessage(out aBody: string; out aError: string): Boolean;
-    function WriteMessage(const aBody: string; out aError: string): Boolean;
-  public
-    destructor Destroy; override;
-    function Start(const aExePath, aArguments, aWorkDir: string; out aError: string): Boolean;
-    function SendNotification(const aMethod, aParamsJson: string; out aError: string): Boolean;
-    function SendRequest(aId: Integer; const aMethod, aParamsJson: string; out aResponse: TJSONObject;
-      out aError: string): Boolean;
-    function ShutdownAndExit(out aError: string): Boolean;
-  end;
-
-function TLspJsonRpcClient.ReadLine(out aLine: string; out aError: string): Boolean;
-var
-  lBuilder: TStringBuilder;
-  lByte: Byte;
-  lCount: Integer;
-begin
-  Result := False;
-  aLine := '';
-  aError := '';
-  lBuilder := TStringBuilder.Create;
-  try
-    while True do
-    begin
-      lCount := fOutput.Read(lByte, 1);
-      if lCount <> 1 then
-      begin
-        aError := 'Unexpected end of stream while reading LSP header.';
-        Exit(False);
-      end;
-      if lByte = Ord(#10) then
-        Break;
-      if lByte <> Ord(#13) then
-        lBuilder.Append(Char(lByte));
-    end;
-    aLine := lBuilder.ToString;
-    Result := True;
-  finally
-    lBuilder.Free;
-  end;
-end;
-
-function TLspJsonRpcClient.ReadMessage(out aBody: string; out aError: string): Boolean;
-var
-  lBodyBytes: TBytes;
-  lContentLength: Integer;
-  lLine: string;
-  lOffset: Integer;
-  lRead: Integer;
-begin
-  Result := False;
-  aBody := '';
-  aError := '';
-  lContentLength := -1;
-  while True do
-  begin
-    if not ReadLine(lLine, aError) then
-      Exit(False);
-    if lLine = '' then
-      Break;
-    if SameText(Copy(lLine, 1, Length('Content-Length:')), 'Content-Length:') then
-      lContentLength := StrToIntDef(Trim(Copy(lLine, Length('Content-Length:') + 1, MaxInt)), -1);
-  end;
-  if lContentLength < 0 then
-  begin
-    aError := 'Missing Content-Length header in LSP response.';
-    Exit(False);
-  end;
-  SetLength(lBodyBytes, lContentLength);
-  lOffset := 0;
-  while lOffset < lContentLength do
-  begin
-    lRead := fOutput.Read(lBodyBytes[lOffset], lContentLength - lOffset);
-    if lRead <= 0 then
-    begin
-      aError := 'Unexpected end of stream while reading LSP body.';
-      Exit(False);
-    end;
-    Inc(lOffset, lRead);
-  end;
-  aBody := TEncoding.UTF8.GetString(lBodyBytes);
-  Result := True;
-end;
-
-function TLspJsonRpcClient.WriteMessage(const aBody: string; out aError: string): Boolean;
-var
-  lBodyBytes: TBytes;
-  lHeaderBytes: TBytes;
-  lHeaderText: string;
-begin
-  Result := False;
-  aError := '';
-  lBodyBytes := TEncoding.UTF8.GetBytes(aBody);
-  lHeaderText := 'Content-Length: ' + IntToStr(Length(lBodyBytes)) + #13#10#13#10;
-  lHeaderBytes := TEncoding.ASCII.GetBytes(lHeaderText);
-  try
-    if Length(lHeaderBytes) > 0 then
-      fInput.WriteBuffer(lHeaderBytes[0], Length(lHeaderBytes));
-    if Length(lBodyBytes) > 0 then
-      fInput.WriteBuffer(lBodyBytes[0], Length(lBodyBytes));
-    Result := True;
-  except
-    on E: Exception do
-    begin
-      aError := 'Failed to write LSP message: ' + E.Message;
-    end;
-  end;
-end;
-
-destructor TLspJsonRpcClient.Destroy;
-begin
-  fInput.Free;
-  fOutput.Free;
-  if fProcessHandle <> 0 then
-  begin
-    if WaitForSingleObject(fProcessHandle, 0) = WAIT_TIMEOUT then
-      TerminateProcess(fProcessHandle, 1);
-    CloseHandle(fProcessHandle);
-  end;
-  if fThreadHandle <> 0 then
-    CloseHandle(fThreadHandle);
-  inherited Destroy;
-end;
-
-function TLspJsonRpcClient.Start(const aExePath, aArguments, aWorkDir: string; out aError: string): Boolean;
-var
-  lChildStdInRead: THandle;
-  lChildStdInWrite: THandle;
-  lChildStdOutRead: THandle;
-  lChildStdOutWrite: THandle;
-  lCmdLine: string;
-  lLastError: Cardinal;
-  lPi: TProcessInformation;
-  lSa: TSecurityAttributes;
-  lSi: TStartupInfo;
-begin
-  Result := False;
-  aError := '';
-  lChildStdInRead := 0;
-  lChildStdInWrite := 0;
-  lChildStdOutRead := 0;
-  lChildStdOutWrite := 0;
-
-  FillChar(lSa, SizeOf(lSa), 0);
-  lSa.nLength := SizeOf(lSa);
-  lSa.bInheritHandle := True;
-
-  if not CreatePipe(lChildStdOutRead, lChildStdOutWrite, @lSa, 0) then
-  begin
-    aError := 'Failed to create fake LSP stdout pipe.';
-    Exit(False);
-  end;
-  if not CreatePipe(lChildStdInRead, lChildStdInWrite, @lSa, 0) then
-  begin
-    aError := 'Failed to create fake LSP stdin pipe.';
-    CloseHandle(lChildStdOutRead);
-    CloseHandle(lChildStdOutWrite);
-    Exit(False);
-  end;
-
-  try
-    SetHandleInformation(lChildStdOutRead, HANDLE_FLAG_INHERIT, 0);
-    SetHandleInformation(lChildStdInWrite, HANDLE_FLAG_INHERIT, 0);
-
-    FillChar(lSi, SizeOf(lSi), 0);
-    lSi.cb := SizeOf(lSi);
-    lSi.dwFlags := STARTF_USESTDHANDLES;
-    lSi.hStdInput := lChildStdInRead;
-    lSi.hStdOutput := lChildStdOutWrite;
-    lSi.hStdError := GetStdHandle(STD_ERROR_HANDLE);
-
-    FillChar(lPi, SizeOf(lPi), 0);
-    lCmdLine := QuoteArg(aExePath);
-    if aArguments <> '' then
-      lCmdLine := lCmdLine + ' ' + aArguments;
-    UniqueString(lCmdLine);
-
-    if not CreateProcess(PChar(aExePath), PChar(lCmdLine), nil, nil, True, CREATE_NO_WINDOW, nil, PChar(aWorkDir), lSi, lPi) then
-    begin
-      lLastError := GetLastError;
-      aError := 'Failed to start fake LSP server: ' + SysErrorMessage(lLastError);
-      Exit(False);
-    end;
-
-    CloseHandle(lChildStdInRead);
-    lChildStdInRead := 0;
-    CloseHandle(lChildStdOutWrite);
-    lChildStdOutWrite := 0;
-
-    fInput := THandleStream.Create(lChildStdInWrite);
-    fOutput := THandleStream.Create(lChildStdOutRead);
-    fProcessHandle := lPi.hProcess;
-    fThreadHandle := lPi.hThread;
-    Result := True;
-  finally
-    if lChildStdInRead <> 0 then
-      CloseHandle(lChildStdInRead);
-    if lChildStdOutWrite <> 0 then
-      CloseHandle(lChildStdOutWrite);
-    if (not Result) then
-    begin
-      if lChildStdInWrite <> 0 then
-        CloseHandle(lChildStdInWrite);
-      if lChildStdOutRead <> 0 then
-        CloseHandle(lChildStdOutRead);
-    end;
-  end;
-end;
-
-function TLspJsonRpcClient.SendNotification(const aMethod, aParamsJson: string; out aError: string): Boolean;
-var
-  lBody: string;
-  lParamsJson: string;
-begin
-  lParamsJson := aParamsJson;
-  if Trim(lParamsJson) = '' then
-    lParamsJson := '{}';
-  lBody := '{"jsonrpc":"2.0","method":"' + aMethod + '","params":' + lParamsJson + '}';
-  Result := WriteMessage(lBody, aError);
-end;
-
-function TLspJsonRpcClient.SendRequest(aId: Integer; const aMethod, aParamsJson: string; out aResponse: TJSONObject;
-  out aError: string): Boolean;
-var
-  lBody: string;
-  lParamsJson: string;
-  lResponseText: string;
-  lValue: TJSONValue;
-begin
-  Result := False;
-  aError := '';
-  aResponse := nil;
-  lParamsJson := aParamsJson;
-  if Trim(lParamsJson) = '' then
-    lParamsJson := '{}';
-  lBody := '{"jsonrpc":"2.0","id":' + IntToStr(aId) + ',"method":"' + aMethod + '","params":' + lParamsJson + '}';
-  if not WriteMessage(lBody, aError) then
-    Exit(False);
-  if not ReadMessage(lResponseText, aError) then
-    Exit(False);
-  lValue := TJSONValue.ParseJSONValue(lResponseText);
-  if not (lValue is TJSONObject) then
-  begin
-    lValue.Free;
-    aError := 'Invalid JSON-RPC response: ' + lResponseText;
-    Exit(False);
-  end;
-  aResponse := lValue as TJSONObject;
-  Result := True;
-end;
-
-function TLspJsonRpcClient.ShutdownAndExit(out aError: string): Boolean;
-var
-  lResponse: TJSONObject;
-  lWait: Cardinal;
-begin
-  lResponse := nil;
-  try
-    if not SendRequest(9001, 'shutdown', '{}', lResponse, aError) then
-      Exit(False);
-  finally
-    lResponse.Free;
-  end;
-  if not SendNotification('exit', '{}', aError) then
-    Exit(False);
-  lWait := WaitForSingleObject(fProcessHandle, 5000);
-  if lWait <> WAIT_OBJECT_0 then
-  begin
-    aError := 'Fake LSP server did not exit cleanly.';
-    Exit(False);
-  end;
-  Result := True;
-end;
-
-
-function CreateProbeResolvedContext(const aScenarioName: string; out aContext: TLspContext): string;
-var
-  lBdsRoot: string;
-  lDprojPath: string;
-  lEnvOptionsPath: string;
-  lEnvSearchDir: string;
-  lError: string;
-  lLibraryDir: string;
-  lOptions: TAppOptions;
-  lRoot: string;
-  lRsVarsPath: string;
-  lUnit1Path: string;
-begin
-  EnsureTempClean;
-  lRoot := TPath.Combine(TempRoot, aScenarioName);
-  if TDirectory.Exists(lRoot) then
-    TDirectory.Delete(lRoot, True);
-  TDirectory.CreateDirectory(lRoot);
-
-  lDprojPath := TPath.Combine(lRoot, 'LspFixture.dproj');
-  WriteUtf8File(lDprojPath,
-    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
-    '  <PropertyGroup>' + sLineBreak +
-    '    <MainSource>LspFixture.dpr</MainSource>' + sLineBreak +
-    '    <DCC_Define>PROJECT_DEFINE;$(DCC_Define)</DCC_Define>' + sLineBreak +
-    '  </PropertyGroup>' + sLineBreak +
-    '</Project>' + sLineBreak);
-  WriteUtf8File(TPath.ChangeExtension(lDprojPath, '.dpr'),
-    'program LspFixture;' + sLineBreak + sLineBreak +
-    'uses' + sLineBreak +
-    '  Unit1 in ''Unit1.pas'';' + sLineBreak + sLineBreak +
-    'begin' + sLineBreak +
-    'end.' + sLineBreak);
-  lUnit1Path := TPath.Combine(lRoot, 'Unit1.pas');
-  WriteUtf8File(lUnit1Path,
-    'unit Unit1;' + sLineBreak + sLineBreak +
-    'interface' + sLineBreak + sLineBreak +
-    'procedure TouchUnit1;' + sLineBreak + sLineBreak +
-    'implementation' + sLineBreak + sLineBreak +
-    'procedure TouchUnit1;' + sLineBreak +
-    'begin' + sLineBreak +
-    'end;' + sLineBreak + sLineBreak +
-    'end.' + sLineBreak);
-  TDirectory.CreateDirectory(TPath.Combine(lRoot, 'src'));
-
-  lBdsRoot := TPath.Combine(lRoot, 'FakeBds');
-  lLibraryDir := TPath.Combine(lRoot, 'IdeLibrary');
-  lEnvSearchDir := TPath.Combine(lRoot, 'EnvSearch');
-  TDirectory.CreateDirectory(TPath.Combine(lBdsRoot, 'Source'));
-  TDirectory.CreateDirectory(TPath.Combine(lBdsRoot, 'lib'));
-  TDirectory.CreateDirectory(lLibraryDir);
-  TDirectory.CreateDirectory(lEnvSearchDir);
-  lRsVarsPath := TPath.Combine(lRoot, 'rsvars.bat');
-  WriteAsciiFile(lRsVarsPath,
-    '@echo off' + sLineBreak +
-    'set BDS=' + lBdsRoot + sLineBreak +
-    'set BDSLIB=' + TPath.Combine(lBdsRoot, 'lib') + sLineBreak +
-    'set DAK_TEST_RSVARS=1' + sLineBreak);
-  lEnvOptionsPath := TPath.Combine(lRoot, 'EnvOptions.proj');
-  WriteUtf8File(lEnvOptionsPath,
-    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
-    '  <PropertyGroup>' + sLineBreak +
-    '    <DelphiLibraryPath>' + lLibraryDir + '</DelphiLibraryPath>' + sLineBreak +
-    '    <DCC_UnitSearchPath>' + lEnvSearchDir + '</DCC_UnitSearchPath>' + sLineBreak +
-    '    <DCC_Define>ENV_DEFINE</DCC_Define>' + sLineBreak +
-    '  </PropertyGroup>' + sLineBreak +
-    '</Project>' + sLineBreak);
-
-  lOptions := Default(TAppOptions);
-  lOptions.fDprojPath := lDprojPath;
-  lOptions.fPlatform := 'Win32';
-  lOptions.fConfig := 'Debug';
-  lOptions.fDelphiVersion := '23.0';
-  lOptions.fRsVarsPath := lRsVarsPath;
-  lOptions.fHasRsVarsPath := True;
-  lOptions.fEnvOptionsPath := lEnvOptionsPath;
-  lOptions.fHasEnvOptionsPath := True;
-
-  lError := '';
-  Assert.IsTrue(TryBuildStrictLspContext(lOptions, aContext, lError),
-    'Expected strict lsp context to resolve for the probe handshake tests. Error: ' + lError);
-  Result := lDprojPath;
 end;
 
 function TLspContextTests.ArrayContainsValue(const aValues: TArray<string>; const aExpected: string): Boolean;
@@ -945,6 +459,61 @@ begin
     'Expected a clean workspace-write error. Actual: ' + lError);
 end;
 
+function CreateFakeLspBinDir(const aScenarioName: string; const aFileNames: array of string): string;
+var
+  lFileName: string;
+begin
+  Result := UniqueTempPath(aScenarioName);
+  ForceDirectories(Result);
+  WriteUtf8File(TPath.Combine(Result, 'DelphiLSP.exe'), 'lsp');
+  for lFileName in aFileNames do
+    WriteUtf8File(TPath.Combine(Result, lFileName), 'dll');
+end;
+
+procedure TLspContextTests.LspCompilerDllResolvesExactPlatformDll(aVariant: Integer);
+var
+  lBinDir, lDllName, lExpected, lPlatform: string;
+begin
+  // Mirrors the installed 23.0 bin64 layout, including the dcc64290N.dll
+  // variant that must not match.
+  lBinDir := CreateFakeLspBinDir('lsp-compiler-dll-' + IntToStr(aVariant),
+    ['dcc32290.dll', 'dcc64290.dll', 'dcc64290N.dll', 'dcclinux64290.dll']);
+  lPlatform := 'Win32';
+  lExpected := 'dcc32290.dll';
+  if aVariant = 1 then
+  begin
+    lPlatform := 'win64';
+    lExpected := 'dcc64290.dll';
+  end;
+  Assert.AreEqual('', ResolveLspCompilerDllForRequest(TPath.Combine(lBinDir, 'DelphiLSP.exe'), lPlatform,
+    lDllName));
+  Assert.AreEqual(lExpected, lDllName);
+end;
+
+procedure TLspContextTests.LspLegacySettingsWritersOmitDllName;
+var
+  lContext: TLspContext;
+  lError, lSettingsFilePath: string;
+  lJson: TJSONObject;
+begin
+  // The public writers keep their original signatures and output.
+  PrepareResolvedContext('lsp legacy settings writers', lContext);
+  Assert.IsTrue(TryWriteCanonicalLspSettingsFile(lContext, lSettingsFilePath, lError), lError);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lSettingsFilePath), lSettingsFilePath);
+  try
+    Assert.IsNull(lJson.GetValue<TJSONObject>('settings').Values['dllname'], lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+  Assert.IsTrue(TryWriteOfficialLspSettingsFile(lContext, lSettingsFilePath, lError), lError);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lSettingsFilePath), lSettingsFilePath);
+  try
+    Assert.IsNull(lJson.GetValue<TJSONObject>('settings').Values['dllname'], lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+end;
+
 procedure TLspContextTests.LspWritesProbeSettingsFileWithFileUris;
 var
   lBrowsingPaths: TJSONArray;
@@ -960,7 +529,7 @@ begin
   PrepareResolvedContext('lsp probe settings json', lContext);
 
   lError := '';
-  Assert.IsTrue(TryWriteOfficialLspSettingsFile(lContext, lSettingsFilePath, lError),
+  Assert.IsTrue(TryWriteOfficialLspSettingsFile(lContext, 'dcc32290.dll', lSettingsFilePath, lError),
     'Expected official probe settings file to be written. Error: ' + lError);
   Assert.AreEqual<string>(TPath.Combine(lContext.fDakLspRoot, 'probe.delphilsp.json'), lSettingsFilePath,
     'Expected probe settings file to live under the owned .dak workspace.');
@@ -975,6 +544,8 @@ begin
     lProjectJson := lSettingsJson.GetValue<string>('project', '');
     Assert.AreEqual<string>(FilePathToUri(lContext.fMainSourcePath), lProjectJson,
       'Expected project path to be written as the exact main-source file URI.');
+    Assert.AreEqual<string>('dcc32290.dll', lSettingsJson.GetValue<string>('dllname', ''),
+      'Expected the probe settings to name the resolved compiler DLL.');
 
     lBrowsingPaths := lSettingsJson.GetValue<TJSONArray>('browsingPaths');
     Assert.IsNotNull(lBrowsingPaths, 'Expected browsingPaths in probe settings file.');
@@ -1000,265 +571,7 @@ begin
 end;
 
 
-function TLspFixtureTests.CreateScriptFile(const aScenarioName, aScriptJson: string): string;
-var
-  lDir: string;
-begin
-  EnsureTempClean;
-  lDir := TPath.Combine(TempRoot, 'lsp-fixture-scripts');
-  TDirectory.CreateDirectory(lDir);
-  Result := TPath.Combine(lDir, aScenarioName + '.json');
-  WriteUtf8File(Result, aScriptJson);
-end;
-
-procedure TLspFixtureTests.FakeServerSupportsInitializeAndShutdown;
-var
-  lClient: TLspJsonRpcClient;
-  lDefinitionArray: TJSONArray;
-  lError: string;
-  lResponse: TJSONObject;
-  lScriptPath: string;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lScriptPath := CreateScriptFile('fixture-init',
-    '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"hoverProvider":true}},"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
-  lClient := TLspJsonRpcClient.Create;
-  lResponse := nil;
-  try
-    lError := '';
-    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
-      'Expected fake LSP server to start. Error: ' + lError);
-    Assert.IsTrue(lClient.SendRequest(1, 'initialize', '{"processId":1}', lResponse, lError),
-      'Expected initialize request to succeed. Error: ' + lError);
-    Assert.IsTrue(Assigned(lResponse.Values['result']), 'Expected initialize result payload.');
-    Assert.IsTrue(Assigned((lResponse.Values['result'] as TJSONObject).Values['capabilities']),
-      'Expected initialize result to expose capabilities.');
-    lResponse.Free;
-    lResponse := nil;
-    Assert.IsTrue(lClient.SendNotification('textDocument/didOpen',
-      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas","languageId":"delphi","version":1,"text":"unit Unit1;"}}', lError),
-      'Expected didOpen notification to succeed. Error: ' + lError);
-    Assert.IsTrue(lClient.SendRequest(2, 'textDocument/definition',
-      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas"},"position":{"line":2,"character":4}}', lResponse, lError),
-      'Expected definition request after didOpen to succeed. Error: ' + lError);
-    Assert.IsTrue(lResponse.Values['result'] is TJSONArray, 'Expected definition result array after didOpen.');
-    lDefinitionArray := lResponse.Values['result'] as TJSONArray;
-    Assert.AreEqual(1, lDefinitionArray.Count, 'Expected one scripted definition result after didOpen.');
-    lResponse.Free;
-    lResponse := nil;
-    Assert.IsTrue(lClient.ShutdownAndExit(lError), 'Expected fake LSP server shutdown to succeed. Error: ' + lError);
-  finally
-    lResponse.Free;
-    lClient.Free;
-  end;
-end;
-
-procedure TLspFixtureTests.FakeServerReturnsScriptedDefinitionAndHoverPayloads;
-var
-  lClient: TLspJsonRpcClient;
-  lDefinitionArray: TJSONArray;
-  lError: string;
-  lHoverObject: TJSONObject;
-  lResponse: TJSONObject;
-  lScriptPath: string;
-  lSymbolsArray: TJSONArray;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lScriptPath := CreateScriptFile('fixture-definition-hover',
-    '{"requireOpenedDocuments":true,"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}],"textDocument/hover":{"contents":{"kind":"markdown","value":"TFixtureType"},"range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}},"workspace/symbol":[{"name":"TFixtureType","kind":5,"containerName":"Unit1","location":{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}}]}}');
-  lClient := TLspJsonRpcClient.Create;
-  lResponse := nil;
-  try
-    lError := '';
-    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
-      'Expected fake LSP server to start. Error: ' + lError);
-    Assert.IsTrue(lClient.SendRequest(1, 'initialize', '{"processId":1}', lResponse, lError),
-      'Expected initialize request to succeed. Error: ' + lError);
-    lResponse.Free;
-    lResponse := nil;
-    Assert.IsTrue(lClient.SendNotification('textDocument/didOpen',
-      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas","languageId":"delphi","version":1,"text":"unit Unit1;"}}', lError),
-      'Expected didOpen notification to succeed. Error: ' + lError);
-
-    Assert.IsTrue(lClient.SendRequest(2, 'textDocument/definition',
-      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas"},"position":{"line":2,"character":4}}', lResponse, lError),
-      'Expected definition request to succeed. Error: ' + lError);
-    Assert.IsTrue(lResponse.Values['result'] is TJSONArray, 'Expected definition result array.');
-    lDefinitionArray := lResponse.Values['result'] as TJSONArray;
-    Assert.AreEqual(1, lDefinitionArray.Count, 'Expected one scripted definition result.');
-    Assert.AreEqual<string>('file:///C:/repo/Unit1.pas',
-      (lDefinitionArray.Items[0] as TJSONObject).GetValue<string>('uri'), 'Expected scripted definition uri.');
-    lResponse.Free;
-    lResponse := nil;
-
-    Assert.IsTrue(lClient.SendRequest(3, 'textDocument/hover',
-      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas"},"position":{"line":2,"character":4}}', lResponse, lError),
-      'Expected hover request to succeed. Error: ' + lError);
-    Assert.IsTrue(lResponse.Values['result'] is TJSONObject, 'Expected hover result object.');
-    lHoverObject := lResponse.Values['result'] as TJSONObject;
-    Assert.AreEqual<string>('TFixtureType',
-      ((lHoverObject.Values['contents'] as TJSONObject).GetValue<string>('value')), 'Expected scripted hover contents.');
-    lResponse.Free;
-    lResponse := nil;
-
-    Assert.IsTrue(lClient.SendRequest(4, 'workspace/symbol', '{"query":"Fixture"}', lResponse, lError),
-      'Expected workspace/symbol request to succeed. Error: ' + lError);
-    Assert.IsTrue(lResponse.Values['result'] is TJSONArray, 'Expected workspace/symbol result array.');
-    lSymbolsArray := lResponse.Values['result'] as TJSONArray;
-    Assert.AreEqual(1, lSymbolsArray.Count, 'Expected one scripted symbol result.');
-    Assert.AreEqual<string>('TFixtureType',
-      (lSymbolsArray.Items[0] as TJSONObject).GetValue<string>('name'), 'Expected scripted symbol name.');
-    Assert.IsTrue(lClient.ShutdownAndExit(lError), 'Expected fake LSP server shutdown to succeed. Error: ' + lError);
-  finally
-    lResponse.Free;
-    lClient.Free;
-  end;
-end;
-
-procedure TLspFixtureTests.FakeServerCanSimulateEmptyAndErrorResponses;
-var
-  lClient: TLspJsonRpcClient;
-  lError: string;
-  lErrorObject: TJSONObject;
-  lResponse: TJSONObject;
-  lResultArray: TJSONArray;
-  lScriptPath: string;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lScriptPath := CreateScriptFile('fixture-empty-error',
-    '{"responses":{"textDocument/references":[]},"errors":{"workspace/symbol":{"code":-32001,"message":"simulated failure"}}}');
-  lClient := TLspJsonRpcClient.Create;
-  lResponse := nil;
-  try
-    lError := '';
-    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
-      'Expected fake LSP server to start. Error: ' + lError);
-    Assert.IsTrue(lClient.SendRequest(1, 'initialize', '{"processId":1}', lResponse, lError),
-      'Expected initialize request to succeed. Error: ' + lError);
-    lResponse.Free;
-    lResponse := nil;
-
-    Assert.IsTrue(lClient.SendRequest(2, 'textDocument/references',
-      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas"},"position":{"line":2,"character":4}}', lResponse, lError),
-      'Expected references request to succeed. Error: ' + lError);
-    Assert.IsTrue(lResponse.Values['result'] is TJSONArray, 'Expected references result array.');
-    lResultArray := lResponse.Values['result'] as TJSONArray;
-    Assert.AreEqual(0, lResultArray.Count, 'Expected empty scripted references result.');
-    lResponse.Free;
-    lResponse := nil;
-
-    Assert.IsTrue(lClient.SendRequest(3, 'workspace/symbol', '{"query":"Foo"}', lResponse, lError),
-      'Expected workspace/symbol request to return a scripted error response. Error: ' + lError);
-    Assert.IsTrue(lResponse.Values['error'] is TJSONObject, 'Expected error object in scripted failure response.');
-    lErrorObject := lResponse.Values['error'] as TJSONObject;
-    Assert.AreEqual<string>('-32001', lErrorObject.GetValue<string>('code'), 'Expected scripted error code.');
-    Assert.AreEqual<string>('simulated failure', lErrorObject.GetValue<string>('message'), 'Expected scripted error message.');
-    Assert.IsTrue(lClient.ShutdownAndExit(lError), 'Expected fake LSP server shutdown to succeed. Error: ' + lError);
-  finally
-    lResponse.Free;
-    lClient.Free;
-  end;
-end;
-
-
-
-
-procedure TLspFixtureTests.FakeServerAssertsContextFileHandshakeAndNotifications;
-var
-  lClient: TLspJsonRpcClient;
-  lContext: TLspContext;
-  lError: string;
-  lExpectedInit: string;
-  lExpectedNotifications: string;
-  lProjectDirUri: string;
-  lResponse: TJSONObject;
-  lScriptPath: string;
-  lSettingsFileUri: string;
-begin
-  EnsureFakeLspFixtureBuilt;
-  CreateProbeResolvedContext('probe-contextfile', lContext);
-  lProjectDirUri := FilePathToUri(lContext.fProjectDir);
-  lSettingsFileUri := FilePathToUri(lContext.fContextFilePath);
-  lExpectedInit := '{"processId":1,"rootUri":"' + JsonEscape(lProjectDirUri) + '","capabilities":{},"clientInfo":{"name":"DelphiAIKit"},' +
-    '"workspaceFolders":[{"uri":"' + JsonEscape(lProjectDirUri) + '","name":"' + JsonEscape(lContext.fProjectName) + '"}],"initializationOptions":' +
-    '{"contextFile":"' + JsonEscape(lContext.fContextFilePath) + '","contextFileUri":"' + JsonEscape(lSettingsFileUri) + '","logsDir":"' +
-    JsonEscape(lContext.fLogsDir) + '"}}';
-  lExpectedNotifications := '[{"method":"initialized","params":{}},{"method":"workspace/didChangeConfiguration","params":{"settings":{"mode":"contextFile","contextFile":"' +
-    JsonEscape(lContext.fContextFilePath) + '"}}}]';
-  lScriptPath := CreateScriptFile('probe-contextfile', '{"expect":{"initialize":' + lExpectedInit + '},"expectNotifications":' +
-    lExpectedNotifications + '}');
-  lClient := TLspJsonRpcClient.Create;
-  lResponse := nil;
-  try
-    lError := '';
-    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
-      'Expected fake LSP server to start. Error: ' + lError);
-    Assert.IsTrue(lClient.SendRequest(1, 'initialize', lExpectedInit, lResponse, lError),
-      'Expected contextFile initialize handshake to succeed. Error: ' + lError);
-    lResponse.Free;
-    lResponse := nil;
-    Assert.IsTrue(lClient.SendNotification('initialized', '{}', lError),
-      'Expected initialized notification to satisfy the contextFile handshake. Error: ' + lError);
-    Assert.IsTrue(lClient.SendNotification('workspace/didChangeConfiguration',
-      '{"settings":{"mode":"contextFile","contextFile":"' + JsonEscape(lContext.fContextFilePath) + '"}}', lError),
-      'Expected didChangeConfiguration notification to satisfy the contextFile handshake. Error: ' + lError);
-    Assert.IsTrue(lClient.SendRequest(2, 'shutdown', '{}', lResponse, lError),
-      'Expected shutdown to succeed after the contextFile handshake. Error: ' + lError);
-  finally
-    lResponse.Free;
-    lClient.Free;
-  end;
-end;
-
-procedure TLspFixtureTests.FakeServerAssertsSettingsFileHandshakeAndNotifications;
-var
-  lClient: TLspJsonRpcClient;
-  lContext: TLspContext;
-  lError: string;
-  lExpectedInit: string;
-  lExpectedNotifications: string;
-  lProjectDirUri: string;
-  lResponse: TJSONObject;
-  lScriptPath: string;
-  lSettingsPath: string;
-  lSettingsPathUri: string;
-begin
-  EnsureFakeLspFixtureBuilt;
-  CreateProbeResolvedContext('probe-settingsfile', lContext);
-  lProjectDirUri := FilePathToUri(lContext.fProjectDir);
-  lSettingsPath := TPath.Combine(ExtractFilePath(lContext.fProjectPath), 'LspFixture.delphilsp.json');
-  lSettingsPathUri := FilePathToUri(lSettingsPath);
-  lExpectedInit := '{"processId":1,"rootUri":"' + JsonEscape(lProjectDirUri) + '","capabilities":{},"clientInfo":{"name":"DelphiAIKit"},' +
-    '"workspaceFolders":[{"uri":"' + JsonEscape(lProjectDirUri) + '","name":"' + JsonEscape(lContext.fProjectName) + '"}],"initializationOptions":' +
-    '{"settingsFile":"' + JsonEscape(lSettingsPath) + '","settingsFileUri":"' + JsonEscape(lSettingsPathUri) + '"}}';
-  lExpectedNotifications := '[{"method":"initialized","params":{}},{"method":"workspace/didChangeConfiguration","params":{"settings":{"mode":"settingsFile","settingsFile":"' +
-    JsonEscape(lSettingsPath) + '"}}}]';
-  lScriptPath := CreateScriptFile('probe-settingsfile', '{"expect":{"initialize":' + lExpectedInit + '},"expectNotifications":' +
-    lExpectedNotifications + '}');
-  lClient := TLspJsonRpcClient.Create;
-  lResponse := nil;
-  try
-    lError := '';
-    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
-      'Expected fake LSP server to start. Error: ' + lError);
-    Assert.IsTrue(lClient.SendRequest(1, 'initialize', lExpectedInit, lResponse, lError),
-      'Expected settingsFile initialize handshake to succeed. Error: ' + lError);
-    lResponse.Free;
-    lResponse := nil;
-    Assert.IsTrue(lClient.SendNotification('initialized', '{}', lError),
-      'Expected initialized notification to satisfy the settingsFile handshake. Error: ' + lError);
-    Assert.IsTrue(lClient.SendNotification('workspace/didChangeConfiguration',
-      '{"settings":{"mode":"settingsFile","settingsFile":"' + JsonEscape(lSettingsPath) + '"}}', lError),
-      'Expected didChangeConfiguration notification to satisfy the settingsFile handshake. Error: ' + lError);
-    Assert.IsTrue(lClient.SendRequest(2, 'shutdown', '{}', lResponse, lError),
-      'Expected shutdown to succeed after the settingsFile handshake. Error: ' + lError);
-  finally
-    lResponse.Free;
-    lClient.Free;
-  end;
-end;
-
-function TLspRunnerTests.BuildRunnerOptions(const aDprojPath: string): TAppOptions;
+function BuildRunnerOptions(const aDprojPath: string): TAppOptions;
 begin
   Result := Default(TAppOptions);
   Result.fDprojPath := aDprojPath;
@@ -1271,26 +584,259 @@ begin
   Result.fLspCol := 1;
 end;
 
-function TLspRunnerTests.CreateScriptFile(const aScenarioName, aScriptJson: string): string;
-var
-  lDir: string;
-begin
-  EnsureTempClean;
-  lDir := TPath.Combine(TempRoot, 'lsp-runner-scripts');
-  TDirectory.CreateDirectory(lDir);
-  Result := TPath.Combine(lDir, aScenarioName + '.json');
-  WriteUtf8File(Result, aScriptJson);
-end;
-
 procedure AddContextEnvironmentVar(var aContext: TLspContext; const aName, aValue: string);
 var
   lBlock: string;
 begin
+  // The runner starts the server with the context's environment block.
   lBlock := aContext.fEnvironmentBlock;
   if lBlock = '' then
     lBlock := #0;
   aContext.fEnvironmentBlock := Copy(lBlock, 1, Length(lBlock) - 1) + aName + '=' + aValue + #0#0;
   aContext.fParams.fEnvironmentBlock := aContext.fEnvironmentBlock;
+end;
+
+function TLspRunnerTests.PrepareContext(const aScenarioName: string; out aContext: TLspContext): string;
+var
+  lHelper: TLspContextTests;
+begin
+  lHelper := TLspContextTests.Create;
+  try
+    Result := lHelper.PrepareResolvedContext(aScenarioName, aContext);
+  finally
+    lHelper.Free;
+  end;
+end;
+
+procedure TLspRunnerTests.LspRequestPreparationReplacesStaleContextFile;
+var
+  lContext: TLspContext;
+  lError: string;
+  lJson: TJSONObject;
+  lSettingsFilePath: string;
+begin
+  PrepareContext('lsp-runner-prepare', lContext);
+  Assert.IsTrue(TryWriteLspContextFile(lContext, lError), lError);
+  Assert.IsTrue(FileExists(lContext.fContextFilePath), 'Stale context file must exist before preparation');
+
+  Assert.IsTrue(TryPrepareLspRequestFiles(lContext, 'dcc64290.dll', lSettingsFilePath, lError), lError);
+  Assert.IsFalse(FileExists(lContext.fContextFilePath), 'Normal requests must delete the stale context file');
+  Assert.AreEqual<string>(TPath.Combine(lContext.fDakLspRoot, 'settings.delphilsp.json'), lSettingsFilePath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lSettingsFilePath), lSettingsFilePath);
+  try
+    Assert.AreEqual<string>(FilePathToUri(lContext.fMainSourcePath),
+      lJson.GetValue<TJSONObject>('settings').GetValue<string>('project'));
+    Assert.AreEqual<string>('dcc64290.dll', lJson.GetValue<TJSONObject>('settings').GetValue<string>('dllname'));
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TLspRunnerTests.LspRequestWireSequenceUsesCanonicalSettings;
+var
+  lContext: TLspContext;
+  lDprojPath, lError, lRequestFilePath, lSettingsFilePath: string;
+  lMessages: TArray<TLspWireMessage>;
+  lOptions, lParams, lSettings, lTextDocument: TJSONObject;
+begin
+  lDprojPath := PrepareContext('lsp-runner-wire', lContext);
+  lRequestFilePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Unit1.pas');
+  Assert.IsTrue(TryPrepareLspRequestFiles(lContext, 'dcc32290.dll', lSettingsFilePath, lError), lError);
+
+  lParams := ParseJsonObject(BuildRequestInitializeParams(lContext, lSettingsFilePath), 'initialize');
+  try
+    Assert.AreEqual<string>(FilePathToUri(lContext.fProjectDir), lParams.GetValue<string>('rootUri'));
+    lOptions := lParams.GetValue<TJSONObject>('initializationOptions');
+    Assert.AreEqual<string>(lSettingsFilePath, lOptions.GetValue<string>('settingsFile'));
+    Assert.AreEqual<string>(FilePathToUri(lSettingsFilePath), lOptions.GetValue<string>('settingsFileUri'));
+    Assert.IsNull(lOptions.Values['contextFile'], 'Normal requests must not send the compatibility context file');
+  finally
+    lParams.Free;
+  end;
+
+  // The runner sends exactly this sequence after a successful initialize.
+  lMessages := BuildRequestNotifications(lSettingsFilePath, lRequestFilePath);
+  Assert.AreEqual(3, Integer(Length(lMessages)));
+  Assert.AreEqual('initialized', lMessages[0].fMethod);
+  Assert.AreEqual('{}', lMessages[0].fParams);
+  Assert.AreEqual('workspace/didChangeConfiguration', lMessages[1].fMethod);
+  lParams := ParseJsonObject(lMessages[1].fParams, 'didChangeConfiguration');
+  try
+    lSettings := lParams.GetValue<TJSONObject>('settings');
+    Assert.AreEqual<string>(lSettingsFilePath, lSettings.GetValue<string>('settingsFile'));
+    Assert.AreEqual<string>(FilePathToUri(lSettingsFilePath), lSettings.GetValue<string>('settingsFileUri'));
+  finally
+    lParams.Free;
+  end;
+  Assert.AreEqual('textDocument/didOpen', lMessages[2].fMethod);
+  lParams := ParseJsonObject(lMessages[2].fParams, 'didOpen');
+  try
+    lTextDocument := lParams.GetValue<TJSONObject>('textDocument');
+    Assert.AreEqual<string>(FilePathToUri(lRequestFilePath), lTextDocument.GetValue<string>('uri'));
+    Assert.AreEqual('delphi', lTextDocument.GetValue<string>('languageId'));
+    Assert.AreEqual<string>(TFile.ReadAllText(lRequestFilePath), lTextDocument.GetValue<string>('text'));
+  finally
+    lParams.Free;
+  end;
+end;
+
+procedure TLspRunnerTests.LspRunnerReportsExecutableFailures(aVariant: Integer);
+var
+  lContext: TLspContext;
+  lDprojPath, lError, lExePath: string;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+begin
+  lDprojPath := PrepareContext('lsp-runner-exe-' + IntToStr(aVariant), lContext);
+  lExePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Tools\DelphiLSP.exe');
+  if aVariant >= 1 then
+    WriteAsciiFile(lExePath, 'not a Windows executable');
+  // Variant 2 omits the compiler DLL: an unresolved DLL is only a warning, so
+  // the runner still tries to start the server and reaches the start failure.
+  if aVariant = 1 then
+    WriteAsciiFile(TPath.Combine(ExtractFilePath(lExePath), 'dcc32290.dll'), 'dll');
+  lOptions := BuildRunnerOptions(lDprojPath);
+  lOptions.fLspPath := lExePath;
+  lOptions.fHasLspPath := True;
+  Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError));
+  if aVariant = 0 then
+    Assert.IsTrue(lError.StartsWith('DelphiLSP.exe not found at: ' + lExePath), lError)
+  else
+    Assert.IsTrue(lError.StartsWith('Failed to start DelphiLSP.exe:'), lError);
+end;
+
+procedure TLspRunnerTests.LspCompilerDllWarningNamesReasonWithoutRefusing(aVariant: Integer);
+var
+  lBinDir, lDllName, lExpectedReason, lPlatform, lWarning: string;
+begin
+  lPlatform := 'Win64';
+  lExpectedReason := '';
+  case aVariant of
+    0:
+      lBinDir := CreateFakeLspBinDir('lsp-dll-warning-resolved', ['dcc64290.dll', 'dcc64290N.dll']);
+    1:
+      begin
+        lBinDir := CreateFakeLspBinDir('lsp-dll-warning-unsupported', ['dcc64290.dll']);
+        lPlatform := 'Linux64';
+        lExpectedReason := 'platform Linux64 is not supported';
+      end;
+    2:
+      begin
+        lBinDir := CreateFakeLspBinDir('lsp-dll-warning-missing', ['dcc32290.dll', 'dcc64290N.dll']);
+        lExpectedReason := 'no dcc64NNN.dll';
+      end;
+  else
+    lBinDir := CreateFakeLspBinDir('lsp-dll-warning-ambiguous', ['dcc64290.dll', 'dcc64370.dll']);
+    lExpectedReason := 'more than one dcc64NNN.dll';
+  end;
+  lWarning := ResolveLspCompilerDllForRequest(TPath.Combine(lBinDir, 'DelphiLSP.exe'), lPlatform, lDllName);
+  if aVariant = 0 then
+  begin
+    Assert.AreEqual('dcc64290.dll', lDllName);
+    Assert.AreEqual('', lWarning);
+  end else begin
+    // Never guess: an unresolved or ambiguous DLL is omitted from the settings.
+    Assert.AreEqual('', lDllName);
+    Assert.IsTrue(lWarning.StartsWith('DelphiLSP compiler DLL not resolved ('), lWarning);
+    Assert.IsTrue(ContainsText(lWarning, lExpectedReason), lWarning);
+    Assert.IsTrue(ContainsText(lWarning, 'hover may return no content'), lWarning);
+  end;
+end;
+
+procedure TLspRunnerTests.LspRunnerReportsStageForServerFailures(aVariant: Integer);
+const
+  cInitError = '{"jsonrpc":"2.0","id":1,"error":{"code":-32001,"message":"simulated init failure"}}';
+var
+  lContext: TLspContext;
+  lDprojPath, lError, lFramePath, lLspBinDir, lName, lTimeoutMs, lValue: string;
+  lGuard: IInterface;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lTimer: TStopwatch;
+begin
+  lDprojPath := PrepareContext('lsp-runner-stage-' + IntToStr(aVariant), lContext);
+  lOptions := BuildRunnerOptions(lDprojPath);
+  // A copy of the test executable stands in only as a process: its child modes
+  // either replay one fixed error frame or stay silent; neither reads a request.
+  // The placeholder compiler DLL satisfies the pre-start DLL resolution.
+  lLspBinDir := UniqueTempPath('lsp-runner-stage-bin-' + IntToStr(aVariant));
+  ForceDirectories(lLspBinDir);
+  lOptions.fLspPath := TPath.Combine(lLspBinDir, 'DelphiLSP.exe');
+  TFile.Copy(ParamStr(0), lOptions.fLspPath);
+  WriteAsciiFile(TPath.Combine(lLspBinDir, 'dcc32290.dll'), 'dll');
+  lOptions.fHasLspPath := True;
+  if aVariant = 1 then
+  begin
+    lOptions.fLspOperation := TLspOperation.loProbe;
+    lOptions.fLspProbeModes := [TLspProbeMode.lpmContextFile];
+  end;
+  if aVariant < 2 then
+  begin
+    lFramePath := UniqueTempPath('lsp-runner-frame') + '.bin';
+    TFile.WriteAllText(lFramePath, 'Content-Length: ' + IntToStr(Length(cInitError)) + #13#10#13#10 + cInitError,
+      TEncoding.ASCII);
+    lName := 'DAK_TEST_STDOUT_FRAME';
+    lValue := lFramePath;
+  end else begin
+    lName := 'DAK_TEST_IDLE_CHILD';
+    lValue := '1';
+  end;
+  // Variants 0 and 1 assert the server-error stage, not timing: the child test exe must finish initialization and
+  // replay its frame inside the request timeout, which 250 ms does not cover on a busy machine. They return as
+  // soon as the frame arrives, so 10 s costs nothing when it is met. Variant 2 tests the timeout and keeps 250 ms.
+  if aVariant < 2 then
+    lTimeoutMs := '10000'
+  else
+    lTimeoutMs := '250';
+  lGuard := SetScopedEnvironmentVariables([lName, lValue, 'DAK_LSP_REQUEST_TIMEOUT_MS', lTimeoutMs]);
+  Assert.IsNotNull(lGuard);
+  AddContextEnvironmentVar(lContext, lName, lValue);
+
+  lTimer := TStopwatch.StartNew;
+  Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError));
+  Assert.IsTrue(lTimer.ElapsedMilliseconds < 5000, Format('Runner failure took %d ms', [lTimer.ElapsedMilliseconds]));
+  case aVariant of
+    0:
+      begin
+        Assert.IsTrue(lError.StartsWith('DelphiLSP initialize failed'), lError);
+        Assert.IsTrue(lError.Contains('-32001') and lError.Contains('simulated init failure'), lError);
+      end;
+    1:
+      begin
+        Assert.IsTrue(lError.StartsWith('DelphiLSP probe initialize contextFile failed'), lError);
+        Assert.IsTrue(lError.Contains('-32001') and lError.Contains('simulated init failure'), lError);
+      end;
+  else
+    Assert.IsTrue(lError.StartsWith('DelphiLSP initialize failed'), lError);
+    Assert.IsTrue(lError.Contains('timed out'), lError);
+  end;
+end;
+
+procedure TLspArchitectureTests.LspTransportImplementationLivesOutsideRunner;
+var
+  lRunnerSource: string;
+  lTransportPath: string;
+  lTransportSource: string;
+begin
+  lRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.lsp.runner.pas'), TEncoding.UTF8);
+  lTransportPath := TPath.Combine(RepoRoot, 'src\Dak.Lsp.Transport.pas');
+  Assert.IsTrue(FileExists(lTransportPath), 'Expected focused LSP transport unit to exist: ' + lTransportPath);
+  lTransportSource := TFile.ReadAllText(lTransportPath, TEncoding.UTF8);
+
+  Assert.IsFalse(ContainsText(lRunnerSource, 'TLspJsonRpcClient = class'),
+    'LSP JSON-RPC transport class should live outside dak.lsp.runner.pas.');
+  Assert.IsFalse(ContainsText(lRunnerSource, 'CreatePipe(') or ContainsText(lRunnerSource, 'CreateProcess(') or
+    ContainsText(lRunnerSource, 'ReadMessage(') or ContainsText(lRunnerSource, 'WriteMessage('),
+    'dak.lsp.runner.pas should keep request orchestration and output shaping, not transport implementation.');
+  Assert.IsTrue(ContainsText(lTransportSource, 'TLspJsonRpcClient = class'),
+    'Expected focused LSP transport unit to own TLspJsonRpcClient.');
+  Assert.IsTrue(ContainsText(lTransportSource, 'CreatePipe(') and ContainsText(lTransportSource, 'CreateProcess(') and
+    ContainsText(lTransportSource, 'ReadMessage(') and ContainsText(lTransportSource, 'WriteMessage('),
+    'Expected focused LSP transport unit to own process startup and JSON-RPC framing.');
+  Assert.IsTrue(ContainsText(lTransportSource, 'fInputHandle: THandle') and
+    ContainsText(lTransportSource, 'CloseHandle(fInputHandle)') and
+    ContainsText(lTransportSource, 'CloseHandle(fOutputHandle)'),
+    'Expected transport to explicitly own and close pipe handles wrapped by THandleStream.');
 end;
 
 function TRealLspAcceptanceTests.FixtureDprojPath: string;
@@ -1303,46 +849,144 @@ begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture\Unit1.pas');
 end;
 
+function JsonArrayHasString(aArray: TJSONArray; const aValue: string): Boolean;
+var
+  lItem: TJSONValue;
+begin
+  Result := False;
+  if aArray = nil then
+    Exit;
+  for lItem in aArray do
+    if (lItem is TJSONString) and (lItem.Value = aValue) then
+      Exit(True);
+end;
+
+function LiveDelphiLspProcessesCreatedSince(const aStartedAt: TFileTime): string;
+const
+  // PROCESS_QUERY_LIMITED_INFORMATION; Winapi.Windows does not declare it.
+  cProcessQueryLimitedInformation = $1000;
+var
+  lCreated, lExited, lKernel, lUser: TFileTime;
+  lEntry: TProcessEntry32;
+  lProcess: THandle;
+  lSnapshot: THandle;
+begin
+  Result := '';
+  lSnapshot := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  Assert.IsTrue(lSnapshot <> INVALID_HANDLE_VALUE, 'Process snapshot failed: ' + SysErrorMessage(GetLastError));
+  try
+    lEntry := Default(TProcessEntry32);
+    lEntry.dwSize := SizeOf(lEntry);
+    if not Process32First(lSnapshot, lEntry) then
+      Exit;
+    repeat
+      if SameText(PChar(@lEntry.szExeFile[0]), 'DelphiLSP.exe') then
+      begin
+        // Liveness and creation time come from the process handle, so a reused
+        // PID from an older process cannot be mistaken for one of ours.
+        lProcess := OpenProcess(cProcessQueryLimitedInformation or SYNCHRONIZE, False, lEntry.th32ProcessID);
+        if lProcess <> 0 then
+        try
+          if (WaitForSingleObject(lProcess, 0) = WAIT_TIMEOUT) and
+            GetProcessTimes(lProcess, lCreated, lExited, lKernel, lUser) and
+            (CompareFileTime(lCreated, aStartedAt) >= 0) then
+            Result := Result + ' ' + UIntToStr(lEntry.th32ProcessID);
+        finally
+          CloseHandle(lProcess);
+        end;
+      end;
+    until not Process32Next(lSnapshot, lEntry);
+  finally
+    CloseHandle(lSnapshot);
+  end;
+end;
+
 function TRealLspAcceptanceTests.RunLspCommand(const aScenarioName, aArgs: string; out aJson: TJSONObject): Cardinal;
 var
-  lAttempt: Integer;
-  lLogPath: string;
-  lLogText: string;
+  lLogPath, lLogText, lSurvivors: string;
+  lStartedAt: TFileTime;
   lValue: TJSONValue;
+  lWarnings: TJSONArray;
 begin
   TMonitor.Enter(GRealLspAcceptanceLock);
   try
     EnsureResolverBuilt;
-    EnsureTempClean;
-    lLogPath := TPath.Combine(TempRoot,
-      Format('%s-%d-%d.json', [aScenarioName, GetCurrentThreadId, GetTickCount]));
-    for lAttempt := 1 to 5 do
+    lLogPath := UniqueTempPath(aScenarioName) + '.json';
+    GetSystemTimeAsFileTime(lStartedAt);
+    Assert.IsTrue(RunResolverProcess(aArgs, RepoRoot, lLogPath, Result), 'LSP command must start');
+    // Any DelphiLSP started during the command and still alive after DAK exited
+    // escaped the owned cleanup. An unrelated DelphiLSP started concurrently by
+    // an IDE would also be reported; the check fails closed.
+    lSurvivors := LiveDelphiLspProcessesCreatedSince(lStartedAt);
+    Assert.AreEqual('', lSurvivors, 'DelphiLSP processes survived the command: PIDs' + lSurvivors);
+    lLogText := ReadUtf8TextFile(lLogPath);
+    lValue := TJSONValue.ParseJSONValue(lLogText);
+    if not (lValue is TJSONObject) then
     begin
-      Assert.IsTrue(RunResolverProcess(aArgs, RepoRoot, lLogPath, Result),
-        'Expected DelphiAIKit.exe lsp process to start for ' + aScenarioName + '.');
-      Assert.IsTrue(FileExists(lLogPath), 'Expected JSON log output for ' + aScenarioName + '.');
-      lLogText := ReadUtf8TextFile(lLogPath);
-      lValue := TJSONValue.ParseJSONValue(lLogText);
-      if lValue is TJSONObject then
-      begin
-        aJson := lValue as TJSONObject;
-        Exit(Result);
-      end;
       lValue.Free;
-      if (lAttempt < 5) and SameText(Trim(lLogText), 'DelphiLSP did not exit cleanly.') then
-      begin
-        Sleep(1000);
-        Continue;
-      end;
-      Assert.Fail('Expected JSON output for ' + aScenarioName + ': ' + lLogText);
+      Assert.Fail('Expected JSON output for ' + aScenarioName + ': ' + lLogText + '. Log: ' + lLogPath);
     end;
-    Assert.Fail('Expected JSON output for ' + aScenarioName + ' after retrying transient DelphiLSP shutdown failures.');
+    aJson := lValue as TJSONObject;
+    if Result = 0 then
+    begin
+      Assert.AreEqual('controlled-termination', aJson.GetValue<TJSONObject>('lsp').GetValue<string>('cleanup'));
+      Assert.AreEqual('unverified', aJson.GetValue<TJSONObject>('lsp').GetValue<string>('settingsAcceptance'));
+      lWarnings := aJson.GetValue<TJSONArray>('warnings');
+      Assert.IsTrue(JsonArrayHasString(lWarnings, cLspCleanupWarning),
+        'Controlled cleanup must be reported: ' + lWarnings.ToJSON);
+      Assert.IsTrue(JsonArrayHasString(lWarnings, cLspSettingsWarning),
+        'Unverified settings acceptance must be reported: ' + lWarnings.ToJSON);
+    end;
   finally
     TMonitor.Exit(GRealLspAcceptanceLock);
   end;
 end;
+procedure TRealLspAcceptanceTests.RealDelphi23ProbePreservesBothHandshakeModes;
+var
+  lArgs, lLspPath, lModeName, lOtherKey, lPath: string;
+  lJson, lMode, lOptions: TJSONObject;
+  lModes: TJSONArray;
+begin
+  RequireRealDelphiLsp23OrSkip(lLspPath);
+  lArgs := 'lsp probe --project ' + QuoteArg(FixtureDprojPath) +
+    ' --delphi 23.0 --lsp-path ' + QuoteArg(lLspPath) +
+    ' --mode contextFile --mode settingsFile --show-init-options --format json';
+  lJson := nil;
+  try
+    Assert.AreEqual<Cardinal>(0, RunLspCommand('real-lsp-probe-modes', lArgs, lJson));
+    lModes := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('modes');
+    Assert.AreEqual(2, lModes.Count);
+    for var i := 0 to 1 do
+    begin
+      lMode := lModes.Items[i] as TJSONObject;
+      lModeName := 'contextFile';
+      lOtherKey := 'settingsFile';
+      if i = 1 then
+      begin
+        lModeName := 'settingsFile';
+        lOtherKey := 'contextFile';
+      end;
+      Assert.AreEqual(lModeName, lMode.GetValue<string>('mode'));
+      lOptions := lMode.GetValue<TJSONObject>('initializationOptions');
+      Assert.IsNull(lOptions.Values[lOtherKey]);
+      lPath := lOptions.GetValue<string>(lModeName);
+      Assert.IsTrue(FileExists(lPath), lPath);
+      Assert.IsTrue(lPath.Contains('.dak'), lPath);
+      if i = 1 then
+      begin
+        // Settings mode reports its file and the configuration notification it sent.
+        Assert.AreEqual<string>(lPath, lMode.GetValue<string>('settingsFile'));
+        Assert.AreEqual<string>(lPath, lMode.GetValue<TJSONObject>('configurationNotification')
+          .GetValue<TJSONObject>('settings').GetValue<string>('settingsFile'));
+      end else
+        Assert.IsNull(lMode.Values['configurationNotification'], 'Context mode sends no configuration');
+    end;
+  finally
+    lJson.Free;
+  end;
+end;
 
-procedure TLspRunnerTests.LspDiscoveryPrefersExplicitPathThenResolvedInstall;
+procedure TLspContextTests.LspDiscoveryPrefersExplicitPathThenResolvedInstall;
 var
   lContext: TLspContext;
   lDprojPath: string;
@@ -1384,778 +1028,6 @@ begin
     'Expected Delphi-version-derived install path to resolve. Error: ' + lError);
   Assert.AreEqual(TPath.GetFullPath(lRootExePath), lExePath,
     'Expected first existing derived install candidate to be used.');
-end;
-
-procedure TLspRunnerTests.LspRunnerInitializesOpensRequestsAndShutsDownAgainstFakeServer;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lLspObject: TJSONObject;
-  lOptions: TAppOptions;
-  lRequestFilePath: string;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-  lSettingsFilePath: string;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-runner-lifecycle', lContext);
-  lRequestFilePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Unit1.pas');
-  lSettingsFilePath := TPath.Combine(lContext.fDakLspRoot, 'settings.delphilsp.json');
-  lScriptPath := CreateScriptFile('runner-success',
-    '{"requireOpenedDocuments":true,' +
-    '"expect":{"initialize":{"initializationOptions":{"settingsFile":"' + StringReplace(lSettingsFilePath, '\', '\\', [rfReplaceAll]) + '","settingsFileUri":"' + FilePathToUri(lSettingsFilePath) + '"}}},' +
-    '"expectNotifications":[{"method":"initialized","params":{}},{"method":"workspace/didChangeConfiguration","params":{"settings":{"settingsFile":"' + StringReplace(lSettingsFilePath, '\', '\\', [rfReplaceAll]) + '","settingsFileUri":"' + FilePathToUri(lSettingsFilePath) + '"}}},' +
-    '{"method":"textDocument/didOpen","params":{"textDocument":{"uri":"' + FilePathToUri(lRequestFilePath) + '"}}}],' +
-    '"initializeResult":{"capabilities":{"definitionProvider":true}},"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lError := '';
-    Assert.IsFalse(FileExists(lContext.fContextFilePath),
-      'Did not expect normal lsp setup to start with the compatibility context file present.');
-    Assert.IsTrue(TryWriteLspContextFile(lContext, lError),
-      'Expected stale compatibility context file fixture to be written. Error: ' + lError);
-    Assert.IsTrue(FileExists(lContext.fContextFilePath),
-      'Expected stale compatibility context file fixture to exist before the normal run.');
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected one-shot lsp lifecycle to succeed. Error: ' + lError);
-    Assert.IsTrue(FileExists(lSettingsFilePath), 'Expected canonical settings file to be written for normal lsp operations.');
-    Assert.IsFalse(FileExists(lContext.fContextFilePath),
-      'Did not expect normal lsp operations to write the compatibility context file.');
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      Assert.IsNotNull(lJson, 'Expected lifecycle response JSON.');
-      Assert.AreEqual<string>('definition', lJson.GetValue<string>('operation'), 'Expected operation field.');
-      lLspObject := lJson.GetValue<TJSONObject>('lsp');
-      Assert.IsNotNull(lLspObject, 'Expected lsp metadata object.');
-      Assert.AreEqual(TPath.GetFullPath(GFakeLspExePath), lLspObject.GetValue<string>('path'), 'Expected fake server path.');
-      Assert.IsTrue(lJson.Values['result'] is TJSONObject, 'Expected normalized result object.');
-      Assert.AreEqual(1, (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations').Count,
-        'Expected one fake definition result.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspRunnerReportsSpecificDiscoveryAndInitFailures;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-begin
-  lDprojPath := PrepareResolvedContext('lsp-runner-failures', lContext);
-
-  lOptions := BuildRunnerOptions(lDprojPath);
-  lOptions.fLspPath := TPath.Combine(ExtractFilePath(lDprojPath), 'missing\DelphiLSP.exe');
-  lOptions.fHasLspPath := True;
-  lError := '';
-  Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError),
-    'Expected missing lsp executable to fail.');
-  Assert.IsTrue(Pos('DelphiLSP', lError) > 0, 'Expected DelphiLSP-specific discovery error. Actual: ' + lError);
-
-  EnsureFakeLspFixtureBuilt;
-  lScriptPath := CreateScriptFile('runner-init-failure',
-    '{"errors":{"initialize":{"code":-32001,"message":"simulated init failure"}}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lError := '';
-    Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected initialize failure to surface.');
-    Assert.IsTrue(Pos('initialize', LowerCase(lError)) > 0,
-      'Expected initialize-specific lifecycle error. Actual: ' + lError);
-    Assert.IsTrue(Pos('simulated init failure', lError) > 0,
-      'Expected scripted initialize message. Actual: ' + lError);
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-
-
-procedure TLspRunnerTests.LspDefinitionReturnsNormalizedLocations;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lLocation: TJSONObject;
-  lLocations: TJSONArray;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-definition-normalized', lContext);
-  lScriptPath := CreateScriptFile('definition-normalized',
-    '{"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lOptions.fLspLine := 3;
-    lOptions.fLspCol := 5;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected normalized definition request to succeed. Error: ' + lError);
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      Assert.IsNotNull(lJson, 'Expected JSON response.');
-      Assert.IsTrue(lJson.Values['result'] is TJSONObject, 'Expected result object.');
-      lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
-      Assert.IsNotNull(lLocations, 'Expected locations array.');
-      Assert.AreEqual(1, lLocations.Count, 'Expected one normalized definition location.');
-      lLocation := lLocations.Items[0] as TJSONObject;
-      Assert.AreEqual<string>('C:\repo\Unit1.pas', lLocation.GetValue<string>('file'), 'Expected normalized Windows path.');
-      Assert.AreEqual<string>('file:///C:/repo/Unit1.pas', lLocation.GetValue<string>('uri'), 'Expected original URI.');
-      Assert.AreEqual(3, lLocation.GetValue<Integer>('line'), 'Expected 1-based start line.');
-      Assert.AreEqual(5, lLocation.GetValue<Integer>('col'), 'Expected 1-based start col.');
-      Assert.AreEqual(3, lLocation.GetValue<Integer>('endLine'), 'Expected 1-based end line.');
-      Assert.AreEqual(11, lLocation.GetValue<Integer>('endCol'), 'Expected 1-based end col.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspPositionConversionUsesOneBasedCliAndZeroBasedProtocol;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lLocations: TJSONArray;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-position-conversion', lContext);
-  lScriptPath := CreateScriptFile('position-conversion',
-    '{"expect":{"textDocument/definition":{"position":{"line":2,"character":4}}},"responses":{"textDocument/definition":[]}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lOptions.fLspLine := 3;
-    lOptions.fLspCol := 5;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected request position conversion to satisfy fake server expectation. Error: ' + lError);
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
-      Assert.IsNotNull(lLocations, 'Expected normalized empty locations array.');
-      Assert.AreEqual(0, lLocations.Count, 'Expected empty location list from fake server.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspDefinitionNormalizesHostQualifiedPlusUris;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lLocation: TJSONObject;
-  lLocations: TJSONArray;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-host-qualified-uri', lContext);
-  lScriptPath := CreateScriptFile('host-qualified-uri',
-    '{"responses":{"textDocument/definition":[{"uri":"file://C:/repo/Foo%2BBar.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}},{"targetUri":"file://fileserver/share/Foo%2BBar.pas","targetRange":{"start":{"line":4,"character":1},"end":{"line":5,"character":8}},"targetSelectionRange":{"start":{"line":4,"character":3},"end":{"line":4,"character":6}}}]}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lOptions.fLspLine := 3;
-    lOptions.fLspCol := 5;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected host-qualified URI normalization request to succeed. Error: ' + lError);
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
-      Assert.IsNotNull(lLocations, 'Expected normalized locations array.');
-      Assert.AreEqual(2, lLocations.Count, 'Expected both host-qualified locations to be preserved.');
-
-      lLocation := lLocations.Items[0] as TJSONObject;
-      Assert.AreEqual<string>('C:\repo\Foo+Bar.pas', lLocation.GetValue<string>('file'),
-        'Expected drive-qualified URI to normalize to a Windows drive path without changing +.');
-
-      lLocation := lLocations.Items[1] as TJSONObject;
-      Assert.AreEqual<string>('\\fileserver\share\Foo+Bar.pas', lLocation.GetValue<string>('file'),
-        'Expected authority URI to normalize to a UNC path without changing +.');
-      Assert.AreEqual(5, lLocation.GetValue<Integer>('line'), 'Expected LocationLink start line to use targetRange.');
-      Assert.AreEqual(2, lLocation.GetValue<Integer>('col'), 'Expected LocationLink start col to use targetRange.');
-      Assert.AreEqual(6, lLocation.GetValue<Integer>('endLine'), 'Expected LocationLink end line to use targetRange.');
-      Assert.AreEqual(9, lLocation.GetValue<Integer>('endCol'), 'Expected LocationLink end col to use targetRange.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspHoverReturnsContentsAndOptionalRange;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lOptions: TAppOptions;
-  lRange: TJSONObject;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-hover-normalized', lContext);
-  lScriptPath := CreateScriptFile('hover-normalized',
-    '{"responses":{"textDocument/hover":{"contents":{"kind":"markdown","value":"Fixture **hover**"},"range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loHover;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lOptions.fLspLine := 3;
-    lOptions.fLspCol := 5;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected hover request to succeed. Error: ' + lError);
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      Assert.AreEqual<string>('Fixture **hover**', (lJson.Values['result'] as TJSONObject).GetValue<string>('contentsText'),
-        'Expected hover contentsText.');
-      Assert.AreEqual<string>('Fixture **hover**', (lJson.Values['result'] as TJSONObject).GetValue<string>('contentsMarkdown'),
-        'Expected markdown payload to be preserved.');
-      lRange := (lJson.Values['result'] as TJSONObject).GetValue<TJSONObject>('range');
-      Assert.IsNotNull(lRange, 'Expected hover range.');
-      Assert.AreEqual(3, lRange.GetValue<Integer>('line'), 'Expected 1-based hover start line.');
-      Assert.AreEqual(5, lRange.GetValue<Integer>('col'), 'Expected 1-based hover start col.');
-      Assert.AreEqual(3, lRange.GetValue<Integer>('endLine'), 'Expected 1-based hover end line.');
-      Assert.AreEqual(17, lRange.GetValue<Integer>('endCol'), 'Expected 1-based hover end col.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspHoverTextOutputStaysCompact;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-hover-text', lContext);
-  lScriptPath := CreateScriptFile('hover-text',
-    '{"responses":{"textDocument/hover":{"contents":{"kind":"plaintext","value":"Fixture hover details"},"range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loHover;
-    lOptions.fLspFormat := TLspFormat.lfText;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lOptions.fLspLine := 3;
-    lOptions.fLspCol := 5;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected hover text request to succeed. Error: ' + lError);
-    Assert.IsTrue(Pos('Hover:', lResult.fTextResponse) = 1, 'Expected compact hover heading.');
-    Assert.IsTrue(Pos('Fixture hover details', lResult.fTextResponse) > 0, 'Expected hover text body.');
-    Assert.IsTrue(Pos('Range: 3:5-3:17', lResult.fTextResponse) > 0, 'Expected compact hover range.');
-    Assert.AreEqual(0, Pos('operation:', LowerCase(lResult.fTextResponse)), 'Did not expect generic debug envelope text.');
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspHoverRepresentsEmptyResultsExplicitly;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-hover-empty', lContext);
-  lScriptPath := CreateScriptFile('hover-empty',
-    '{"responses":{"textDocument/hover":null}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loHover;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lOptions.fLspLine := 3;
-    lOptions.fLspCol := 5;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected empty hover request to succeed. Error: ' + lError);
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      Assert.IsTrue((lJson.Values['result'] as TJSONObject).GetValue<Boolean>('isEmpty', False),
-        'Expected empty hover to be marked explicitly.');
-      Assert.AreEqual<string>('', (lJson.Values['result'] as TJSONObject).GetValue<string>('contentsText'),
-        'Expected empty hover contentsText.');
-      Assert.IsFalse(Assigned((lJson.Values['result'] as TJSONObject).Values['range']), 'Did not expect hover range for empty result.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspSymbolsRequestDocumentSymbolsForFile;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lExpectedUri: string;
-  lJson: TJSONObject;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-  lSymbols: TJSONArray;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-symbols-document-symbol-request', lContext);
-  lOptions := BuildRunnerOptions(lDprojPath);
-  lOptions.fLspOperation := TLspOperation.loSymbols;
-  lOptions.fLspQuery := 'Fixture';
-  lOptions.fLspLimit := 10;
-  lOptions.fLspPath := GFakeLspExePath;
-  lOptions.fHasLspPath := True;
-  lExpectedUri := FilePathToUri(lOptions.fLspFilePath);
-  lScriptPath := CreateScriptFile('symbols-document-symbol-request',
-    '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"documentSymbolProvider":true}},' +
-    '"expect":{"textDocument/documentSymbol":{"textDocument":{"uri":"' + lExpectedUri + '"}}},' +
-    '"responses":{"textDocument/documentSymbol":[{"name":"TFixtureType","kind":5,' +
-    '"range":{"start":{"line":1,"character":0},"end":{"line":6,"character":0}},' +
-    '"selectionRange":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}]}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected document-symbol request to succeed. Error: ' + lError);
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
-      Assert.IsNotNull(lSymbols, 'Expected normalized symbols array.');
-      Assert.AreEqual(1, lSymbols.Count, 'Expected one normalized symbol from documentSymbol.');
-      Assert.AreEqual<string>('TFixtureType', (lSymbols.Items[0] as TJSONObject).GetValue<string>('name'), 'Expected symbol name.');
-      Assert.AreEqual<string>(lOptions.fLspFilePath, (lSymbols.Items[0] as TJSONObject).GetValue<string>('file'),
-        'Expected request file path to flow into normalized document symbols.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspSymbolsFlattenHierarchicalDocumentSymbols;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-  lSymbol: TJSONObject;
-  lSymbols: TJSONArray;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-symbols-hierarchical', lContext);
-  lScriptPath := CreateScriptFile('symbols-hierarchical',
-    '{"initializeResult":{"capabilities":{"documentSymbolProvider":true}},"responses":{"textDocument/documentSymbol":[' +
-    '{"name":"TFixtureType","kind":5,"range":{"start":{"line":1,"character":0},"end":{"line":20,"character":0}},' +
-    '"selectionRange":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}},"children":[' +
-    '{"name":"CreateFixture","kind":6,"range":{"start":{"line":4,"character":2},"end":{"line":6,"character":5}},' +
-    '"selectionRange":{"start":{"line":4,"character":10},"end":{"line":4,"character":23}},"children":[' +
-    '{"name":"lFixtureValue","kind":13,"range":{"start":{"line":5,"character":4},"end":{"line":5,"character":20}},' +
-    '"selectionRange":{"start":{"line":5,"character":8},"end":{"line":5,"character":21}}}]}' +
-    ']}' +
-    ']}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loSymbols;
-    lOptions.fLspQuery := 'Fixture';
-    lOptions.fLspLimit := 10;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected hierarchical document-symbol request to succeed. Error: ' + lError);
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
-      Assert.IsNotNull(lSymbols, 'Expected flattened symbols array.');
-      Assert.AreEqual(3, lSymbols.Count, 'Expected hierarchical document symbols to flatten recursively.');
-
-      lSymbol := lSymbols.Items[0] as TJSONObject;
-      Assert.AreEqual<string>('TFixtureType', lSymbol.GetValue<string>('name'), 'Expected parent symbol first.');
-      Assert.AreEqual<string>('', lSymbol.GetValue<string>('containerName'), 'Expected root symbol to have no container.');
-      Assert.AreEqual(3, lSymbol.GetValue<Integer>('line'), 'Expected selectionRange-based line for parent symbol.');
-      Assert.AreEqual(5, lSymbol.GetValue<Integer>('col'), 'Expected selectionRange-based col for parent symbol.');
-
-      lSymbol := lSymbols.Items[1] as TJSONObject;
-      Assert.AreEqual<string>('CreateFixture', lSymbol.GetValue<string>('name'), 'Expected child symbol name.');
-      Assert.AreEqual<string>('TFixtureType', lSymbol.GetValue<string>('containerName'), 'Expected immediate parent name as containerName.');
-
-      lSymbol := lSymbols.Items[2] as TJSONObject;
-      Assert.AreEqual<string>('lFixtureValue', lSymbol.GetValue<string>('name'), 'Expected nested child symbol name.');
-      Assert.AreEqual<string>('CreateFixture', lSymbol.GetValue<string>('containerName'), 'Expected nested parent name as containerName.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspSymbolsRespectQueryAndLimitAfterFlattening;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-  lSymbols: TJSONArray;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-symbols-query-limit', lContext);
-  lScriptPath := CreateScriptFile('symbols-query-limit',
-    '{"initializeResult":{"capabilities":{"documentSymbolProvider":true}},"responses":{"textDocument/documentSymbol":[' +
-    '{"name":"TAlphaFixture","kind":5,"range":{"start":{"line":1,"character":0},"end":{"line":10,"character":0}},' +
-    '"selectionRange":{"start":{"line":1,"character":2},"end":{"line":1,"character":15}},"children":[' +
-    '{"name":"NonMatchingHelper","kind":6,"range":{"start":{"line":2,"character":2},"end":{"line":3,"character":5}},' +
-    '"selectionRange":{"start":{"line":2,"character":4},"end":{"line":2,"character":20}}},' +
-    '{"name":"TSecondFixture","kind":5,"range":{"start":{"line":4,"character":2},"end":{"line":8,"character":5}},' +
-    '"selectionRange":{"start":{"line":4,"character":6},"end":{"line":4,"character":20}}}]},' +
-    '{"name":"TThirdFixture","kind":5,"range":{"start":{"line":12,"character":0},"end":{"line":18,"character":0}},' +
-    '"selectionRange":{"start":{"line":12,"character":2},"end":{"line":12,"character":15}}}' +
-    ']}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loSymbols;
-    lOptions.fLspQuery := 'Fixture';
-    lOptions.fLspLimit := 1;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected filtered document-symbol request to succeed. Error: ' + lError);
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
-      Assert.IsNotNull(lSymbols, 'Expected filtered symbols array.');
-      Assert.AreEqual(1, lSymbols.Count, 'Expected query filter and limit to be applied after flattening.');
-      Assert.AreEqual<string>('TAlphaFixture', (lSymbols.Items[0] as TJSONObject).GetValue<string>('name'),
-        'Expected the first sorted matching symbol after flattening and filtering.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspProbeContextFileModeUsesOwnedHandshake;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lModeObject: TJSONObject;
-  lModes: TJSONArray;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-probe-context-file', lContext);
-  lScriptPath := CreateScriptFile('probe-context-file',
-    '{"expect":{"initialize":{"initializationOptions":{"contextFile":"' + StringReplace(lContext.fContextFilePath, '\', '\\', [rfReplaceAll]) + '","contextFileUri":"' + FilePathToUri(lContext.fContextFilePath) + '","logsDir":"' + StringReplace(lContext.fLogsDir, '\', '\\', [rfReplaceAll]) + '"}}},' +
-    '"expectNotifications":[{"method":"initialized","params":{}}],' +
-    '"initializeResult":{"capabilities":{"documentSymbolProvider":true,"hoverProvider":true}}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loProbe;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lOptions.fLspProbeModes := [TLspProbeMode.lpmContextFile];
-    lOptions.fLspShowInitOptions := True;
-    lOptions.fHasLspShowInitOptions := True;
-
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected contextFile probe to succeed. Error: ' + lError);
-
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      lModes := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('modes');
-      Assert.AreEqual(1, lModes.Count, 'Expected one probe mode result.');
-      lModeObject := lModes.Items[0] as TJSONObject;
-      Assert.AreEqual<string>('contextFile', lModeObject.GetValue<string>('mode', ''), 'Expected contextFile mode.');
-      Assert.IsTrue(Assigned(lModeObject.Values['initializationOptions']), 'Expected initialization options when show-init-options is enabled.');
-      Assert.IsFalse(Assigned((lModeObject.Values['initializationOptions'] as TJSONObject).Values['settingsFile']),
-        'Did not expect settingsFile in contextFile mode.');
-      Assert.IsTrue(Assigned((lModeObject.Values['initializationOptions'] as TJSONObject).Values['contextFile']),
-        'Expected contextFile in contextFile mode.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspProbeSettingsFileModeUsesSettingsHandshake;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lModeObject: TJSONObject;
-  lModes: TJSONArray;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-  lSettingsFilePath: string;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-probe-settings-file', lContext);
-  lSettingsFilePath := TPath.Combine(lContext.fDakLspRoot, 'probe.delphilsp.json');
-  lScriptPath := CreateScriptFile('probe-settings-file',
-    '{"expect":{"initialize":{"initializationOptions":{"settingsFile":"' + StringReplace(lSettingsFilePath, '\', '\\', [rfReplaceAll]) + '","settingsFileUri":"' + FilePathToUri(lSettingsFilePath) + '"}}},' +
-    '"expectNotifications":[{"method":"initialized","params":{}},{"method":"workspace/didChangeConfiguration","params":{"settings":{"settingsFile":"' + StringReplace(lSettingsFilePath, '\', '\\', [rfReplaceAll]) + '","settingsFileUri":"' + FilePathToUri(lSettingsFilePath) + '"}}}],' +
-    '"initializeResult":{"capabilities":{"definitionProvider":true,"hoverProvider":true}}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loProbe;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lOptions.fLspProbeModes := [TLspProbeMode.lpmSettingsFile];
-    lOptions.fLspShowInitOptions := True;
-    lOptions.fHasLspShowInitOptions := True;
-
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected settingsFile probe to succeed. Error: ' + lError);
-    Assert.IsTrue(FileExists(lSettingsFilePath), 'Expected probe settings file to be written under the owned .dak workspace.');
-
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      lModes := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('modes');
-      Assert.AreEqual(1, lModes.Count, 'Expected one probe mode result.');
-      lModeObject := lModes.Items[0] as TJSONObject;
-      Assert.AreEqual<string>('settingsFile', lModeObject.GetValue<string>('mode', ''), 'Expected settingsFile mode.');
-      Assert.AreEqual<string>(lSettingsFilePath, lModeObject.GetValue<string>('settingsFile', ''), 'Expected reported settings file path.');
-      Assert.IsTrue(Assigned(lModeObject.Values['initializationOptions']), 'Expected initialization options when show-init-options is enabled.');
-      Assert.IsFalse(Assigned((lModeObject.Values['initializationOptions'] as TJSONObject).Values['contextFile']),
-        'Did not expect contextFile in settingsFile mode.');
-      Assert.IsTrue(Assigned((lModeObject.Values['initializationOptions'] as TJSONObject).Values['settingsFile']),
-        'Expected settingsFile in settingsFile mode.');
-      Assert.IsTrue(Assigned(lModeObject.Values['configurationNotification']),
-        'Expected configuration notification payload for settingsFile mode.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspRunnerTests.LspRunnerTimesOutNonResponsiveServer;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lElapsedMs: UInt64;
-  lError: string;
-  lOptions: TAppOptions;
-  lPid: Integer;
-  lPidFile: string;
-  lPidText: string;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-  lStartTick: UInt64;
-  lTimeoutGuard: IInterface;
-begin
-  EnsureFakeLspFixtureBuilt;
-
-  lDprojPath := PrepareResolvedContext('lsp-nonresponsive-timeout', lContext);
-  lPidFile := TPath.Combine(TempRoot, 'lsp-nonresponsive-timeout.pid');
-  lScriptPath := CreateScriptFile('nonresponsive-timeout',
-    '{"pidFile":"' + JsonEscape(lPidFile) + '","hangOn":{"initialize":true}}');
-
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  lTimeoutGuard := SetScopedEnvironmentVariable('DAK_LSP_REQUEST_TIMEOUT_MS', '250');
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-
-    lError := '';
-    lStartTick := GetTickCount64;
-    Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected nonresponsive fake LSP server to time out.');
-    lElapsedMs := GetTickCount64 - lStartTick;
-
-    Assert.IsTrue(Pos('timed out', LowerCase(lError)) > 0,
-      'Timeout diagnostic should name the timeout. Actual: ' + lError);
-    Assert.IsTrue(lElapsedMs < 5000,
-      'Timeout must be bounded by the configured deadline. ElapsedMs=' + lElapsedMs.ToString);
-    Assert.IsTrue(FileExists(lPidFile), 'Expected fake LSP to write its pid file.');
-    lPidText := Trim(TFile.ReadAllText(lPidFile, TEncoding.ASCII));
-    lPid := StrToIntDef(lPidText, 0);
-    Assert.IsTrue(lPid > 0, 'Expected fake LSP pid file to contain a process id.');
-    Assert.IsTrue(ProcessHasExited(Cardinal(lPid)),
-      'Timed-out fake LSP process should be terminated before TryRunLspRequest returns.');
-  finally
-    lTimeoutGuard := nil;
-    lScriptGuard := nil;
-  end;
-end;
-
-procedure TLspArchitectureTests.LspTransportImplementationLivesOutsideRunner;
-var
-  lRunnerSource: string;
-  lTransportPath: string;
-  lTransportSource: string;
-begin
-  lRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.lsp.runner.pas'), TEncoding.UTF8);
-  lTransportPath := TPath.Combine(RepoRoot, 'src\Dak.Lsp.Transport.pas');
-  Assert.IsTrue(FileExists(lTransportPath), 'Expected focused LSP transport unit to exist: ' + lTransportPath);
-  lTransportSource := TFile.ReadAllText(lTransportPath, TEncoding.UTF8);
-
-  Assert.IsFalse(ContainsText(lRunnerSource, 'TLspJsonRpcClient = class'),
-    'LSP JSON-RPC transport class should live outside dak.lsp.runner.pas.');
-  Assert.IsFalse(ContainsText(lRunnerSource, 'CreatePipe(') or ContainsText(lRunnerSource, 'CreateProcess(') or
-    ContainsText(lRunnerSource, 'ReadMessage(') or ContainsText(lRunnerSource, 'WriteMessage('),
-    'dak.lsp.runner.pas should keep request orchestration and output shaping, not transport implementation.');
-  Assert.IsTrue(ContainsText(lTransportSource, 'TLspJsonRpcClient = class'),
-    'Expected focused LSP transport unit to own TLspJsonRpcClient.');
-  Assert.IsTrue(ContainsText(lTransportSource, 'CreatePipe(') and ContainsText(lTransportSource, 'CreateProcess(') and
-    ContainsText(lTransportSource, 'ReadMessage(') and ContainsText(lTransportSource, 'WriteMessage('),
-    'Expected focused LSP transport unit to own process startup and JSON-RPC framing.');
-  Assert.IsTrue(ContainsText(lTransportSource, 'fInputHandle: THandle') and
-    ContainsText(lTransportSource, 'CloseHandle(fInputHandle)') and
-    ContainsText(lTransportSource, 'CloseHandle(fOutputHandle)'),
-    'Expected transport to explicitly own and close pipe handles wrapped by THandleStream.');
-end;
-
-procedure TLspRunnerTests.LspSymbolsRepresentEmptyResultsExplicitly;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-  lScriptGuard: IInterface;
-  lSymbols: TJSONArray;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-symbols-empty', lContext);
-  lScriptPath := CreateScriptFile('symbols-empty',
-    '{"initializeResult":{"capabilities":{"documentSymbolProvider":true}},"responses":{"textDocument/documentSymbol":[]}}');
-  lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
-  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loSymbols;
-    lOptions.fLspQuery := 'Missing';
-    lOptions.fLspLimit := 10;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected empty document-symbol request to succeed. Error: ' + lError);
-    lJson := ParseJsonObject(lResult.fResponseText);
-    try
-      lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
-      Assert.IsNotNull(lSymbols, 'Expected explicit empty symbols array.');
-      Assert.AreEqual(0, lSymbols.Count, 'Expected empty symbols result.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    lScriptGuard := nil;
-  end;
 end;
 
 procedure TRealLspAcceptanceTests.RealDelphi23DefinitionMatchesFixtureGoldenAnswer;
@@ -2242,10 +1114,90 @@ begin
   end;
 end;
 
+procedure TRealLspAcceptanceTests.RealDelphi23HoverMatchesFixtureGoldenAnswer;
+type
+  THoverCase = record
+    fScenario: string;
+    fPlatformArgs: string;
+    fLine: Integer;
+    fCol: Integer;
+    fExpectedSignature: string;
+  end;
+const
+  // DelphiLSP answers hover only through the platform compiler DLL, so one case
+  // runs per platform. Each position names a different symbol; a golden that
+  // only checked for non-empty text could pass on the wrong declaration.
+  cCases: array[0..1] of THoverCase = (
+    (fScenario: 'real-lsp-hover-golden-win32'; fPlatformArgs: ''; fLine: 8; fCol: 21;
+     fExpectedSignature: 'class procedure TFixtureType.Run'),
+    (fScenario: 'real-lsp-hover-golden-win64'; fPlatformArgs: ' --platform Win64 --config Debug'; fLine: 13;
+     fCol: 18; fExpectedSignature: 'type Unit1.TFixtureType = class(TObject)'));
+var
+  lArgs: string;
+  lCase: THoverCase;
+  lJson: TJSONObject;
+  lLspPath: string;
+  lResult: TJSONObject;
+begin
+  RequireRealDelphiLsp23OrSkip(lLspPath);
+  for lCase in cCases do
+  begin
+    lArgs := 'lsp hover --project ' + QuoteArg(FixtureDprojPath) +
+      ' --delphi 23.0 --lsp-path ' + QuoteArg(lLspPath) + lCase.fPlatformArgs +
+      ' --file ' + QuoteArg(FixtureUnit1Path) +
+      Format(' --line %d --col %d --format json', [lCase.fLine, lCase.fCol]);
+    lJson := nil;
+    try
+      Assert.AreEqual<Cardinal>(0, RunLspCommand(lCase.fScenario, lArgs, lJson),
+        'Expected real Delphi 23 hover golden query to succeed: ' + lCase.fScenario);
+      lResult := lJson.Values['result'] as TJSONObject;
+      Assert.IsNotNull(lResult, 'Expected a hover result object: ' + lCase.fScenario);
+      Assert.IsFalse(lResult.GetValue<Boolean>('isEmpty', False),
+        'Expected non-empty real hover: ' + lCase.fScenario + ' ' + lResult.ToJSON);
+      Assert.IsTrue(ContainsText(lResult.GetValue<string>('contentsText', ''), lCase.fExpectedSignature),
+        'Expected hover signature "' + lCase.fExpectedSignature + '": ' + lResult.ToJSON);
+      Assert.IsTrue(ContainsText(lResult.GetValue<string>('contentsMarkdown', ''), lCase.fExpectedSignature),
+        'Expected DelphiLSP markdown hover content: ' + lResult.ToJSON);
+      Assert.IsFalse(ContainsText(lJson.GetValue<TJSONArray>('warnings').ToJSON, 'compiler DLL not resolved'),
+        'A resolved compiler DLL must not be reported: ' + lJson.ToJSON);
+    finally
+      lJson.Free;
+    end;
+  end;
+end;
+
+procedure TRealLspAcceptanceTests.RealDelphi23UnsupportedPlatformWarnsAndStillAnswers;
+var
+  lArgs, lLspPath: string;
+  lJson: TJSONObject;
+  lLocations: TJSONArray;
+  lWarnings: string;
+begin
+  // Linux64 has no proven compiler DLL for DelphiLSP: the query still runs
+  // without "dllname", as before, and names the reason in its warnings.
+  RequireRealDelphiLsp23OrSkip(lLspPath);
+  lArgs := 'lsp definition --project ' + QuoteArg(FixtureDprojPath) +
+    ' --delphi 23.0 --lsp-path ' + QuoteArg(lLspPath) + ' --platform Linux64 --config Debug' +
+    ' --file ' + QuoteArg(FixtureUnit1Path) + ' --line 8 --col 21 --format json';
+  lJson := nil;
+  try
+    Assert.AreEqual<Cardinal>(0, RunLspCommand('real-lsp-definition-linux64-warning', lArgs, lJson),
+      'Expected an unresolved compiler DLL not to refuse the query.');
+    lWarnings := lJson.GetValue<TJSONArray>('warnings').ToJSON;
+    Assert.IsTrue(ContainsText(lWarnings, 'DelphiLSP compiler DLL not resolved (platform Linux64 is not supported'),
+      lWarnings);
+    Assert.IsTrue(ContainsText(lWarnings, 'hover may return no content'), lWarnings);
+    lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
+    Assert.AreEqual(1, lLocations.Count, 'Expected the definition answer without dllname: ' + lJson.ToJSON);
+    Assert.AreEqual(13, (lLocations.Items[0] as TJSONObject).GetValue<Integer>('line'), lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+end;
+
 initialization
   GRealLspAcceptanceLock := TObject.Create;
   TDUnitX.RegisterTestFixture(TLspContextTests);
-  TDUnitX.RegisterTestFixture(TLspFixtureTests);
   TDUnitX.RegisterTestFixture(TLspRunnerTests);
   TDUnitX.RegisterTestFixture(TLspArchitectureTests);
   TDUnitX.RegisterTestFixture(TRealLspAcceptanceTests);

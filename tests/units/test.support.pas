@@ -16,23 +16,48 @@ uses
   Dak.Lsp.Context,
   Dak.Lsp.Runner,
   Dak.PascalAnalyzerRunner,
-  Dak.Types;
+  Dak.Types,
+  Dak.Utils;
+
+type
+  // Runs on the caller's thread after the child is contained and resumed, before
+  // the deadline starts. It receives the child's process handle.
+  TProcessStartedHook = reference to procedure(aProcess: THandle);
 
 function RepoRoot: string;
 function TempRoot: string;
 function MaxTdbFixtureRoot: string;
 function UniqueTempPath(const aPrefix: string): string;
 function UniqueNoRepoTempPath(const aPrefix: string): string;
+// The folder that holds UniqueNoRepoTempPath results, as named by the current
+// DAK_TEST_OUTPUT_ROOT; names below it are <prefix>-<PID>-<token>.
+function NoRepoTempBase: string;
 procedure DeleteTempPath(const aPath: string);
+// DAK-389: recursive delete that also removes folders beyond MAX_PATH (extended-length prefix).
+// Reparse points (junctions, symlinks) are removed as links and never entered. Depth is bounded.
+// Returns False with the first failure in aError; a missing path is success.
+function TryDeleteTreeLongPath(const aPath: string; out aError: string): Boolean;
+// DAK-383: the identity this runner exports to its descendants; empty in a child run, which owns nothing.
+function RunOwnerIdentity: string;
+// DAK-383: removes the run roots of this runner's dead children (see the implementation); no-op under
+// DAK_TEST_KEEP_TEMP=1. The runner calls it when it finishes.
+procedure RemoveOwnedChildRunRoots;
+// DAK-383: the sweep over one base folder. False, with the reason in aError, when the folder cannot be enumerated;
+// it never raises, so finalization cannot end in a runtime error.
+function TryRemoveOwnedChildRunRootsIn(const aBase: string; out aError: string): Boolean;
 procedure EnsureTempClean;
 procedure EnsureResolverBuilt;
 function ResolverExePath: string;
+function HostDakExePath: string;
+function TryResolveCandidateExe(out aExePath: string; out aError: string): Boolean;
 procedure RequireFixInsightOrSkip(out aExePath: string);
 procedure RequirePalCmdOrSkip(out aExePath: string);
 procedure RequireRealDelphiLsp23OrSkip(out aExePath: string);
 function RunProcess(const aExe, aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
 function RunProcessWithTimeout(const aExe, aArgs, aWorkDir, aOutputFile: string;
   const aTimeoutMs: Cardinal; out aExitCode: Cardinal): Boolean;
+function RunProcessWithStartHook(const aExe, aArgs, aWorkDir, aOutputFile: string;
+  const aTimeoutMs: Cardinal; const aOnStarted: TProcessStartedHook; out aExitCode: Cardinal): Boolean;
 function RunResolverProcess(const aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
 function RunCommandProcess(const aExePath, aArgs, aWorkDir, aOutputFile: string;
   out aExitCode: Cardinal): Boolean;
@@ -55,6 +80,33 @@ const
   cAllowPalSkipEnvVar = 'DAK_ALLOW_PAL_SKIP';
   cAllowLspSkipEnvVar = 'DAK_ALLOW_LSP_SKIP';
   cMaxTdbFixtureEnvVar = 'DAK_MAXTDB_FIXTURE';
+  // DAK-378: neither this runner nor the DAK, MSBuild, compiler, git and svn children
+  // the suite starts is fully long-path aware, so every path a test creates below the
+  // run root must fit a classic Windows path of MAX_PATH - 1 = 259 characters.
+  // Deepest paths measured below the run root (DAK-385, 2026-10-01, DAK_TEST_KEEP_TEMP=1 over
+  // RemoveWith, SymbolMap, NativeAnalysisDoctor, NativeAnalysisWorkspace, DfmCheck,
+  // PascalAnalyzer, ExternalToolProcess, Utils, Refactor.Transaction, SignatureCommand and
+  // DakWorkingPaths; 501 tests, all passed):
+  //   136  sm-<8>\repository\.git\modules\deps\a child <4 non-ASCII> (topic)\modules\
+  //        nested <1 non-ASCII> (leaf)\objects\<2>\<38 hex> (Test.NativeAnalysisWorkspace,
+  //        a git submodule fixture; lengths count UTF-16 characters)
+  //   126  symbol-map-api-membership-refresh-project-<8>\.dak\SymbolMapIntrinsicCollision\
+  //        symbol-map\v2\semantic-unit-cache.sqlite3 (Test.SymbolMap; persistent cache layout)
+  //   124  native-analysis-svn-clean-<8>\working-copy\external\.svn\pristine\... (workspace)
+  //   122  remove-with-control-character-literals\.dak\RemoveWithControlCharacterLiteralFixture\
+  //        remove-with\<8 hex>\vapp\stderr.log (Test.RemoveWith; 164 before DAK-385)
+  //   122  dfm-check-repo-local-reference-source\App\.dak\Sample\dfm-check\runs\<8 hex>\
+  //        generated\Win32\Release\Sample_DfmCheck.exe (Test.DfmCheck; 146 before DAK-385)
+  // The longest UniqueTempPath folder is 50 characters (a 41-character prefix, a dash and
+  // the token). Tests that size their own long paths on purpose (pal-path, pal-no-status,
+  // RemoveWith.LongPath, DakWorkingPaths wp-deep) are excluded. Reserve = 136 + a
+  // 10-character margin, which also covers a SQLite "-journal" beside the symbol-map cache.
+  cRunRootFileReserve = 146;
+  cMaxRunRootLength = MAX_PATH - 1 - cRunRootFileReserve;
+  // Exit code of a runner that cannot prepare its run root, before any test runs.
+  // Distinct from DUnitX (1), run.bat/run.sh (2), fixture child modes (3, 7)
+  // and run-dunitx.ps1 (124); 78 is the conventional "configuration error" code.
+  cStartupFailureExitCode = 78;
 
 type
   TExternalToolMissingDecision = (etmdFail, etmdSkip);
@@ -63,6 +115,9 @@ function MissingExternalToolDecision(const aToolName, aAllowSkipEnvVar, aDiagnos
   out aMessage: string): TExternalToolMissingDecision;
 
 implementation
+
+uses
+  System.RegularExpressions;
 
 type
   TScopedEnvironmentVariable = class(TInterfacedObject)
@@ -88,13 +143,38 @@ type
     destructor Destroy; override;
   end;
 
+  // DAK-378: the run root cannot hold the files the suite writes beneath it.
+  ETestRunRootTooLong = class(Exception);
+  // DAK-378: every drawn UniqueTempPath name was already present.
+  ETestTempPathExhausted = class(Exception);
+
 const
+  cOutputCreateAttempts = 20;
   cPalCmdMapPathEnvVar = 'DAK_PALCMD_MAP_PATH';
+  cTestOutputRootEnvVar = 'DAK_TEST_OUTPUT_ROOT';
+  // DAK-383: the top-level runner exports its own identity (PID and creation time) here, so every process it
+  // starts, directly or through DAK, inherits it. A child run root records the value in cRunOwnerMarker, which
+  // lets the owner remove the roots of children that were killed before their own cleanup ran.
+  cRunOwnerEnvVar = 'DAK_TEST_RUN_OWNER';
+  cRunOwnerMarker = '.run-owner';
+  cRunRootNamePattern = '^run-\d+-[0-9A-F]{8}$';
+  // DAK-378: characters of a GUID kept in run-root and UniqueTempPath names. The PID
+  // already separates live runs, and each run root holds only its own process's
+  // paths, so 32 random bits suffice; the full 36-character GUID spent path budget.
+  // UniqueTempPath names are drawn again on a clash (at most cUniqueNameAttempts
+  // times); a run root is drawn once, and EnsureTempClean replaces a stale one.
+  cUniqueTokenLength = 8;
+  cUniqueNameAttempts = 100;
+  // A Windows PID is a DWORD: at most 10 decimal digits. The run root is checked as
+  // if its PID had that many, so the verdict does not depend on the actual PID.
+  cMaxPidDigits = 10;
 
 var
   GRepoRoot: string;
   GTempRoot: string;
   GTempCleaned: Boolean = False;
+  // DAK-383: this process's identity when it is the top-level runner; empty in a child run.
+  GRunOwner: string = '';
   GResolverBuilt: Boolean = False;
   GResolverExe: string = '';
   GEnvironmentLock: TCriticalSection;
@@ -250,8 +330,30 @@ var
   lGuidText: string;
 begin
   CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  lGuidText := Copy(GUIDToString(lGuid), 2, cUniqueTokenLength);
   Result := TPath.Combine(aBaseRoot, 'run-' + GetCurrentProcessId.ToString + '-' + lGuidText);
+end;
+
+function TryValidateRunRoot(const aRunRoot: string; out aError: string): Boolean;
+var
+  lCheckedLength: Integer;
+  lEnvRoot: string;
+begin
+  aError := '';
+  // Count the widest PID, so a parent and the children it starts under the same
+  // output root get the same verdict whatever their PIDs are.
+  lCheckedLength := Length(aRunRoot) - Length(GetCurrentProcessId.ToString) + cMaxPidDigits;
+  if lCheckedLength <= cMaxRunRootLength then
+    Exit(True);
+  lEnvRoot := Trim(GetEnvironmentVariable(cTestOutputRootEnvVar));
+  if lEnvRoot = '' then
+    lEnvRoot := '(not set; the root is under the repository)';
+  aError := Format('Test run root is too long: "%s" counts as %d characters with a %d-digit PID; ' +
+    'the limit is %d (Windows MAX_PATH %d less 1, less %d reserved for test files beneath it). ' +
+    '%s="%s". Choose a shorter %s.',
+    [aRunRoot, lCheckedLength, cMaxPidDigits, cMaxRunRootLength, MAX_PATH, cRunRootFileReserve,
+    cTestOutputRootEnvVar, lEnvRoot, cTestOutputRootEnvVar]);
+  Result := False;
 end;
 
 function PathHasRepoMarker(const aPath: string): Boolean;
@@ -275,11 +377,19 @@ end;
 function UniqueTempPathUnderRoot(const aBaseRoot, aPrefix: string): string;
 var
   lGuid: TGUID;
-  lGuidText: string;
 begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(aBaseRoot, aPrefix + '-' + lGuidText);
+  // A short token can repeat; draw again when the name is already present so a kept
+  // or concurrent sibling is never reused. The bound turns a broken GUID source or an
+  // unreadable base into a named failure instead of an endless loop.
+  for var lAttempt := 1 to cUniqueNameAttempts do
+  begin
+    CreateGUID(lGuid);
+    Result := TPath.Combine(aBaseRoot, aPrefix + '-' + Copy(GUIDToString(lGuid), 2, cUniqueTokenLength));
+    if not (TDirectory.Exists(Result) or TFile.Exists(Result)) then
+      Exit;
+  end;
+  raise ETestTempPathExhausted.CreateFmt('No unused temp path "%s-<token>" under "%s" after %d attempts.',
+    [aPrefix, aBaseRoot, cUniqueNameAttempts]);
 end;
 
 function QuoteArg(const aValue: string): string;
@@ -329,7 +439,7 @@ var
 begin
   if GTempRoot = '' then
   begin
-    lEnvRoot := Trim(GetEnvironmentVariable('DAK_TEST_OUTPUT_ROOT'));
+    lEnvRoot := Trim(GetEnvironmentVariable(cTestOutputRootEnvVar));
     if lEnvRoot <> '' then
       GTempRoot := NewRunTempRoot(TPath.GetFullPath(lEnvRoot))
     else
@@ -343,161 +453,246 @@ begin
   Result := UniqueTempPathUnderRoot(TempRoot, aPrefix);
 end;
 
-function UniqueNoRepoTempPath(const aPrefix: string): string;
+function NoRepoTempBase: string;
 var
-  lBaseRoot: string;
   lEnvRoot: string;
 begin
-  lEnvRoot := Trim(GetEnvironmentVariable('DAK_TEST_OUTPUT_ROOT'));
+  lEnvRoot := Trim(GetEnvironmentVariable(cTestOutputRootEnvVar));
   if lEnvRoot <> '' then
-    lBaseRoot := TPath.GetFullPath(lEnvRoot)
+    Result := TPath.GetFullPath(lEnvRoot)
   else
-    lBaseRoot := TPath.Combine(TPath.GetTempPath, 'DelphiAIKit-tests-no-repo');
+    Result := TPath.Combine(TPath.GetTempPath, 'DelphiAIKit-tests-no-repo');
 
-  if PathHasRepoMarker(lBaseRoot) then
-    lBaseRoot := TPath.Combine(TPath.GetTempPath, 'DelphiAIKit-tests-no-repo');
+  if PathHasRepoMarker(Result) then
+    Result := TPath.Combine(TPath.GetTempPath, 'DelphiAIKit-tests-no-repo');
+end;
 
-  Result := UniqueTempPathUnderRoot(lBaseRoot, aPrefix + '-' + GetCurrentProcessId.ToString);
+function UniqueNoRepoTempPath(const aPrefix: string): string;
+begin
+  Result := UniqueTempPathUnderRoot(NoRepoTempBase, aPrefix + '-' + GetCurrentProcessId.ToString);
+end;
+
+const
+  cMaxDeleteDepth = 512;
+
+procedure NoteDeleteFailure(var aError: string; const aPath, aWhat: string);
+begin
+  if aError = '' then
+    aError := 'could not ' + aWhat + ' ' + aPath + ': ' + SysErrorMessage(GetLastError);
+end;
+
+// Removes one directory entry without following it: a reparse point is deleted as a link.
+procedure DeleteEntryOrTree(const aPath: string; aAttributes: DWORD; aDepth: Integer; var aError: string);
+var
+  lData: TWin32FindData;
+  lFind: THandle;
+  lName: string;
+begin
+  if (aAttributes and FILE_ATTRIBUTE_DIRECTORY) = 0 then
+  begin
+    SetFileAttributes(PChar(aPath), FILE_ATTRIBUTE_NORMAL);
+    if not DeleteFile(PChar(aPath)) then
+      NoteDeleteFailure(aError, aPath, 'delete');
+    Exit;
+  end;
+  if (aAttributes and FILE_ATTRIBUTE_REPARSE_POINT) = 0 then
+  begin
+    if aDepth > cMaxDeleteDepth then
+    begin
+      if aError = '' then
+        aError := 'folder nesting exceeds ' + cMaxDeleteDepth.ToString + ' levels below ' + aPath;
+      Exit;
+    end;
+    lFind := FindFirstFile(PChar(aPath + '\*'), lData);
+    if lFind <> INVALID_HANDLE_VALUE then
+    begin
+      try
+        repeat
+          lName := lData.cFileName;
+          if (lName <> '.') and (lName <> '..') then
+            DeleteEntryOrTree(aPath + '\' + lName, lData.dwFileAttributes, aDepth + 1, aError);
+        until not FindNextFile(lFind, lData);
+      finally
+        Winapi.Windows.FindClose(lFind);
+      end;
+    end;
+  end;
+  SetFileAttributes(PChar(aPath), FILE_ATTRIBUTE_DIRECTORY);
+  if not RemoveDirectory(PChar(aPath)) then
+    NoteDeleteFailure(aError, aPath, 'remove');
+end;
+
+function TryDeleteTreeLongPath(const aPath: string; out aError: string): Boolean;
+var
+  lAttributes: DWORD;
+  lPath: string;
+begin
+  aError := '';
+  if aPath = '' then
+    Exit(True);
+  // A reserve above MAX_PATH always selects the extended-length form.
+  lPath := ExcludeTrailingPathDelimiter(LongPathSafe(aPath, 1000));
+  lAttributes := GetFileAttributes(PChar(lPath));
+  if lAttributes <> INVALID_FILE_ATTRIBUTES then
+    DeleteEntryOrTree(lPath, lAttributes, 0, aError);
+  Result := aError = '';
 end;
 
 procedure DeleteTempPath(const aPath: string);
+var
+  lError: string;
 begin
   if (aPath = '') or (Trim(GetEnvironmentVariable('DAK_TEST_KEEP_TEMP')) = '1') then
     Exit;
-  if TDirectory.Exists(aPath) then
-    TDirectory.Delete(aPath, True);
+  if not TryDeleteTreeLongPath(aPath, lError) then
+    raise EInOutError.Create('DelphiAIKit.Tests ' + lError);
+end;
+
+// DAK-383: PID plus creation time identifies this process even when its PID is reused later.
+function CurrentProcessIdentity: string;
+var
+  lCreated, lExited, lKernel, lUser: TFileTime;
+begin
+  if not GetProcessTimes(GetCurrentProcess, lCreated, lExited, lKernel, lUser) then
+    RaiseLastOSError;
+  Result := UIntToStr(GetCurrentProcessId) + ' ' +
+    UIntToStr((UInt64(lCreated.dwHighDateTime) shl 32) or lCreated.dwLowDateTime);
+end;
+
+// DAK-383: the first runner in a process tree owns its descendants' run roots; a child run marks its own root
+// with the owner it inherited, so the owner can recognise it by identity and never touches another run's roots.
+procedure RegisterRunOwner(const aRunRoot: string);
+var
+  lOwner: string;
+begin
+  lOwner := Trim(GetEnvironmentVariable(cRunOwnerEnvVar));
+  if lOwner = '' then
+  begin
+    GRunOwner := CurrentProcessIdentity;
+    if not SetEnvironmentVariable(PChar(cRunOwnerEnvVar), PChar(GRunOwner)) then
+      RaiseLastOSError;
+  end else
+    TFile.WriteAllText(TPath.Combine(aRunRoot, cRunOwnerMarker), lOwner, TEncoding.ASCII);
 end;
 
 procedure EnsureTempClean;
 var
+  lError: string;
   lTemp: string;
 begin
   if GTempCleaned then
     Exit;
   lTemp := TempRoot;
-  if (Trim(GetEnvironmentVariable('DAK_TEST_KEEP_TEMP')) <> '1') and TDirectory.Exists(lTemp) then
-    TDirectory.Delete(lTemp, True);
+  if not TryValidateRunRoot(lTemp, lError) then
+    raise ETestRunRootTooLong.Create(lError);
+  if (Trim(GetEnvironmentVariable('DAK_TEST_KEEP_TEMP')) <> '1') and not TryDeleteTreeLongPath(lTemp, lError) then
+    raise EInOutError.Create('DelphiAIKit.Tests ' + lError);
   TDirectory.CreateDirectory(lTemp);
+  RegisterRunOwner(lTemp);
   GTempCleaned := True;
 end;
 
+// DAK-378: an exception raised in a unit initialization ends the process with
+// "Runtime error 217" and no message. Report why the run root cannot be prepared
+// and stop before any test runs.
+procedure PrepareTempRootOrHalt;
+begin
+  try
+    EnsureTempClean;
+  except
+    on E: Exception do
+    begin
+      Writeln(ErrOutput, 'DelphiAIKit.Tests cannot prepare its test run root: ' + E.Message);
+      Halt(cStartupFailureExitCode);
+    end;
+  end;
+end;
+
+// DAK-383: children killed by an owned job, a deadline or TerminateProcess never reach their own cleanup and
+// leave an empty run root beside ours. Only roots marked with this runner's identity are removed, so a
+// concurrent run's roots, and a root kept by DAK_TEST_KEEP_TEMP=1, are never touched.
+function RunOwnerIdentity: string;
+begin
+  Result := GRunOwner;
+end;
+
+function TryRemoveOwnedChildRunRootsIn(const aBase: string; out aError: string): Boolean;
+var
+  lMarker: string;
+  lMarkerText: string;
+  lPath: string;
+  lPaths: TArray<string>;
+begin
+  aError := '';
+  Result := True;
+  if (GRunOwner = '') or (GTempRoot = '') or (Trim(GetEnvironmentVariable('DAK_TEST_KEEP_TEMP')) = '1') then
+    Exit;
+  try
+    lPaths := TDirectory.GetDirectories(aBase);
+  except
+    on E: Exception do
+    begin
+      aError := 'DelphiAIKit.Tests could not list ' + aBase + ' to remove its child run roots: ' + E.Message;
+      Exit(False);
+    end;
+  end;
+  for lPath in lPaths do
+  begin
+    if SameText(lPath, GTempRoot) or not TRegEx.IsMatch(ExtractFileName(lPath), cRunRootNamePattern) then
+      Continue;
+    lMarker := TPath.Combine(lPath, cRunOwnerMarker);
+    if not TFile.Exists(lMarker) then
+      Continue;
+    try
+      lMarkerText := TFile.ReadAllText(lMarker, TEncoding.ASCII);
+    except
+      on E: EInOutError do
+        // A marker another run's child is still writing is not ours: its owner cannot be this finished run.
+        Continue;
+    end;
+    if lMarkerText <> GRunOwner then
+      Continue;
+    if not TryDeleteTreeLongPath(lPath, lMarkerText) then
+      Writeln(ErrOutput, 'DelphiAIKit.Tests could not remove its child run root ' + lPath + ': ' + lMarkerText);
+  end;
+end;
+
+procedure RemoveOwnedChildRunRoots;
+var
+  lError: string;
+begin
+  if GTempRoot = '' then
+    Exit;
+  if not TryRemoveOwnedChildRunRootsIn(ExtractFileDir(GTempRoot), lError) then
+    Writeln(ErrOutput, lError);
+end;
+
 procedure CleanupTempRoot;
+var
+  lError: string;
 begin
   if (Trim(GetEnvironmentVariable('DAK_TEST_KEEP_TEMP')) = '1') or (GTempRoot = '') then
     Exit;
-  if TDirectory.Exists(GTempRoot) then
-    TDirectory.Delete(GTempRoot, True);
-end;
-
-function CmdExePath: string;
-begin
-  Result := GetEnvironmentVariable('ComSpec');
-  if Result = '' then
-    Result := 'C:\Windows\System32\cmd.exe';
+  RemoveOwnedChildRunRoots;
+  // Finalization must not raise: report what stays behind.
+  if not TryDeleteTreeLongPath(GTempRoot, lError) then
+    Writeln(ErrOutput, 'DelphiAIKit.Tests could not remove its run root ' + GTempRoot + ': ' + lError);
 end;
 
 function RunProcess(const aExe, aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
-var
-  lAttempt: Integer;
-  lSi: TStartupInfo;
-  lPi: TProcessInformation;
-  lWait: Cardinal;
-  lCreateError: Cardinal;
-  lLastError: Cardinal;
-  lCmdLine: string;
-  lOutHandle: THandle;
-  lOutputDir: string;
-  lSa: TSecurityAttributes;
-  lWorkDir: string;
 begin
-  Result := False;
-  aExitCode := 0;
-  lOutHandle := INVALID_HANDLE_VALUE;
-
-  FillChar(lSa, SizeOf(lSa), 0);
-  lSa.nLength := SizeOf(lSa);
-  lSa.bInheritHandle := True;
-
-  if aOutputFile <> '' then
-  begin
-    lOutputDir := ExtractFileDir(aOutputFile);
-    if lOutputDir <> '' then
-      ForceDirectories(lOutputDir);
-    lCreateError := 0;
-    for lAttempt := 1 to 20 do
-    begin
-      lOutHandle := CreateFile(PChar(aOutputFile), GENERIC_WRITE, FILE_SHARE_READ, @lSa, CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL, 0);
-      if lOutHandle <> INVALID_HANDLE_VALUE then
-        Break;
-      lCreateError := GetLastError;
-      if (lCreateError <> ERROR_PATH_NOT_FOUND) and (lCreateError <> ERROR_FILE_NOT_FOUND) and
-        (lCreateError <> ERROR_ACCESS_DENIED) and (lCreateError <> ERROR_SHARING_VIOLATION) then
-        Break;
-      if lOutputDir <> '' then
-        ForceDirectories(lOutputDir);
-      Sleep(50);
-    end;
-    if lOutHandle = INVALID_HANDLE_VALUE then
-      raise Exception.Create('Failed to create output file: ' + aOutputFile + ' (' +
-        SysErrorMessage(lCreateError) + ')');
-  end;
-
-  try
-    FillChar(lSi, SizeOf(lSi), 0);
-    lSi.cb := SizeOf(lSi);
-    lSi.dwFlags := STARTF_USESTDHANDLES;
-    lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
-    if lOutHandle <> INVALID_HANDLE_VALUE then
-    begin
-      lSi.hStdOutput := lOutHandle;
-      lSi.hStdError := lOutHandle;
-    end else
-    begin
-      lSi.hStdOutput := GetStdHandle(STD_OUTPUT_HANDLE);
-      lSi.hStdError := GetStdHandle(STD_ERROR_HANDLE);
-    end;
-
-    FillChar(lPi, SizeOf(lPi), 0);
-    lCmdLine := QuoteArg(aExe);
-    if aArgs <> '' then
-      lCmdLine := lCmdLine + ' ' + aArgs;
-    UniqueString(lCmdLine);
-    lWorkDir := aWorkDir;
-    if lWorkDir = '' then
-      lWorkDir := ExtractFilePath(aExe);
-
-    if not CreateProcess(PChar(aExe), PChar(lCmdLine), nil, nil, True, 0, nil, PChar(lWorkDir), lSi, lPi) then
-    begin
-      lLastError := GetLastError;
-      raise Exception.Create('Process start failed: ' + SysErrorMessage(lLastError));
-    end;
-    try
-      lWait := WaitForSingleObject(lPi.hProcess, INFINITE);
-      if lWait <> WAIT_OBJECT_0 then
-      begin
-        lLastError := GetLastError;
-        raise Exception.Create('Process wait failed: ' + SysErrorMessage(lLastError));
-      end;
-      if not GetExitCodeProcess(lPi.hProcess, aExitCode) then
-      begin
-        lLastError := GetLastError;
-        raise Exception.Create('Process exit code failed: ' + SysErrorMessage(lLastError));
-      end;
-    finally
-      CloseHandle(lPi.hThread);
-      CloseHandle(lPi.hProcess);
-    end;
-
-    Result := True;
-  finally
-    if lOutHandle <> INVALID_HANDLE_VALUE then
-      CloseHandle(lOutHandle);
-  end;
+  // One bounded launch path for all synchronous test commands.
+  Result := RunProcessWithTimeout(aExe, aArgs, aWorkDir, aOutputFile, 1800000, aExitCode);
 end;
 
 function RunProcessWithTimeout(const aExe, aArgs, aWorkDir, aOutputFile: string;
   const aTimeoutMs: Cardinal; out aExitCode: Cardinal): Boolean;
+begin
+  Result := RunProcessWithStartHook(aExe, aArgs, aWorkDir, aOutputFile, aTimeoutMs, nil, aExitCode);
+end;
+
+function RunProcessWithStartHook(const aExe, aArgs, aWorkDir, aOutputFile: string;
+  const aTimeoutMs: Cardinal; const aOnStarted: TProcessStartedHook; out aExitCode: Cardinal): Boolean;
 var
   lCmdLine: string;
   lCreateError: Cardinal;
@@ -505,6 +700,8 @@ var
   lOutHandle: THandle;
   lOutputDir: string;
   lPi: TProcessInformation;
+  lJob: THandle;
+  lJobInfo: TJobObjectExtendedLimitInformation;
   lSa: TSecurityAttributes;
   lSi: TStartupInfo;
   lWait: Cardinal;
@@ -514,6 +711,7 @@ begin
   aExitCode := STILL_ACTIVE;
   lOutHandle := INVALID_HANDLE_VALUE;
   lCreateError := ERROR_SUCCESS;
+  lJob := 0;
   if aOutputFile <> '' then
   begin
     lOutputDir := ExtractFileDir(aOutputFile);
@@ -522,20 +720,42 @@ begin
     FillChar(lSa, SizeOf(lSa), 0);
     lSa.nLength := SizeOf(lSa);
     lSa.bInheritHandle := True;
-    lOutHandle := CreateFile(PChar(aOutputFile), GENERIC_WRITE, FILE_SHARE_READ, @lSa, CREATE_ALWAYS,
-      FILE_ATTRIBUTE_NORMAL, 0);
-    if lOutHandle = INVALID_HANDLE_VALUE then
+    // A scanner or a previous child's closing writer can hold the file briefly.
+    // Retry only those transient errors, for at most cOutputCreateAttempts * 50 ms.
+    for var lAttempt := 1 to cOutputCreateAttempts do
     begin
+      lOutHandle := CreateFile(PChar(aOutputFile), GENERIC_WRITE, FILE_SHARE_READ, @lSa, CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL, 0);
+      if lOutHandle <> INVALID_HANDLE_VALUE then
+        Break;
       lCreateError := GetLastError;
+      if (lCreateError <> ERROR_PATH_NOT_FOUND) and (lCreateError <> ERROR_FILE_NOT_FOUND) and
+        (lCreateError <> ERROR_ACCESS_DENIED) and (lCreateError <> ERROR_SHARING_VIOLATION) then
+        Break;
+      if lAttempt < cOutputCreateAttempts then
+      begin
+        if lOutputDir <> '' then
+          ForceDirectories(lOutputDir);
+        Sleep(50);
+      end;
+    end;
+    if lOutHandle = INVALID_HANDLE_VALUE then
       raise Exception.Create('Failed to create output file: ' + aOutputFile + ' (' +
         SysErrorMessage(lCreateError) + ')');
-    end;
   end;
 
   try
+    lJob := CreateJobObject(nil, nil);
+    if lJob = 0 then
+      RaiseLastOSError;
+    lJobInfo := Default(TJobObjectExtendedLimitInformation);
+    lJobInfo.BasicLimitInformation.LimitFlags := JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    if not SetInformationJobObject(lJob, JobObjectExtendedLimitInformation, @lJobInfo, SizeOf(lJobInfo)) then
+      RaiseLastOSError;
     FillChar(lSi, SizeOf(lSi), 0);
     lSi.cb := SizeOf(lSi);
-    lSi.dwFlags := STARTF_USESTDHANDLES;
+    lSi.dwFlags := STARTF_USESTDHANDLES or STARTF_USESHOWWINDOW;
+    lSi.wShowWindow := SW_HIDE;
     lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
     if lOutHandle <> INVALID_HANDLE_VALUE then
     begin
@@ -556,16 +776,29 @@ begin
     if lWorkDir = '' then
       lWorkDir := ExtractFilePath(aExe);
 
-    if not CreateProcess(PChar(aExe), PChar(lCmdLine), nil, nil, True, 0, nil, PChar(lWorkDir), lSi, lPi) then
+    if not CreateProcess(PChar(aExe), PChar(lCmdLine), nil, nil, True, CREATE_NO_WINDOW or CREATE_SUSPENDED, nil, PChar(lWorkDir), lSi, lPi) then
     begin
       lLastError := GetLastError;
       raise Exception.Create('Process start failed: ' + SysErrorMessage(lLastError));
     end;
     try
+      if not AssignProcessToJobObject(lJob, lPi.hProcess) then
+      begin
+        lLastError := GetLastError;
+        if not TerminateProcess(lPi.hProcess, ERROR_PROCESS_ABORTED) then
+          RaiseLastOSError;
+        raise Exception.Create('Cannot contain test child: ' + SysErrorMessage(lLastError));
+      end;
+      if ResumeThread(lPi.hThread) = Cardinal(-1) then
+        RaiseLastOSError;
+      // An exception from the hook leaves through the finally blocks below; closing
+      // the job then stops the child and every descendant.
+      if Assigned(aOnStarted) then
+        aOnStarted(lPi.hProcess);
       lWait := WaitForSingleObject(lPi.hProcess, aTimeoutMs);
       if lWait = WAIT_TIMEOUT then
       begin
-        if not TerminateProcess(lPi.hProcess, Cardinal(ERROR_TIMEOUT)) then
+        if not TerminateJobObject(lJob, Cardinal(ERROR_TIMEOUT)) then
         begin
           lLastError := GetLastError;
           raise Exception.Create('Process termination failed: ' + SysErrorMessage(lLastError));
@@ -578,7 +811,11 @@ begin
           lLastError := GetLastError;
           raise Exception.Create('Process termination wait failed: ' + SysErrorMessage(lLastError));
         end;
-        GetExitCodeProcess(lPi.hProcess, aExitCode);
+        if not GetExitCodeProcess(lPi.hProcess, aExitCode) then
+        begin
+          lLastError := GetLastError;
+          raise Exception.Create('Timed-out process exit code failed: ' + SysErrorMessage(lLastError));
+        end;
         Exit(False);
       end;
       if lWait <> WAIT_OBJECT_0 then
@@ -598,6 +835,8 @@ begin
 
     Result := True;
   finally
+    if lJob <> 0 then
+      CloseHandle(lJob);
     if lOutHandle <> INVALID_HANDLE_VALUE then
       CloseHandle(lOutHandle);
   end;
@@ -735,80 +974,57 @@ end;
 
 procedure EnsureResolverBuilt;
 var
-  lBinExe: string;
-  lExit: Cardinal;
-  lBat: string;
-  lArgs: string;
-  lCmdArgs: string;
-  lLogText: string;
-  lLog: string;
+  lError: string;
   lResolverExe: string;
-  lTestOutputDir: string;
 begin
   if GResolverBuilt then
     Exit;
-
-  lResolverExe := Trim(GetEnvironmentVariable('DAK_TEST_RESOLVER_EXE'));
-  if lResolverExe <> '' then
-  begin
-    if not FileExists(lResolverExe) then
-      Assert.Fail('Resolver exe from DAK_TEST_RESOLVER_EXE not found: ' + lResolverExe);
-    GResolverExe := TPath.GetFullPath(lResolverExe);
-    GResolverBuilt := True;
-    Exit;
-  end;
-
-  lBinExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
-  if FileExists(lBinExe) then
-  begin
-    GResolverExe := lBinExe;
-    GResolverBuilt := True;
-    Exit;
-  end;
-
-  EnsureTempClean;
-  lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
-  lTestOutputDir := Trim(GetEnvironmentVariable('DAK_TEST_OUTPUT_DIR'));
-  if lTestOutputDir = '' then
-  begin
-    lTestOutputDir := TPath.Combine(TempRoot, 'resolver-build-out');
-  end;
-  ForceDirectories(lTestOutputDir);
-  lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
-    ' -config Release -platform Win64 -ver 23';
-  lArgs := lArgs + ' -test-output-dir ' + QuoteArg(lTestOutputDir);
-  lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
-  lLog := TPath.Combine(TempRoot, 'build-resolver.log');
-
-  if not RunProcess(CmdExePath, lCmdArgs, RepoRoot, lLog, lExit) then
-    Assert.Fail('Failed to start build-delphi.bat');
-  if lExit <> 0 then
-  begin
-    lLogText := '';
-    if FileExists(lLog) then
-      lLogText := TFile.ReadAllText(lLog, TEncoding.UTF8);
-    if Pos('Could not create output file', lLogText) > 0 then
-      Assert.Fail('build-delphi.bat failed: output file is locked. Choose output location explicitly (set DAK_TEST_OUTPUT_DIR). See: ' +
-        lLog);
-    Assert.Fail('build-delphi.bat failed, exit=' + lExit.ToString + '. See: ' + lLog);
-  end;
-
-  if lTestOutputDir <> '' then
-    GResolverExe := TPath.Combine(TPath.GetFullPath(lTestOutputDir), 'DelphiAIKit.exe')
-  else
-    GResolverExe := lBinExe;
-  if not FileExists(GResolverExe) then
-    Assert.Fail('Resolver exe not found after build: ' + GResolverExe);
-
+  if not TryResolveCandidateExe(lResolverExe, lError) then
+    Assert.Fail(lError);
+  GResolverExe := lResolverExe;
   GResolverBuilt := True;
+end;
+
+function HostDakExePath: string;
+begin
+  // The known-good build host. Tests must never run it in place of the candidate.
+  Result := TPath.GetFullPath(TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe'));
+end;
+
+function TryResolveCandidateExe(out aExePath: string; out aError: string): Boolean;
+var
+  lBinaryType: Cardinal;
+  lLastError: Cardinal;
+begin
+  aError := '';
+  aExePath := Trim(GetEnvironmentVariable('DAK_TEST_RESOLVER_EXE'));
+  if aExePath = '' then
+    aExePath := TPath.Combine(RepoRoot, 'bin\Debug\DelphiAIKit.exe');
+  aExePath := TPath.GetFullPath(aExePath);
+  if not FileExists(aExePath) then
+  begin
+    aError := 'Build the Win64 Debug DAK candidate before testing, or set DAK_TEST_RESOLVER_EXE: ' + aExePath;
+    Exit(False);
+  end;
+  if not GetBinaryType(PChar(aExePath), lBinaryType) then
+  begin
+    lLastError := GetLastError;
+    aError := 'Unreadable DAK candidate: ' + aExePath + ' (' + SysErrorMessage(lLastError) + ')';
+    Exit(False);
+  end;
+  if lBinaryType <> SCS_64BIT_BINARY then
+  begin
+    aError := 'Tests require a Win64 DAK candidate: ' + aExePath;
+    Exit(False);
+  end;
+  Result := True;
 end;
 
 function ResolverExePath: string;
 begin
-  if GResolverExe = '' then
-    GResolverExe := Trim(GetEnvironmentVariable('DAK_TEST_RESOLVER_EXE'));
-  if GResolverExe = '' then
-    GResolverExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  // Every caller runs the validated candidate. A missing candidate fails here
+  // instead of silently running the build host.
+  EnsureResolverBuilt;
   Result := GResolverExe;
 end;
 
@@ -894,7 +1110,7 @@ end;
 
 initialization
   GEnvironmentLock := TCriticalSection.Create;
-  EnsureTempClean;
+  PrepareTempRootOrHalt;
 
 finalization
   CleanupTempRoot;

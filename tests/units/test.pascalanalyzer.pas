@@ -27,6 +27,10 @@ type
     [Test]
     procedure LongPalOutputPublishesReports;
     [Test]
+    procedure LongTempTreeIsDeleted;
+    [Test]
+    procedure TempTreeDeleteDoesNotFollowJunctions;
+    [Test]
     [TestCase('Short output', '0')]
     [TestCase('Long output', '1')]
     procedure ZeroExitWithoutStatusFails(aLong: Integer);
@@ -171,6 +175,62 @@ begin
     Assert.IsTrue(FileExists(TPath.Combine(lReport, 'Status.xml')));
   finally
     DeleteTempPath(lRoot);
+  end;
+end;
+
+// DAK-389: TDirectory.Delete cannot remove folders beyond MAX_PATH, which left the run root behind.
+procedure TPascalAnalyzerTests.LongTempTreeIsDeleted;
+var
+  lRoot: string;
+  lDeep: string;
+  lFile: string;
+  lError: string;
+  i: Integer;
+begin
+  lRoot := UniqueTempPath('long-delete');
+  lDeep := lRoot;
+  for i := 1 to 3 do
+    lDeep := TPath.Combine(lDeep, StringOfChar('d', 100));
+  Assert.IsTrue(Length(lDeep) > MAX_PATH, 'The fixture must be longer than MAX_PATH to prove anything.');
+  lDeep := '\\?\' + lDeep;
+  try
+    TDirectory.CreateDirectory(lDeep);
+    lFile := TPath.Combine(lDeep, 'leaf.txt');
+    TFile.WriteAllText(lFile, 'x', TEncoding.ASCII);
+    Assert.IsTrue(TFile.Exists(lFile), 'The overlong leaf must exist before the delete.');
+    Assert.IsTrue(TryDeleteTreeLongPath(lRoot, lError), lError);
+    Assert.IsFalse(TDirectory.Exists('\\?\' + lRoot), 'The overlong tree must be gone.');
+    Assert.IsTrue(TryDeleteTreeLongPath(lRoot, lError), 'A missing path is success: ' + lError);
+  finally
+    TryDeleteTreeLongPath(lRoot, lError);
+  end;
+end;
+
+procedure TPascalAnalyzerTests.TempTreeDeleteDoesNotFollowJunctions;
+var
+  lRoot: string;
+  lOutside: string;
+  lLink: string;
+  lError: string;
+  lExit: Cardinal;
+begin
+  lRoot := UniqueTempPath('junction-delete');
+  lOutside := UniqueTempPath('junction-outside');
+  lLink := TPath.Combine(TPath.Combine(lRoot, 'inner'), 'link');
+  try
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lLink));
+    TDirectory.CreateDirectory(lOutside);
+    TFile.WriteAllText(TPath.Combine(lOutside, 'keep.txt'), 'keep', TEncoding.ASCII);
+    Assert.IsTrue(RunProcess(GetEnvironmentVariable('ComSpec'),
+      '/c mklink /J ' + QuoteArg(lLink) + ' ' + QuoteArg(lOutside), lRoot,
+      TPath.Combine(lRoot, 'mklink.log'), lExit) and (lExit = 0), 'mklink /J failed.');
+    Assert.IsTrue(TDirectory.Exists(TPath.Combine(lLink, '')), 'The junction must resolve before the delete.');
+    Assert.IsTrue(TryDeleteTreeLongPath(lRoot, lError), lError);
+    Assert.IsFalse(TDirectory.Exists(lRoot), 'The root must be gone.');
+    Assert.IsTrue(TFile.Exists(TPath.Combine(lOutside, 'keep.txt')), 'The junction target must be untouched.');
+  finally
+    TryDeleteTreeLongPath(lRoot, lError);
+    TryDeleteTreeLongPath(lOutside, lError);
   end;
 end;
 

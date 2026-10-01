@@ -468,6 +468,12 @@ begin
     lRoot.AddPair('output', aSummary.fOutputPath);
     lRoot.AddPair('output_stale', TJSONBool.Create(aSummary.fOutputStale));
     lRoot.AddPair('output_message', aSummary.fOutputMessage);
+    if aSummary.fLogsDir <> '' then
+    begin
+      lRoot.AddPair('kept_logs_dir', aSummary.fLogsDir);
+      if aSummary.fLogsError <> '' then
+        lRoot.AddPair('kept_logs_error', aSummary.fLogsError);
+    end;
 
     lIssues := TJSONObject.Create;
     lErrors := TJSONArray.Create;

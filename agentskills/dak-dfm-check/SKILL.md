@@ -23,17 +23,11 @@ Use this skill whenever we touch Delphi forms, frames, datamodules, or any `.dfm
 Use the same environment variables as `dak-build`:
 
 - `DAK_EXE` (required): absolute path to `DelphiAIKit.exe`
-- `DAK_BUILD_SH` (optional, WSL convenience)
 
 Preflight:
 
 ```bash
 test -x "$DAK_EXE" || { echo "DAK_EXE not executable"; exit 1; }
-if grep -qi microsoft /proc/version 2>/dev/null; then
-  if [ -n "${DAK_BUILD_SH:-}" ]; then
-    test -x "$DAK_BUILD_SH" || { echo "DAK_BUILD_SH is set but not executable"; exit 1; }
-  fi
-fi
 ```
 
 ## Canonical Commands

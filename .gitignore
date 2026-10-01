@@ -120,5 +120,8 @@ CLAUDE.md
 /_dak_pa_unit/
 /_palcmd_test/
 
+# Debug candidate copy of the tracked bin\palcmd-map.json (post-build, DAK-384)
+/bin/Debug/palcmd-map.json
+
 # Local archive of obsolete sources; never tracked
 /_obselete/

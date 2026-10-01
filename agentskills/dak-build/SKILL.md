@@ -9,8 +9,8 @@ Use this execution order:
 
 1. Read repository/user execution-domain rules. They decide Windows versus WSL.
 2. Use `DelphiAIKit.exe build ...` as the canonical interface for both Delphi and TMS WEB Core projects.
-3. Use `"$DAK_BUILD_SH" ...` only when WSL is authorized and wrapper path conversion is helpful for a regular Delphi project.
-4. Never call raw `msbuild.exe` unless we are explicitly debugging wrappers.
+3. There is no build wrapper script (`build-delphi.bat` and `build-delphi.sh` were retired). From WSL, run the same `.exe` directly with `/mnt/<drive>/...` or relative project paths.
+4. Never call raw `msbuild.exe` unless we are explicitly debugging DAK's build behavior.
 5. Do not use the legacy `build-webcore` scripts when `DelphiAIKit.exe build` is available.
 
 For a Windows-only repository, invoke the Windows executable from PowerShell or
@@ -18,7 +18,7 @@ For a Windows-only repository, invoke the Windows executable from PowerShell or
 helper make a Linux-native process open a Windows-owned database, fixture,
 output, lock file, or other mutable runtime resource.
 
-If `DAK_EXE` is missing, use [setup.md](setup.md) to define it and optional WSL helpers.
+If `DAK_EXE` is missing, use [setup.md](setup.md) to define it.
 Commands assume current directory is the target repository root.
 
 Supported project inputs (`--project`):
@@ -48,11 +48,6 @@ WSL, only when the target repository authorizes it:
 
 ```bash
 test -x "$DAK_EXE" || { echo "DAK_EXE not executable"; exit 1; }
-if grep -qi microsoft /proc/version 2>/dev/null; then
-  if [ -n "${DAK_BUILD_SH:-}" ]; then
-    test -x "$DAK_BUILD_SH" || { echo "DAK_BUILD_SH is set but not executable"; exit 1; }
-  fi
-fi
 ```
 
 ## WSL path conversion (only when WSL is authorized)
@@ -62,8 +57,8 @@ fi
 - Linux-style absolute paths from WSL only in `/mnt/<drive>/...` form
 - Windows-style absolute paths (`F:\...`)
 
-Other Linux absolute paths (for example `/home/...`) are rejected with a clear error.
-`wslpath` conversion remains our canonical safe route, and also helps compatibility with older DelphiAIKit builds.
+Other Linux absolute paths (for example `/home/...`) are rejected with a clear error (exit code 6).
+Relative paths resolve against the current directory. Use `wslpath -w -a` for any path DAK does not accept.
 
 ```bash
 PROJECT_LINUX="<path-to-project.dproj>"
@@ -111,15 +106,7 @@ PLATFORM="${DAK_PLATFORM:-Win64}"
   --unit-search-path "/mnt/f/projects/MaxLogic/profiling/src/runtime" --ai
 ```
 
-Use typed `--define` and `--unit-search-path` overlays instead of raw MSBuild `/p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` injection. Raw `msbuild.exe` is only for debugging DAK or wrapper behavior.
-
-WSL wrapper (`build-delphi.sh`) example:
-
-```bash
-PROJECT_LINUX="src/App.dproj" # Replace with a project whose policy authorizes WSL.
-PLATFORM="${DAK_PLATFORM:-Win32}"
-"$DAK_BUILD_SH" "$PROJECT_LINUX" -config Debug -platform "$PLATFORM" -ver 23 -ai
-```
+Use typed `--define` and `--unit-search-path` overlays instead of raw MSBuild `/p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` injection. Raw `msbuild.exe` is only for debugging DAK's build behavior.
 
 TMS WEB Core build:
 
@@ -155,11 +142,14 @@ $Project = "F:\projects\SomeRepo\WebApp\WebApp.dproj"
 
 ## Setup
 
-Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
+Use [setup.md](setup.md) to define `DAK_EXE`.
 
 ## Defaults
 
 - tool default: `platform=Win32`, `config=Release`, `target=Build`
+- no default Delphi version for Delphi builds: pass `--delphi 23.0`, or set `DAK_DELPHI` or `[Build] DelphiVersion` in `dak.ini`
+- exit code 0 is success; treat any nonzero code as failure (DAK uses its own codes, for example 6 for a missing project)
+- the compiler's stdout and stderr are temporary files removed after the run, unless requested: `--keep-logs` keeps them as `stdout.log` and `stderr.log` in a new `run-<guid>` folder under `<project dir>\.dak\<ProjectName>\build` (printed, and `kept_logs_dir` in `--json`); `--log-dir "<path>"` replaces that root and implies `--keep-logs` (relative paths resolve against the project directory); a log folder or copy failure is reported and exits nonzero, in `--json` as `kept_logs_error`; both options are Delphi/MSBuild only. `DAK_BUILD_DIAGNOSTICS_DIR` still copies the two files into one directory without a `run-<guid>` folder
 - builder default: `auto`; strong TMS WEB Core project markers route to the WebCore backend
 - DelphiAIKit repo work: pass `--platform Win64` explicitly
 - WebCore compiler resolution order: `--webcore-compiler`, cascading `dak.ini` `[WebCore].CompilerPath`, `DAK_TMSWEB_COMPILER`, then `PATH`

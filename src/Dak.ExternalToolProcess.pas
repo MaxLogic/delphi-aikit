@@ -211,6 +211,31 @@ begin
   AddHandle(aStartupInfo.hStdError);
 end;
 
+// A console tool no longer shares DAK's console, so Ctrl+C or closing the console
+// reaches only DAK. The job ties the tool's lifetime to DAK: when DAK exits for
+// any reason, the system closes its last job handle and stops the whole tree.
+function TryAssignToKillOnCloseJob(aProcess: THandle; out aJob: THandle; out aLastError: Cardinal): Boolean;
+var
+  lLimits: TJobObjectExtendedLimitInformation;
+begin
+  aLastError := ERROR_SUCCESS;
+  aJob := CreateJobObject(nil, nil);
+  if aJob = 0 then
+  begin
+    aLastError := GetLastError;
+    Exit(False);
+  end;
+  lLimits := Default(TJobObjectExtendedLimitInformation);
+  lLimits.BasicLimitInformation.LimitFlags := JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+  if SetInformationJobObject(aJob, JobObjectExtendedLimitInformation, @lLimits, SizeOf(lLimits)) and
+    AssignProcessToJobObject(aJob, aProcess) then
+    Exit(True);
+  aLastError := GetLastError;
+  CloseHandle(aJob);
+  aJob := 0;
+  Result := False;
+end;
+
 function TryRunExternalToolProcess(const aOptions: TExternalToolProcessRunOptions;
   out aExitCode: Cardinal; out aTimedOut: Boolean; out aError: string): Boolean;
 var
@@ -225,8 +250,11 @@ var
   lEnvironmentBlock: string;
   lHandleCount: Integer;
   lHandles: array[0..2] of THandle;
+  lJob: THandle;
   lLastError: Cardinal;
   lProcessInfo: TProcessInformation;
+  lResume: Boolean;
+  lStarted: Boolean;
   lStartupInfo: TStartupInfoEx;
   lToolName: string;
   lWait: Cardinal;
@@ -268,7 +296,10 @@ begin
   else
     lWorkDirPtr := nil;
 
-  lCreationFlags := aOptions.fCreationFlags;
+  // Redirection and SW_HIDE alone do not prevent child console allocation.
+  // The tool starts suspended so it joins its job before running any code.
+  lResume := (aOptions.fCreationFlags and CREATE_SUSPENDED) = 0;
+  lCreationFlags := aOptions.fCreationFlags or CREATE_NO_WINDOW or CREATE_SUSPENDED;
   lEnvironmentBlock := aOptions.fEnvironmentBlock;
   if lEnvironmentBlock <> '' then
   begin
@@ -317,6 +348,28 @@ begin
     Exit(False);
   end;
 
+  lStarted := TryAssignToKillOnCloseJob(lProcessInfo.hProcess, lJob, lLastError);
+  if lStarted and lResume and (ResumeThread(lProcessInfo.hThread) = DWORD(-1)) then
+  begin
+    lLastError := GetLastError;
+    lStarted := False;
+  end;
+  if not lStarted then
+  begin
+    aError := ExternalToolStartError(aOptions, SysErrorMessage(lLastError));
+    // The tool never ran. Stop it explicitly, since no job may own it yet.
+    if not TerminateProcess(lProcessInfo.hProcess, ERROR_PROCESS_ABORTED) then
+    begin
+      lLastError := GetLastError;
+      aError := aError + '; the suspended process could not be stopped: ' + SysErrorMessage(lLastError);
+    end;
+    if lJob <> 0 then
+      CloseHandle(lJob);
+    CloseHandle(lProcessInfo.hThread);
+    CloseHandle(lProcessInfo.hProcess);
+    Exit(False);
+  end;
+
   lToolName := ExternalToolName(aOptions);
   try
     lWait := WaitForSingleObject(lProcessInfo.hProcess, ExternalToolTimeoutMs(aOptions));
@@ -342,6 +395,8 @@ begin
   finally
     CloseHandle(lProcessInfo.hThread);
     CloseHandle(lProcessInfo.hProcess);
+    // Stops anything the tool left running, including after a timeout.
+    CloseHandle(lJob);
   end;
 
   Result := True;

@@ -1029,7 +1029,8 @@ begin
 
   for lPath in ['src\dak.analyze.common.pas', 'src\Dak.Project.Semantics.pas',
     'src\dak.lsp.context.pas', 'src\Dak.SymbolMap.Context.pas',
-    'src\dak.deps.runner.pas', 'src\Dak.Refactor.pas', 'src\Dak.RemoveWith.pas'] do
+    'src\dak.deps.runner.pas', 'src\Dak.Refactor.pas', 'src\Dak.RemoveWith.Transaction.pas',
+    'src\dak.dfmcheck.pas', 'src\Dak.Refactor.Transaction.pas', 'src\Dak.Signature.Command.pas'] do
   begin
     lCommandSource := TFile.ReadAllText(TPath.Combine(RepoRoot, lPath), TEncoding.UTF8);
     Assert.IsTrue(ContainsText(lCommandSource, 'Dak.Paths'),
@@ -1038,6 +1039,12 @@ begin
       ContainsText(lCommandSource, '''.dak'''),
       lPath + ' must not construct project-local .dak roots with nested TPath.Combine calls.');
   end;
+
+  // DAK-385 moved remove-with's workspace construction to Dak.RemoveWith.Transaction (TryCreateRemoveWithWorkspace);
+  // the command unit must not build .dak paths itself.
+  lCommandSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.pas'), TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lCommandSource, '''.dak'),
+    'src\Dak.RemoveWith.pas must not construct project-local .dak paths; use Dak.RemoveWith.Transaction.');
 
   lCommandSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.deps.runner.pas'), TEncoding.UTF8);
   Assert.IsFalse(ContainsText(lCommandSource, 'function TDepsGraphBuilder.DefaultOutputPath'),

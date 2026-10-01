@@ -19,13 +19,16 @@ implementation
 
 uses
   System.IOUtils, System.JSON, System.SysUtils,
+  Dak.Paths, Dak.RemoveWith.Transaction, Dak.Utils,
   Test.Support;
 
 const
   cFixtureName = 'RemoveWithApplyFixture';
-  // <project dir>\.dak\<name>\remove-with\<32 hex>\verification-preflight\stdout.log beyond the project dir.
-  cWorkspaceSuffixLength = Length('\.dak\') + Length(cFixtureName) + Length('\remove-with\') + 32 +
-    Length('\verification-preflight\stdout.log');
+  // <project dir>\.dak\<name>\remove-with\<run token>\<preflight dir>\stdout.log beyond the project dir; DAK-385
+  // derives it from the product's layout constants.
+  cWorkspaceSuffixLength = Length('\.dak\') + Length(cFixtureName) + Length('\') +
+    Length(cRemoveWithWorkspaceDirName) + Length('\') + cDakRunTokenLength + Length('\') +
+    Length(cRemoveWithPreflightDirName) + Length('\stdout.log');
 
 procedure TRemoveWithLongPathTests.ApplyUnderALongVerificationWorkspaceFinishesTheTransaction;
 var
@@ -65,7 +68,9 @@ begin
       lTransaction := TJSONObject(lJson).GetValue('transaction') as TJSONObject;
       Assert.IsNotNull(lTransaction, lOutput);
       Assert.AreEqual('applied', lTransaction.GetValue<string>('status'), lOutput);
-      Assert.IsTrue(TFile.Exists(lTransaction.GetValue<string>('manifestPath')), 'the transaction manifest exists');
+      // The manifest can itself sit at the limit, and this test process is not long-path aware.
+      Assert.IsTrue(TFile.Exists(LongPathSafe(lTransaction.GetValue<string>('manifestPath'))),
+        'the transaction manifest exists');
     finally
       lJson.Free;
     end;

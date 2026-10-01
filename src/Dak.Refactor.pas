@@ -8,6 +8,12 @@ uses
 function RunFindUsagesCommand(const aOptions: TAppOptions): Integer;
 function RunRenameCommand(const aOptions: TAppOptions): Integer;
 function RunDeadCodeCommand(const aOptions: TAppOptions): Integer;
+// DAK-386: create the working directory of one rename or dead-code apply run, .dak\<ProjectName>\rename\<run
+// token> or .dak\<ProjectName>\dead-code\<run token>, exclusively. It holds the backups, the manifest and the build
+// verification logs, so two concurrent runs of one project never share one. A failure names the parent and the
+// reason in aError.
+function TryCreateRenameWorkspace(const aDprojPath: string; out aRunDir: string; out aError: string): Boolean;
+function TryCreateDeadCodeWorkspace(const aDprojPath: string; out aRunDir: string; out aError: string): Boolean;
 
 implementation
 
@@ -718,13 +724,36 @@ begin
   aFiles[Result].Hash := aHash;
 end;
 
-function RenameWorkspaceRoot(const aOptions: TAppOptions): string;
+function TryCreateRefactorRunWorkspace(const aDprojPath, aArea: string; out aRunDir: string;
+  out aError: string): Boolean;
 var
-  lProjectPath: string;
+  lParentDir: string;
 begin
-  lProjectPath := TPath.GetFullPath(aOptions.fDprojPath);
-  Result := DakProjectPath(DakProjectRootForProjectPath(lProjectPath),
-    ['rename', FormatDateTime('yyyymmddhhnnsszzz', Now)]);
+  aRunDir := '';
+  aError := '';
+  try
+    lParentDir := DakProjectPath(DakProjectRootForProjectPath(aDprojPath), [aArea]);
+  except
+    on E: Exception do
+    begin
+      aError := Format('%s working directory could not be resolved for %s: %s', [aArea, aDprojPath, E.Message]);
+      Exit(False);
+    end;
+  end;
+  // DAK-386: <area>\<run token> replaces the 17-digit millisecond timestamp, which gave runs started in the same
+  // millisecond one directory. Rollback does not look up run directories: it restores from the originals held in
+  // memory, and each manifest records its backups by absolute path, so directories with the old names stay valid.
+  Result := TryCreateDakRunDirectory(lParentDir, aRunDir, aError);
+end;
+
+function TryCreateRenameWorkspace(const aDprojPath: string; out aRunDir: string; out aError: string): Boolean;
+begin
+  Result := TryCreateRefactorRunWorkspace(aDprojPath, 'rename', aRunDir, aError);
+end;
+
+function TryCreateDeadCodeWorkspace(const aDprojPath: string; out aRunDir: string; out aError: string): Boolean;
+begin
+  Result := TryCreateRefactorRunWorkspace(aDprojPath, 'dead-code', aRunDir, aError);
 end;
 
 procedure WriteRenameManifest(const aWorkspaceRoot, aStatus, aError: string;
@@ -810,13 +839,17 @@ var
   lPair: TPair<string, TBytes>;
   lSource: TDakSourceBuffer;
   lText: string;
+  lWorkspaceError: string;
   lWorkspaceRoot: string;
 begin
   SetLength(aAppliedFiles, 0);
   aVerification := RenameVerification('not-run', -1, '', '');
-  lOriginals := TDictionary<string, TBytes>.Create;
-  lWorkspaceRoot := RenameWorkspaceRoot(aOptions);
+  // DAK-386: the run directory exists before any source is read, so a failure changes nothing. The caller
+  // reports the exception as a failed apply.
+  if not TryCreateRenameWorkspace(aOptions.fDprojPath, lWorkspaceRoot, lWorkspaceError) then
+    raise Exception.Create(lWorkspaceError);
   lBackupRoot := TPath.Combine(lWorkspaceRoot, 'backup');
+  lOriginals := TDictionary<string, TBytes>.Create;
   try
     try
       for lEdit in aPlan.Edits do
@@ -876,15 +909,6 @@ begin
   finally
     lOriginals.Free;
   end;
-end;
-
-function DeadCodeWorkspaceRoot(const aOptions: TAppOptions): string;
-var
-  lProjectPath: string;
-begin
-  lProjectPath := TPath.GetFullPath(aOptions.fDprojPath);
-  Result := DakProjectPath(DakProjectRootForProjectPath(lProjectPath),
-    ['dead-code', FormatDateTime('yyyymmddhhnnsszzz', Now)]);
 end;
 
 procedure AddDeadCodeFileEdits(const aPlan: TDelphiSemanticDeadCodeRemovalPlan;
@@ -1014,11 +1038,18 @@ procedure ApplyDeadCodeRemovalPlan(const aOptions: TAppOptions;
 var
   lBackupRoot: string;
   lOriginals: TDictionary<string, TBytes>;
+  lWorkspaceError: string;
   lWorkspaceRoot: string;
 begin
   aApplyResult := Default(TDeadCodeApplyResult);
   aApplyResult.Verification := RenameVerification('not-run', -1, '', '');
-  lWorkspaceRoot := DeadCodeWorkspaceRoot(aOptions);
+  // DAK-386: without a run directory there is nowhere for backups or the manifest, so nothing is changed.
+  if not TryCreateDeadCodeWorkspace(aOptions.fDprojPath, lWorkspaceRoot, lWorkspaceError) then
+  begin
+    aApplyResult.Status := 'failed';
+    aApplyResult.Diagnostic := lWorkspaceError;
+    Exit;
+  end;
   lBackupRoot := TPath.Combine(lWorkspaceRoot, 'backup');
   aApplyResult.ManifestPath := TPath.Combine(lWorkspaceRoot, 'manifest.json');
   lOriginals := TDictionary<string, TBytes>.Create;

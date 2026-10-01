@@ -7,7 +7,7 @@ interface
 type
   TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars,
     ckDeps, ckLsp, ckRemoveWith, ckSymbolMap, ckFindUsages, ckRename, ckDeadCode, ckAnalyzeWorkspace, ckAnalyzeDoctor,
-    ckAnalyzeReport);
+    ckAnalyzeReport, ckRefactorApply, ckUses, ckConsistency, ckSignature);
 
   TOutputKind = (okIni, okXml, okBat);
   TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
@@ -121,6 +121,8 @@ type
     fBuildMaxFindings: Integer;
     fBuildTimeoutSec: Integer;
     fBuildDiagnosticsDir: string;
+    fBuildKeepLogs: Boolean;
+    fBuildLogDir: string;
     fBuildTestOutputDir: string;
     fHasBuildTestOutputDir: Boolean;
     fBuildDefines: string;
@@ -264,6 +266,9 @@ type
     fRefactorNewName: string;
     fRefactorApply: Boolean;
     fHasRefactorApply: Boolean;
+    fRefactorApplyPlanPath: string;
+    fRefactorRequestPath: string;
+    fRefactorPlanOutPath: string;
     fRefactorSemanticCachePath: string;
     fHasRefactorSemanticCachePath: Boolean;
     fDeadCodeProfile: string;

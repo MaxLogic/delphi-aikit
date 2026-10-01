@@ -18,6 +18,7 @@ lookup and refactoring commands for developers and AI agents.
 - Build and query a reusable local Symbol Map via `symbol-map` with project/RTL/compiler-intrinsic indexing, definition lookup, symbol search, description, references, and central/project SQLite caches
 - Find project-scoped Delphi symbol usages, plan or apply project-scoped renames, and review or transactionally apply conservative dead-code candidates via `find-usages`, `rename`, and `dead-code`
 - Inspect, plan, and transactionally remove Delphi `with` statements via `remove-with`
+- Compare class-method signatures or request guarded alignment suggestions and plan artifacts with [`signature`](docs/signature.md)
 
 ## Good use cases
 
@@ -55,50 +56,58 @@ The [`agentskills/`](agentskills/) folder contains instructions and wrappers for
 
 ## Build
 
-Build `projects\DelphiAIKit.dproj` to produce `bin\DelphiAIKit.exe`.
+Use a known-good Win64 DAK executable as the build host. Debug builds of
+`projects\DelphiAIKit.dproj` produce `bin\Debug\DelphiAIKit.exe`; the host at
+`bin\DelphiAIKit.exe` stays available if a candidate is broken.
 
 Build from Windows:
 
 ```
-build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win64 -ver 23
+bin\DelphiAIKit.exe build --project projects\DelphiAIKit.dproj --delphi 23.0 --config Debug --platform Win64 --ai
 ```
 
-Use `-target Rebuild` (or `-rebuild`) when we need a full clean rebuild:
+Use `--target Rebuild` when we need a full clean rebuild:
 
 ```
-build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win64 -ver 23 -target Rebuild
+bin\DelphiAIKit.exe build --project projects\DelphiAIKit.dproj --delphi 23.0 --config Debug --platform Win64 --target Rebuild --ai
 ```
 
-Release builds use the same explicit Win64 target:
+Only after the required candidate tests and analysis pass, build Release using
+a known-good host outside the release destination (for example a verified copy
+at `bin\stable\DelphiAIKit.exe`). Windows cannot overwrite a running host:
 
 ```
-build-delphi.bat projects\DelphiAIKit.dproj -config Release -platform Win64 -ver 23 -target Rebuild
+bin\stable\DelphiAIKit.exe build --project projects\DelphiAIKit.dproj --delphi 23.0 --config Release --platform Win64 --target Rebuild --ai
 ```
 
-Build from WSL (calls Windows `cmd.exe`):
+`build.bat` runs these native builds for production and tests in Win64 Debug.
+`DAK_BUILD_HOST` can select another known-good executable; `DAK_DELPHI` defaults
+to `23.0`. A missing host is an explicit prerequisite, with no alternate scripted
+compiler pipeline. Test output is `tests\bin\Debug\DelphiAIKit.Tests.exe`.
 
-```
-./build-delphi.sh projects/DelphiAIKit.dproj -config Debug -platform Win64 -ver 23
-```
-
-`build.bat` is a convenience wrapper that builds the resolver and tests in Debug (Win64) with the default Delphi version.
-
-Or via the CLI:
-
-```
-bin\DelphiAIKit.exe build --project "projects\DelphiAIKit.dproj" --delphi 23.0 --platform Win64 --config Debug
-```
-
-`build` uses DelphiAIKit's native Delphi build runner and needs no batch or PowerShell helpers for normal operation. `build-delphi.bat` is available for compatibility and bootstrap builds.
-
-`build-delphi.bat` writes wrapper logs under a per-run project `.dak\<ProjectName>\build\run-*` directory by default. Use `-log-dir "<path>"` to choose a caller-owned parent directory for per-run `run-*` log folders, and `-keep-logs` when we need to inspect them after the wrapper exits.
+The `build-delphi.bat` and `build-delphi.sh` wrappers are removed; call
+`DelphiAIKit.exe build` directly. From WSL, run the same executable with
+`/mnt/<drive>/...` or relative project paths; no launcher is needed. The
+compiler's stdout and stderr are temporary files removed after the run, unless
+we ask to keep them. `--keep-logs` keeps them as `stdout.log` and `stderr.log`
+in a new `run-<guid>` folder under `<project dir>\.dak\<ProjectName>\build`;
+`--log-dir "<path>"` replaces that root and implies `--keep-logs` (a relative
+path is resolved against the project directory, not the working directory).
+The kept folder is printed, and `--json` adds `kept_logs_dir`. If it cannot be
+created, the build does not start; if the logs cannot be copied afterwards, the
+build result is still reported together with `kept_logs_error` and the exit
+code is nonzero. Kept logs are MSBuild's raw output and can echo a rejected
+property value, so keep them under the ignored `.dak` or a folder we own.
+`DAK_BUILD_DIAGNOSTICS_DIR` still copies the same two files into one named
+directory (overwriting them) without the `run-<guid>` folder.
 
 `build` defaults to incremental `Build`; use `--target Rebuild` (or `--rebuild true`) for a full rebuild.
 Additional build flags:
 - `--json` emits machine-readable build results.
 - `--max-findings N` caps printed findings per category (default `5`).
 - `--build-timeout-sec N` terminates hung builds after `N` seconds (`0` disables timeout).
-- `--test-output-dir "<path>"` writes build artifacts to an isolated output directory.
+- `--test-output-dir "<path>"` builds without touching the project's normal output folders: executables, libraries, packages and `.dcp` files go directly into `<path>`, and unit output (`.dcu`, plus `.o`/`.obj` object files) goes into `<path>\dcu`. DAK sets `DCC_ExeOutput`, `DCC_BplOutput`, `DCC_DcpOutput` and `DCC_BpiOutput` to `<path>`, and `DCC_DcuOutput`, `DCC_ObjOutput` and `DCC_HppOutput` to `<path>\dcu`, on every platform. Object files move with the DCUs, including the `.o` files of Linux64 builds; C++ headers (`.hpp`) follow the DCUs, and `.bpi` package interfaces follow the `.dcp` files, so a project's own `DCC_HppOutput` and `DCC_BpiOutput` are not written during a test build. A relative `<path>` is resolved against the working directory; a value with invalid path characters, or one that depends on the current drive (`\out`, `D:out`), stops the build before it starts with `Test output directory is not usable`.
+- `--keep-logs` keeps the MSBuild `stdout.log` and `stderr.log` in a per-run `run-<guid>` folder (see above); `--log-dir "<path>"` chooses the log root and implies `--keep-logs`. Delphi/MSBuild builds only.
 - `--define <symbol>` adds a Delphi compiler define while preserving the project/config/platform `DCC_Define` value. Repeat the switch for multiple symbols.
 - `--unit-search-path "<path>"` prepends a Delphi unit search path while preserving the project/config/platform `DCC_UnitSearchPath` value. Repeat the switch for multiple paths.
 - `--dfmcheck` runs DFM streaming validation after a successful source build (presence flag; same as calling `dfm-check` separately). If the source build fails, DAK reports that `dfm-check` was not run instead of treating the skipped validation as the failing phase.
@@ -111,6 +120,10 @@ Additional build flags:
 - `--source-context-lines N` controls how many lines before/after the hit are shown (default `2`).
 - When `--ai` is enabled, build failures can append optional `lsp` semantic hints when DAK can resolve a meaningful token or enclosing symbol. Missing, unsupported, or empty LSP data leaves the original compiler failure untouched.
 - `--rsvars "<path>"` overrides `rsvars.bat` for build and post-build `--dfmcheck` validation.
+
+The reported output file (`Build succeeded: <path>`, `output` in `--json`) is the file the compiler writes, named the way the compiler names it. The platform's rules come from the compiler targets the project imports: `.exe`, `.dll` and `.bpl` on Windows; no extension for a Linux64 program, `lib<name>.so` for a Linux64 library and `bpl<name>.so` for a Linux64 package; an Android program is `lib<name>.so`, and an Android package is a static `lib<name>.a` in the `.dcp` folder (`DCC_DcpOutput`). The main `.dpr`/`.dpk` decides the rest, because the compiler reads it and ignores the project's `DllPrefix`, `DllSuffix`, `DllVersion` and `DCC_DependencyCheckOutputName` (the IDE only mirrors the source into them); the project's `OutputExt` (the IDE's "Target file extension") is the exception: it reaches the compiler for programs and libraries (with a dot put in front of the value, so `.ocx` gives `..ocx`), a package ignores it, and a `{$E}` in the source wins over it. `{$LIBPREFIX 'x'}` replaces the platform prefix (an empty value removes it), `{$LIBSUFFIX 'x'}` adds a suffix, `{$LIBVERSION 'x'}` adds a version (`<prefix><name><suffix>.<version>.<ext>` on Windows and macOS; on Linux64 and Android the version follows the extension, as in `lib<name><suffix>.so.<version>`), and `{$E ext}` / `{$EXTENSION ext}` replaces the extension. The `{$SOPREFIX}`, `{$SOSUFFIX}` and `{$SOVERSION}` aliases work the same. These apply to libraries and packages; a program keeps its name and takes only `{$E}`, except an Android program, which also takes the prefix and the suffix (not the version). `{$LIBSUFFIX AUTO}`, the default of new Delphi 12 packages, is the version of the installed RTL package, read from the one `rtl<N>.bpl` in the Delphi `bin` folder (`290` for Delphi 23.0, on Win32 and Linux64 alike). A package's `DCC_BplOutput` (or `DelphiDLLOutputPath` when that is empty) is where it is reported. DAK reads the source in order, as the compiler does: directives inside `//`, `{ }` and `(* *)` comments and string literals do not count, several directives on a line all count, and each `{$I file}` found next to the including file is expanded where it appears, so a directive after the include overrides one in it. An include it cannot find (for example `Jedi.inc` on the unit search path) does not stop the naming: the name assumes no directive in it and the result carries the note `naming include <name> not read; name assumes no directives in it`; if the compiler used a directive from that include, the predicted file is absent and the status is `output_missing` with the note. The name is unresolved, with the reason in the message, when the main source cannot be read, an include has a wildcard or `%`, a naming directive has a form DAK does not evaluate (for example an unquoted prefix), `AUTO` has no single `rtl<N>.bpl` to read, `MainSource` or `DCC_ExeOutput` is not a usable path, or the platform has no known rules. Conditional compilation (`{$IFDEF}`) around a directive is not evaluated, so a name that depends on it can be reported wrongly. If a successful build did not write that file, the status is `output_missing` with the expected path. If DAK has no naming rules for the platform, `output` is empty and the message says why.
+
+Delphi/MSBuild builds also forward the IDE's `%APPDATA%\Embarcadero\BDS\<version>\environment.proj` properties to MSBuild, as the IDE does, so custom user variables that exist only there reach your project. DAK cannot know which variables a project references, so it forwards every property that the process environment does not already define; the process environment wins. Values are XML-entity-decoded (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, `&#NN;`, `&#xNN;`) before they reach MSBuild. A value that contains a line break cannot be passed on a command line: DAK skips that property and `--verbose` names it without showing the value. `--verbose` also prints the generated MSBuild arguments with every `environment.proj` value redacted.
 
 For TMS WEB Core projects, `build` can call `TMSWebCompiler.exe` directly:
 
@@ -132,7 +145,7 @@ For MaxProfiler or other temporary instrumented Delphi builds, prefer a real pro
 bin\DelphiAIKit.exe build --project "C:\path\App.dproj" --delphi 23.0 --platform Win64 --config Debug --target Rebuild --define maxProfiling --unit-search-path "C:\path\MaxProfiler\runtime" --ai
 ```
 
-Raw `msbuild.exe /p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` calls are reserved for debugging DAK or wrapper behavior, not normal profiler builds.
+Raw `msbuild.exe /p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` calls are reserved for debugging DAK's build behavior, not normal profiler builds.
 
 ## Command Unit Layout
 
@@ -291,6 +304,48 @@ Record selectors that require preserved aliasing use pointer temps where the pla
 
 `remove-with` resolves symbols through the local AST/source model and verifies rewrites through builds and rollback. DelphiLSP remains available for navigation and future capability probes.
 
+The guarded refactoring artifact workflow supports removing one explicit
+implementation `uses` import. Give `uses` a UTF-8 request file:
+
+```json
+{"operation":"uses.remove-implementation-import","consumerFileName":"C:\\path\\Project\\Consumer.pas","unitName":"UnusedUnit"}
+```
+
+```text
+bin\DelphiAIKit.exe uses --project "C:\path\Project.dproj" --platform Win64 --config Debug --delphi 23.0 --format json --request "C:\path\request.json" --plan-out "C:\path\new-plan.json"
+bin\DelphiAIKit.exe refactor-apply --project "C:\path\Project.dproj" --platform Win64 --config Debug --delphi 23.0 --apply-plan "C:\path\new-plan.json"
+```
+
+The plan command never edits source and creates the plan file only when the
+semantic evidence is complete; it will not overwrite an existing output file.
+Its JSON response has `status`, `reason`, and, on success, `plan`.
+`refactor-apply` treats the saved file as intent, rebuilds the semantic plan
+from a fresh project snapshot, and requires exact agreement before mutation.
+It runs a baseline build and a post-edit build, returns `status`, `reason`, and
+`journal`, and rolls back an ordinary post-edit failure. On a rollback conflict,
+preserve the reported journal and changed bytes for explicit recovery; do not
+blindly rerun apply. A rejected or stale plan does not authorize edits.
+
+For read-only import discovery, use the same command without `--plan-out` and
+this request:
+
+```json
+{"operation":"uses.suggest-explicit-import-candidates","consumerFileName":"C:\\path\\Project\\Consumer.pas","identifier":"MissingName"}
+```
+
+The report lists source-backed providers for the selected unbound identifier,
+including all ambiguous candidates without selecting one. It includes a
+classification, context fingerprint, analyzed roots, counts and completeness.
+Discovery currently supports simple integer-constant providers with complete
+semantic evidence; unsupported or unavailable facts return a blocked report.
+Discovery never changes source or creates an apply artifact, and rejects
+`--plan-out` even when there is exactly one candidate.
+
+This is not a general `uses` cleanup command yet. Import additions,
+interface-to-implementation moves, conditional clauses, initialization-sensitive
+units, unresolved bindings, and other unsupported evidence remain blocked or
+candidate-only. No extract-interface or extract-method command is shipped.
+
 `deps` is JSON-first. The JSON contract is intended for tooling and AI agents and includes:
 - project metadata
 - `nodes` with resolution state and project-membership flag
@@ -408,7 +463,8 @@ Routing guidance:
 The JSON result contract is operation-specific:
 - `definition` returns `result.locations[]`
 - `probe` returns per-mode capability matrices for `contextFile` and `settingsFile`, and can show the generated init/config payloads with `--show-init-options`
-- `hover` returns `result.contentsText` plus optional markdown/range data
+- `hover` returns `result.contentsText` plus optional markdown/range data; it returns content for a symbol position when DAK resolves the Win32/Win64 compiler DLL beside `DelphiLSP.exe` (positions without a symbol stay empty); otherwise `warnings` names why and hover may be empty
+- external Delphi 23 and Delphi 13 `DelphiLSP.exe` builds support `definition`, `hover`, and file-scoped `documentSymbol`; only `textDocument/references` and `workspace/symbol` are unsupported
 - `symbols` returns `result.symbols[]` from file-scoped `documentSymbol` data
 
 ## `global-vars`
@@ -795,6 +851,14 @@ artifact; otherwise remove it after proof. The verified fixture reduced only
 9.21.3.0. We do not document code-qualified or multi-code marker forms until
 each form has equivalent installed-version proof.
 
+## Consistency inspection
+
+Use `consistency --project <file.dproj> --config Debug --platform Win64 --delphi 23.0`
+for a read-only JSON GUID inventory and source-backed DFM event-signature report.
+The current implementation reports unsupported or unresolved inputs explicitly.
+See [the contract and current limitations](docs/consistency.md); inherited DFM
+merging and full slice-7 acceptance remain in progress.
+
 ## Output formats
 
 - `ini` (default): easy to read and edit
@@ -808,7 +872,7 @@ each form has equivalent installed-version proof.
 - If the IDE library path is not in the registry, we fall back to `EnvOptions.proj` from `BDSUSERDIR`.
   If `BDSUSERDIR` is missing, we derive it from `%APPDATA%\Embarcadero\BDS\<version>` and then `%USERPROFILE%\Documents\Embarcadero\Studio\<version>`.
 - We resolve `FixInsightCL.exe` from `dak.ini` (`Path`), then `PATH`, then FixInsight registry keys (HKCU/HKLM, 32/64-bit).
-- The native `build` runner runs `madExceptPatch.exe` only when a sibling `.mes` exists, the `.dpr`/`.dproj` base names match, `madExcept` is defined for the selected build config/platform, and `.mes` `GeneralSettings` does not disable `LinkInCode` or `HandleExceptions`.
+- The native `build` runner runs `madExceptPatch.exe` only when a sibling `.mes` exists, the `.dpr`/`.dproj` base names match, `madExcept` is defined for the selected build config/platform, `.mes` `GeneralSettings` does not disable `LinkInCode` or `HandleExceptions`, and the platform is Win32 or Win64 (another platform is skipped, with a `--verbose` note).
 - When resolving build output paths for Delphi projects, the native `build` runner honors `CfgDependentOn` `.optset` baselines before applying `.dproj` overrides, so JSON output and madExcept patching use the effective `DCC_ExeOutput` value.
 - Sample inputs live in `tests\fixtures\` so we can quickly try the resolver.
 - `scripts\fixinsight-selftest\fixinsight-run.bat` runs FixInsight against this repo and can generate raw reports under `scripts\fixinsight-selftest\Reports\`.
@@ -819,8 +883,8 @@ each form has equivalent installed-version proof.
 Automated DUnitX tests live in `tests\DelphiAIKit.Tests.dproj`.
 
 ```
-build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win64 -target Rebuild
-tests\DelphiAIKit.Tests.exe --hidebanner --consolemode:quiet
+bin\DelphiAIKit.exe build --project tests\DelphiAIKit.Tests.dproj --delphi 23.0 --config Debug --platform Win64 --ai
+pwsh -NoProfile -File tests\run-dunitx.ps1
 ```
 
 The default no-filter test run excludes long proprietary dogfood lanes tagged
@@ -829,10 +893,10 @@ For the proprietary fixture refactor rename dogfood, use a 15-minute timeout
 budget. The current measured lane is about 7 minutes on our local runner:
 
 ```
-tests\DelphiAIKit.Tests.exe --hidebanner --consolemode:quiet -r:Test.Refactor.ProprietaryRename -i:<proprietary-fixture-proof-category>
+tests\bin\Debug\DelphiAIKit.Tests.exe --hidebanner --consolemode:quiet -r:Test.Refactor.ProprietaryRename -i:<proprietary-fixture-proof-category>
 ```
 
-Manual fixture checks live in `tests\README.md`. We can also run `tests\run.bat`, which executes the resolver against all fixture `.dproj` files and writes outputs to `tests\out`. It expects `bin\DelphiAIKit.exe` to exist and accepts optional `RSVARS` and `ENVOPTIONS` environment variables for overrides.
+Test commands and prerequisites live in `tests\README.md`. `tests\run.bat` forwards to the same DUnitX runner using PowerShell 7. `build-and-run-tests.bat` first builds isolated Win64 Debug candidates through the known-good native host, then runs the suite. Logs stay under `tests\.dak\DelphiAIKit.Tests\test-runs`.
 
 ### Local confidentiality guard
 

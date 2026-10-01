@@ -4,7 +4,7 @@ interface
 
 uses
   DUnitX.TestFramework,
-  System.Classes, System.IOUtils, System.RegularExpressions, System.SysUtils,
+  System.Classes, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
   Winapi.Windows,
   Dak.Utils,
   Test.Support;
@@ -37,6 +37,12 @@ type
     procedure ResolveDprojPathUsesSiblingDprojForDpr;
     [Test]
     procedure ResolveConfiguredExePathExpandsEnvAndAppendsExe;
+    [Test]
+    procedure ResolverExePathIsTheCandidateNotTheHost;
+    [Test]
+    procedure MissingCandidateFailsWithItsPath;
+    [Test]
+    procedure ResolveMergesSettingsAndCliFixInsightIgnore;
   end;
 
 implementation
@@ -210,21 +216,16 @@ end;
 procedure TUtilsTests.ExternalToolSkipsUseExplicitPortableOptOuts;
 var
   lReadmeText: string;
-  lRunBatText: string;
   lSupportText: string;
 begin
   lSupportText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'tests\units\test.support.pas'),
     TEncoding.UTF8);
   lReadmeText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'tests\README.md'),
     TEncoding.UTF8);
-  lRunBatText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'tests\run.bat'),
-    TEncoding.Default);
 
   Assert.IsFalse((Pos('pawelspc', LowerCase(lSupportText)) > 0) or
     (Pos('pawelspc', LowerCase(lReadmeText)) > 0),
     'External-tool acceptance gates must not depend on a machine-specific pawelspc variable.');
-  Assert.IsFalse(Pos('SKIP_PASCAL_ANALYZER', lRunBatText) > 0,
-    'Batch acceptance tests must use the portable DAK_ALLOW_PAL_SKIP opt-out.');
   Assert.IsFalse(TRegEx.IsMatch(lSupportText, 'Assert\.Pass\(.*skipping .*tests', [roIgnoreCase]),
     'External-tool acceptance gates must not silently skip tests without an explicit opt-out.');
   Assert.IsTrue(Pos('DAK_ALLOW_FIXINSIGHT_SKIP', lSupportText) > 0,
@@ -239,10 +240,6 @@ begin
     'README must document the PALCMD opt-out.');
   Assert.IsTrue(Pos('DAK_ALLOW_LSP_SKIP=1', lReadmeText) > 0,
     'README must document the real DelphiLSP opt-out.');
-  Assert.IsTrue(Pos('DAK_ALLOW_FIXINSIGHT_SKIP', lRunBatText) > 0,
-    'Batch FixInsight acceptance tests must honor DAK_ALLOW_FIXINSIGHT_SKIP.');
-  Assert.IsTrue(Pos('DAK_ALLOW_PAL_SKIP', lRunBatText) > 0,
-    'Batch PALCMD acceptance tests must honor DAK_ALLOW_PAL_SKIP.');
 end;
 
 procedure TUtilsTests.ExternalToolSkipDecisionFailsClosedUnlessNamedOptOutIsOne;
@@ -304,6 +301,73 @@ begin
   lExpectedPath := TPath.Combine(lTempDir, 'FixInsightCL.exe');
   Assert.AreEqual(lExpectedPath, lResolvedPath, 'Expected environment-backed tool path to resolve.');
   lGuard := nil;
+end;
+
+procedure TUtilsTests.ResolverExePathIsTheCandidateNotTheHost;
+var
+  lExpected: string;
+  lResolved: string;
+begin
+  // Callers may use ResolverExePath without EnsureResolverBuilt first; it must
+  // still resolve the candidate, never fall back to the build host.
+  lExpected := Trim(GetEnvironmentVariable('DAK_TEST_RESOLVER_EXE'));
+  if lExpected = '' then
+    lExpected := TPath.Combine(RepoRoot, 'bin\Debug\DelphiAIKit.exe');
+  lResolved := TPath.GetFullPath(ResolverExePath);
+  Assert.IsFalse(SameText(HostDakExePath, lResolved), 'Tests must not run the known-good host: ' + lResolved);
+  Assert.AreEqual(TPath.GetFullPath(lExpected).ToLower, lResolved.ToLower, 'Tests must run the candidate');
+end;
+
+procedure TUtilsTests.MissingCandidateFailsWithItsPath;
+var
+  lError: string;
+  lExePath: string;
+  lGuard: IInterface;
+  lMissing: string;
+begin
+  lMissing := TPath.Combine(TempRoot, 'missing-candidate\DelphiAIKit.exe');
+  lGuard := SetScopedEnvironmentVariable('DAK_TEST_RESOLVER_EXE', lMissing);
+  Assert.IsFalse(TryResolveCandidateExe(lExePath, lError), 'A missing candidate must not resolve');
+  Assert.Contains(lError, lMissing, 'The failure must name the missing candidate');
+  Assert.Contains(lError, 'DAK_TEST_RESOLVER_EXE', 'The failure must name the override');
+  lGuard := nil;
+end;
+
+procedure TUtilsTests.ResolveMergesSettingsAndCliFixInsightIgnore;
+var
+  lExit: Cardinal;
+  lIgnore: string;
+  lLog: string;
+  lMatch: TMatch;
+  lOutput: string;
+  lRoot: string;
+begin
+  // Replaces the retired run.bat merge check: project dak.ini [FixInsightCL]
+  // Ignore and --fi-ignore reach the generated FixInsight command merged, in
+  // settings-then-CLI order, without duplicates.
+  lRoot := UniqueNoRepoTempPath('fi-ignore-merge');
+  TDirectory.CreateDirectory(lRoot);
+  try
+    TFile.Copy(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dproj'), TPath.Combine(lRoot, 'Sample.dproj'));
+    TFile.Copy(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dpr'), TPath.Combine(lRoot, 'Sample.dpr'));
+    TFile.WriteAllText(TPath.Combine(lRoot, 'dak.ini'),
+      '[FixInsightCL]' + sLineBreak + 'Ignore=..\src\Dak.Cli.pas;..\src\Dak.Cli.pas' + sLineBreak, TEncoding.ASCII);
+    lOutput := TPath.Combine(lRoot, 'resolved.bat');
+    lLog := TPath.Combine(lRoot, 'resolve.log');
+    Assert.IsTrue(RunResolverProcess('resolve --project ' + QuoteArg(TPath.Combine(lRoot, 'Sample.dproj')) +
+      ' --platform Win64 --config Debug --delphi 23.0 --format bat --out-file ' + QuoteArg(lOutput) +
+      ' --fi-ignore ' + QuoteArg('..\src\Dak.Output.pas;..\src\Dak.Cli.pas'), lRoot, lLog, lExit));
+    Assert.AreEqual(Cardinal(0), lExit, TFile.ReadAllText(lLog));
+    lMatch := TRegEx.Match(TFile.ReadAllText(lOutput), '--ignore="([^"]*)"');
+    Assert.IsTrue(lMatch.Success, 'The generated command must pass --ignore: ' + lOutput);
+    lIgnore := lMatch.Groups[1].Value;
+    Assert.IsTrue(StartsText('..\src\Dak.Cli.pas;..\src\Dak.Output.pas', lIgnore),
+      'Settings entries come first, then new CLI entries: ' + lIgnore);
+    Assert.AreEqual<Integer>(1, TRegEx.Matches(lIgnore, '\\Dak\.Cli\.pas', [roIgnoreCase]).Count,
+      'A repeated entry must appear once: ' + lIgnore);
+  finally
+    DeleteTempPath(lRoot);
+  end;
 end;
 
 initialization

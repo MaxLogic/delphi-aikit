@@ -46,6 +46,9 @@ type
     fOutputStale: Boolean;
     fOutputMessage: string;
     fTimedOut: Boolean;
+    // DAK-379: set only when --keep-logs/--log-dir asked for the MSBuild logs.
+    fLogsDir: string;
+    fLogsError: string;
   end;
 
   IBuildProcessRunner = interface

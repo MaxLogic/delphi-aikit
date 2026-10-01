@@ -26,15 +26,25 @@ type
 function TryBuildStrictLspContext(const aOptions: TAppOptions; out aContext: TLspContext; out aError: string): Boolean;
 function TryDeleteLspContextFile(const aContext: TLspContext; out aError: string): Boolean;
 function TryWriteLspContextFile(const aContext: TLspContext; out aError: string): Boolean;
+// Resolves the compiler DLL for the settings "dllname". Returns '' when it is
+// resolved, otherwise a named warning; aDllName is then '' and the settings
+// omit "dllname", so the query still runs as before.
+function ResolveLspCompilerDllForRequest(const aLspExePath, aPlatform: string; out aDllName: string): string;
+// The two-output writers keep their original contract and omit "dllname"; the
+// overloads with aCompilerDllName write it when it is not empty.
 function TryWriteCanonicalLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
-  out aError: string): Boolean;
+  out aError: string): Boolean; overload;
+function TryWriteCanonicalLspSettingsFile(const aContext: TLspContext; const aCompilerDllName: string;
+  out aSettingsFilePath: string; out aError: string): Boolean; overload;
 function TryWriteOfficialLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
-  out aError: string): Boolean;
+  out aError: string): Boolean; overload;
+function TryWriteOfficialLspSettingsFile(const aContext: TLspContext; const aCompilerDllName: string;
+  out aSettingsFilePath: string; out aError: string): Boolean; overload;
 
 implementation
 
 uses
-  System.Generics.Collections, System.IOUtils, System.JSON, System.SysUtils,
+  System.Generics.Collections, System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
   DelphiSemantics.Lsp,
   Dak.Messages, Dak.Paths, Dak.Project.BuildParams, Dak.Project.SourceLookup, Dak.Registry, Dak.RsVars, Dak.Settings,
   Dak.Utils;
@@ -126,8 +136,79 @@ begin
   end;
 end;
 
-function TryWriteLspSettingsFile(const aContext: TLspContext; const aFileName: string; out aSettingsFilePath: string;
+function IsCompilerDllName(const aFileName, aPrefix: string): Boolean;
+var
+  i: Integer;
+  lSuffix: string;
+begin
+  // Exactly <prefix><3 digits>.dll, e.g. dcc64290.dll; dcc64290N.dll does not match.
+  Result := StartsText(aPrefix, aFileName) and SameText(TPath.GetExtension(aFileName), '.dll');
+  if not Result then
+    Exit;
+  lSuffix := Copy(TPath.GetFileNameWithoutExtension(aFileName), Length(aPrefix) + 1, MaxInt);
+  Result := Length(lSuffix) = 3;
+  for i := 1 to Length(lSuffix) do
+    Result := Result and CharInSet(lSuffix[i], ['0'..'9']);
+end;
+
+function TryResolveLspCompilerDllName(const aLspExePath, aPlatform: string; out aDllName: string;
   out aError: string): Boolean;
+var
+  lBinDir: string;
+  lFilePath: string;
+  lMatches: TArray<string>;
+  lPrefix: string;
+begin
+  // DelphiLSP loads the platform compiler named by the settings "dllname" from
+  // its own folder; without it hover and most definitions return null. Only
+  // Win32 and Win64 are proven against the installed server. On failure
+  // aError is a reason fragment for the caller's warning.
+  Result := False;
+  aDllName := '';
+  aError := '';
+  if SameText(aPlatform, 'Win32') then
+    lPrefix := 'dcc32'
+  else if SameText(aPlatform, 'Win64') then
+    lPrefix := 'dcc64'
+  else
+  begin
+    aError := Format('platform %s is not supported; only Win32 and Win64 are', [aPlatform]);
+    Exit(False);
+  end;
+
+  lBinDir := TPath.GetDirectoryName(aLspExePath);
+  lMatches := [];
+  if TDirectory.Exists(lBinDir) then
+    for lFilePath in TDirectory.GetFiles(lBinDir, lPrefix + '*.dll') do
+      if IsCompilerDllName(TPath.GetFileName(lFilePath), lPrefix) then
+        lMatches := lMatches + [TPath.GetFileName(lFilePath)];
+  if Length(lMatches) = 0 then
+    aError := Format('no %sNNN.dll found beside %s', [lPrefix, aLspExePath])
+  else if Length(lMatches) > 1 then
+    aError := Format('more than one %sNNN.dll found beside %s: %s',
+      [lPrefix, aLspExePath, String.Join(', ', lMatches)])
+  else
+  begin
+    aDllName := lMatches[0];
+    Result := True;
+  end;
+end;
+
+function ResolveLspCompilerDllForRequest(const aLspExePath, aPlatform: string; out aDllName: string): string;
+var
+  lReason: string;
+begin
+  Result := '';
+  if not TryResolveLspCompilerDllName(aLspExePath, aPlatform, aDllName, lReason) then
+  begin
+    // Only hover (and some definitions) depend on the compiler DLL.
+    aDllName := '';
+    Result := Format('DelphiLSP compiler DLL not resolved (%s); hover may return no content.', [lReason]);
+  end;
+end;
+
+function TryWriteLspSettingsFile(const aContext: TLspContext; const aCompilerDllName, aFileName: string;
+  out aSettingsFilePath: string; out aError: string): Boolean;
 var
   lSettings: TDelphiSemanticLspSettings;
 begin
@@ -140,6 +221,7 @@ begin
     lSettings := TDelphiSemanticLspBoundary.BuildSettings(aContext.fMainSourcePath,
       aContext.fParams.fDefines, aContext.fParams.fUnitSearchPath, aContext.fParams.fLibraryPath,
       aContext.fParams.fUnitScopes, aContext.fParams.fUnitAliases);
+    lSettings.CompilerDllName := aCompilerDllName;
     TFile.WriteAllText(aSettingsFilePath,
       TDelphiSemanticLspBoundary.BuildOfficialSettingsJson(lSettings), TEncoding.UTF8);
     Result := True;
@@ -156,13 +238,25 @@ end;
 function TryWriteCanonicalLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
   out aError: string): Boolean;
 begin
-  Result := TryWriteLspSettingsFile(aContext, 'settings.delphilsp.json', aSettingsFilePath, aError);
+  Result := TryWriteLspSettingsFile(aContext, '', 'settings.delphilsp.json', aSettingsFilePath, aError);
 end;
 
 function TryWriteOfficialLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
   out aError: string): Boolean;
 begin
-  Result := TryWriteLspSettingsFile(aContext, 'probe.delphilsp.json', aSettingsFilePath, aError);
+  Result := TryWriteLspSettingsFile(aContext, '', 'probe.delphilsp.json', aSettingsFilePath, aError);
+end;
+
+function TryWriteCanonicalLspSettingsFile(const aContext: TLspContext; const aCompilerDllName: string;
+  out aSettingsFilePath: string; out aError: string): Boolean;
+begin
+  Result := TryWriteLspSettingsFile(aContext, aCompilerDllName, 'settings.delphilsp.json', aSettingsFilePath, aError);
+end;
+
+function TryWriteOfficialLspSettingsFile(const aContext: TLspContext; const aCompilerDllName: string;
+  out aSettingsFilePath: string; out aError: string): Boolean;
+begin
+  Result := TryWriteLspSettingsFile(aContext, aCompilerDllName, 'probe.delphilsp.json', aSettingsFilePath, aError);
 end;
 
 function TryPrepareLspWorkspace(var aContext: TLspContext; out aError: string): Boolean;

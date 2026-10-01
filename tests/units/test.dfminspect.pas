@@ -7,7 +7,7 @@ uses
   System.IOUtils,
   System.StrUtils,
   System.SysUtils,
-  Dak.DfmInspect,
+  Dak.DfmInspect, Dak.DfmText,
   Test.Support;
 
 type
@@ -36,6 +36,9 @@ type
     procedure OrderIndexHeadersParse;
     [Test]
     procedure DfmTextParserIsSharedByInspectAndCheck;
+    [Test]
+    [Category('RefactoringLightConsistency')]
+    procedure RetainsInheritedAndInlineHeaderEvidence;
   end;
 
 implementation
@@ -312,6 +315,46 @@ begin
   Assert.IsFalse(ContainsText(lInspectSource, 'TryParseComponentHeader') or
     ContainsText(lCheckSource, 'TryParseDfmTextObjects'),
     'DFM header/object parsing should be centralized in Dak.DfmText.');
+end;
+
+procedure TDfmInspectTests.RetainsInheritedAndInlineHeaderEvidence;
+var
+  lDirectory: string;
+  lDocument: TDfmTextDocument;
+  lError: string;
+  lPath: string;
+begin
+  lDirectory := TPath.Combine(ExtractFilePath(ParamStr(0)),
+    '.dak\DelphiAIKit.Tests\refactoring-light-consistency');
+  TDirectory.CreateDirectory(lDirectory);
+  lPath := TPath.Combine(lDirectory, 'HeaderKinds-' + TGUID.NewGuid.ToString + '.dfm');
+  try
+    TFile.WriteAllText(lPath,
+      'inherited ChildForm: TChildForm' + sLineBreak +
+      '  OnCreate = FormCreate' + sLineBreak +
+      '  inherited Button1: TButton [0]' + sLineBreak +
+      '    OnClick = ButtonClick' + sLineBreak +
+      '  end' + sLineBreak +
+      '  inline Frame1: TDetailFrame' + sLineBreak +
+      '    object Label1: TLabel' + sLineBreak +
+      '    end' + sLineBreak +
+      '  end' + sLineBreak +
+      'end' + sLineBreak, TEncoding.UTF8);
+    Assert.IsTrue(TryLoadDfmTextDocument(lPath, lDocument, lError), lError);
+    try
+      Assert.AreEqual('inherited', lDocument.Root.HeaderKind);
+      Assert.AreEqual('inherited', lDocument.Root.Children[0].HeaderKind);
+      Assert.AreEqual('inline', lDocument.Root.Children[1].HeaderKind);
+      Assert.AreEqual('object', lDocument.Root.Children[1].Children[0].HeaderKind);
+      Assert.AreEqual('ButtonClick', lDocument.Root.Children[0].Events.Values['OnClick']);
+      Assert.AreEqual(3, lDocument.Root.Children[0].StartLine);
+    finally
+      lDocument.Free;
+    end;
+  finally
+    if TFile.Exists(lPath) then
+      TFile.Delete(lPath);
+  end;
 end;
 
 initialization

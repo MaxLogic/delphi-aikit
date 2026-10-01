@@ -1,18 +1,31 @@
 <#
 .SYNOPSIS
 Run an already-built DUnitX executable with compact output and complete logs.
+.PARAMETER TimeoutSeconds
+Deadline for the whole test process. The default of 14400 seconds (4 hours)
+covers the complete retained suite on a busy machine. On expiry the runner
+stops the test process tree and reports a failure with exit code 124. Zero
+means no limit: the run waits until the test process exits on its own. Negative
+values are rejected as a parameter error. summary.json records the value as
+timeoutSeconds (0 = no limit); timedOut is always false when there is no limit.
 .EXAMPLE
 .\tests\run-dunitx.ps1 -TestArguments '--run:Test.Cli.TCliTests'
 #>
 [CmdletBinding()]
 param(
-    [string]$ExecutablePath = (Join-Path $PSScriptRoot 'DelphiAIKit.Tests.exe'),
+    [string]$ExecutablePath = '',
     [string[]]$TestArguments = @(),
-    [string]$LogRoot = (Join-Path $PSScriptRoot '.dak\DelphiAIKit.Tests\test-runs')
+    [string]$LogRoot = '',
+    [ValidateRange(0, 604800)]
+    [int]$TimeoutSeconds = 14400
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+# DAK-380: Windows PowerShell 5.1 leaves $PSScriptRoot empty in parameter defaults
+# under -File, so the defaults are resolved here, where both hosts set it.
+if (-not $ExecutablePath) { $ExecutablePath = Join-Path $PSScriptRoot 'bin\Debug\DelphiAIKit.Tests.exe' }
+if (-not $LogRoot) { $LogRoot = Join-Path $PSScriptRoot '.dak\DelphiAIKit.Tests\test-runs' }
 . (Join-Path $PSScriptRoot 'scripts\dunitx-summary.ps1')
 
 function ConvertTo-NativeArgument {
@@ -34,6 +47,9 @@ $stderrFile = $null
 $timer = [Diagnostics.Stopwatch]::StartNew()
 $launchError = $null
 $processExitCode = 1
+$timedOut = $false
+# Stream copies end when every holder of the pipe write ends has exited.
+$streamCloseMilliseconds = 30000
 try {
     $resolvedExecutable = (Resolve-Path -LiteralPath $ExecutablePath).Path
     $process.StartInfo.FileName = $resolvedExecutable
@@ -49,10 +65,32 @@ try {
     # Drain both streams concurrently to disk, without converting or dropping bytes.
     $stdoutCopy = $process.StandardOutput.BaseStream.CopyToAsync($stdoutFile)
     $stderrCopy = $process.StandardError.BaseStream.CopyToAsync($stderrFile)
-    $process.WaitForExit()
-    [void]$stdoutCopy.GetAwaiter().GetResult()
-    [void]$stderrCopy.GetAwaiter().GetResult()
-    $processExitCode = $process.ExitCode
+    # DAK-369: 0 means no limit; WaitForExit(0) would return at once, -1 waits forever.
+    $waitMilliseconds = if ($TimeoutSeconds -eq 0) { -1 } else { $TimeoutSeconds * 1000 }
+    if (-not $process.WaitForExit($waitMilliseconds)) {
+        $timedOut = $true
+        try {
+            $process.Kill($true)
+        }
+        catch [System.Management.Automation.MethodException] {
+            # Windows PowerShell 5.1 (.NET Framework) has no tree overload.
+            & taskkill.exe /PID $process.Id /T /F | Out-Null
+        }
+        if (-not $process.WaitForExit(10000)) {
+            throw "DUnitX process $($process.Id) did not stop within 10 s after its $TimeoutSeconds s deadline."
+        }
+    }
+    if (-not [Threading.Tasks.Task]::WaitAll(@($stdoutCopy, $stderrCopy), $streamCloseMilliseconds)) {
+        throw "DUnitX output streams stayed open $($streamCloseMilliseconds / 1000) s after the process exited; a descendant still holds them."
+    }
+    if ($timedOut) {
+        $processExitCode = 124
+        $launchError = "DUnitX did not exit within $TimeoutSeconds s; the test process tree was stopped. Narrow the selection or raise -TimeoutSeconds."
+        [IO.File]::WriteAllText((Join-Path $runDirectory 'runner-error.log'), $launchError)
+    }
+    else {
+        $processExitCode = $process.ExitCode
+    }
 }
 catch {
     $launchError = $_.Exception.Message
@@ -74,6 +112,8 @@ $summary = [ordered]@{
     status = $result.Status
     exitCode = $result.ExitCode
     processExitCode = $processExitCode
+    timedOut = $timedOut
+    timeoutSeconds = $TimeoutSeconds
     counts = $result.Counts
     shutdownLeakReport = $result.ShutdownLeakReport
     executable = $ExecutablePath
@@ -83,7 +123,8 @@ $summary = [ordered]@{
     stderr = $stderrPath
     runnerError = $launchError
 }
-$summary | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $summaryPath -Encoding UTF8
+# UTF-8 without a BOM on both hosts; Set-Content -Encoding UTF8 adds one under 5.1.
+[IO.File]::WriteAllText($summaryPath, ($summary | ConvertTo-Json -Depth 4), (New-Object System.Text.UTF8Encoding $false))
 Write-Output ("DUnitX {0}; exit={1}; processExit={2}; seconds={3}" -f $result.Status, $result.ExitCode, $processExitCode, $summary.durationSeconds)
 if ($null -ne $result.Counts) {
     $c = $result.Counts

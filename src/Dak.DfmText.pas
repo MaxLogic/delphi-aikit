@@ -13,6 +13,7 @@ type
     fProperties: TStringList;
     fPropertyLines: TStringList;
     fClassName: string;
+    fHeaderKind: string;
     fEndLine: Integer;
     fName: string;
     fParent: TDfmTextComponent;
@@ -27,6 +28,7 @@ type
     property DfmClassName: string read fClassName;
     property EndLine: Integer read fEndLine write fEndLine;
     property Events: TStringList read fEvents;
+    property HeaderKind: string read fHeaderKind;
     property Name: string read fName;
     property Parent: TDfmTextComponent read fParent;
     property Properties: TStringList read fProperties;
@@ -313,6 +315,12 @@ begin
   end;
 
   aComponent := TDfmTextComponent.Create(lName, lClassName, aParent, aIndex + 1);
+  if StartsText('inherited', lTrimmedLine) then
+    aComponent.fHeaderKind := 'inherited'
+  else if StartsText('inline', lTrimmedLine) then
+    aComponent.fHeaderKind := 'inline'
+  else
+    aComponent.fHeaderKind := 'object';
   aDocument.fComponents.Add(aComponent);
   Inc(aIndex);
   while aIndex < aLines.Count do

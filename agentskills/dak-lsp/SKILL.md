@@ -65,7 +65,7 @@ Symbols:
 5. `--rsvars` and `--envoptions` are optional advanced overrides. Do not add them unless normal context discovery fails or we need reproducible nonstandard setup.
 6. DAK owns generated context and logs under sibling `.dak/<ProjectName>/lsp/`. Do not create ad hoc `.delphilsp.json` files beside the source project for normal use.
 7. `lsp` hard-fails when DAK cannot build a real Delphi semantic context. Do not treat that as equivalent to `deps`, `global-vars`, or text search.
-8. `hover` may return empty content on some positions even when the capability exists. Treat that as a non-answer, not a transport failure.
+8. `hover` returns content when DAK resolves the platform compiler DLL (Win32 or Win64, `dcc32NNN.dll`/`dcc64NNN.dll` beside `DelphiLSP.exe`). Otherwise the result carries a "DelphiLSP compiler DLL not resolved" warning and hover may be empty. An empty hover at a position without a symbol is a non-answer, not a transport failure.
 9. When build output already includes compiler diagnostics, use `lsp` only as enrichment. Empty, unsupported, or errored semantic lookups should be ignored silently by the build path.
 10. Current external-server guidance is based on verified Delphi 23 (`23.0`) and Delphi 13 (`37.0`) behavior: `definition`, `hover`, and file-scoped `documentSymbol` work; `textDocument/references` and `workspace/symbol` do not.
 11. Do not emulate raw JSON-RPC or call `DelphiLSP.exe` directly when `DelphiAIKit.exe lsp` can answer the question.

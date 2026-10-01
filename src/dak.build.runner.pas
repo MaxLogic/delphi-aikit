@@ -1,4 +1,4 @@
-﻿unit Dak.Build.Runner;
+unit Dak.Build.Runner;
 
 interface
 
@@ -11,17 +11,22 @@ function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildP
   out aExitCode: Integer; out aError: string): Boolean; overload;
 function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
   const aDfmCheckRunner: TBuildDfmCheckRunner; out aExitCode: Integer; out aError: string): Boolean; overload;
+// DAK-379: creates the per-run `run-<guid>` log directory that --keep-logs/--log-dir describe. Public so that
+// concurrent creation can be proved without running builds.
+function TryCreateBuildLogRunDir(const aOptions: TAppOptions; out aRunDir: string; out aError: string): Boolean;
 
 implementation
 
 uses
-  System.Classes, System.JSON, System.RegularExpressions, System.StrUtils,
+  System.Character, System.Classes, System.JSON, System.RegularExpressions, System.StrUtils,
   System.Win.Registry,
   Winapi.Windows,
   maxLogic.StrUtils,
-  Dak.Build.Summary, Dak.DfmCheck,
+  SimpleParser.Lexer, SimpleParser.Lexer.Types,
+  Dak.Build.Enrichment, Dak.Build.Summary, Dak.DfmCheck,
   Dak.Diagnostics, Dak.ExternalToolProcess, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.MacroExpander, Dak.Messages,
-  Dak.MsBuild, Dak.Project.BuildParams, Dak.Project.SourceLookup, Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars,
+  Dak.MsBuild, Dak.MsBuild.Args, Dak.Paths, Dak.Project.BuildParams, Dak.Project.SourceLookup,
+  Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars,
   Dak.Settings, Dak.SourceContext, Dak.Utils;
 
 const
@@ -45,11 +50,53 @@ const
     'TMSWebCompiler.exe not found. Checked --webcore-compiler, [WebCore].CompilerPath in dak.ini, ' +
     'DAK_TMSWEB_COMPILER, and PATH.';
   cOutputMissingMessage = 'Compilation succeeded but the resolved output file does not exist: %s';
+  cOutputUnresolvedMessage = 'Compilation succeeded but the output file name could not be resolved: %s';
+  cTestOutputDirUnusable = 'Test output directory is not usable: %s (%s)';
+  cTestOutputDirDriveRelative = 'a path that depends on the working directory''s drive is not accepted; give a ' +
+    'relative path or a full path';
   cOutputLockedMessage =
     'Compilation succeeded but output file timestamp was not updated. The executable may be locked by another process.';
   cBuildDiagnosticsDirEnvVar = 'DAK_BUILD_DIAGNOSTICS_DIR';
+  cBuildLogsDirCreateFailed = 'Build log directory could not be created: %s (%s)';
+  cBuildLogsRootUnusable = 'Build log directory is not usable: %s (%s)';
+  cBuildLogsCopyFailed = 'Build logs could not be kept: %s could not be saved in %s (%s)';
+  cBuildLogMissing = '%s was not produced by the build process';
+  cBuildLogsKept = 'Build logs kept: %s';
+  cBuildLogsRunDirPrefix = 'run-';
+  cBuildLogsCreateAttempts = 5;
+  cBuildLogsDriveRelative = 'a root that depends on the working directory is not accepted; give a path relative ' +
+    'to the project directory or a full path';
+  cMsBuildInvalidPropertyError = 'error MSB1006';
+  cMsBuildRedactedValue = '<redacted>';
+  cMsBuildRejectedSwitchScanLines = 50;
+  cMsBuildTraceMaxLength = 32768;
+  cMsBuildTraceTruncated = ' ... [truncated]';
+  cMsBuildRejectedPropertyMessage = 'DAK: MSBuild rejected the generated property %s. Values are not shown.';
+  cMsBuildRejectedUnknownMessage =
+    'DAK: MSBuild rejected a generated /p: property that DAK could not identify. Rerun with --verbose to list ' +
+    'the generated MSBuild arguments; environment.proj values are redacted there.';
+  cMsBuildOriginEnvironmentProj = 'from environment.proj';
+  cMsBuildOriginOption = 'from the build options';
 
 type
+  TMsBuildPropertyOrigin = (poOption, poEnvironmentProj);
+
+  TMsBuildProperty = record
+    fName: string;
+    fValue: string;
+    fOrigin: TMsBuildPropertyOrigin;
+  end;
+
+  // DAK-379: the per-run directory of --keep-logs and the failure to fill it. fError is set after the build ran,
+  // so the build result and the retention failure are both reported.
+  TBuildLogRetention = record
+    fRunDir: string;
+    fError: string;
+  end;
+
+  // avTrace is the form we may print: environment.proj can hold secrets, so its values are replaced.
+  TMsBuildArgumentsView = (avProcess, avTrace);
+
   TBuildProjectInfo = record
     fProjectPath: string;
     fProjectDir: string;
@@ -59,8 +106,23 @@ type
     fDefines: string;
     fUnitSearchPath: string;
     fOutputPath: string;
+    // DAK-374: fOutputPath is empty when the artifact name is unknown; this says why.
+    fOutputUnresolvedReason: string;
+    fOutputNameSource: string;
+    // DAK-374: set when the name assumes something DAK could not check, such as an include it could not read.
+    fOutputNote: string;
     fMadExceptRequired: Boolean;
     fMadExceptReason: string;
+  end;
+
+  // DAK-374: how a platform names programs, libraries and packages (CodeGear.Common.Targets).
+  TArtifactNaming = record
+    fExeExt: string;
+    fDllExt: string;
+    fBplExt: string;
+    fDllPrefix: string;
+    fBplPrefix: string;
+    fSource: string;
   end;
 
   TWebCoreProjectInfo = record
@@ -103,14 +165,31 @@ begin
   Result := lOverlayValue + ';' + lProjectValue;
 end;
 
-procedure AppendMsBuildProperty(var aArguments: string; const aName, aValue: string);
+procedure AddMsBuildProperty(var aProperties: TArray<TMsBuildProperty>; const aName, aValue: string;
+  aOrigin: TMsBuildPropertyOrigin);
 var
-  lValue: string;
+  lProperty: TMsBuildProperty;
 begin
-  lValue := Trim(aValue);
-  if lValue = '' then
-    Exit;
-  aArguments := aArguments + ' /p:' + aName + '=' + QuoteCmdArg(lValue);
+  lProperty.fName := aName;
+  lProperty.fValue := aValue;
+  lProperty.fOrigin := aOrigin;
+  aProperties := aProperties + [lProperty];
+end;
+
+function RenderMsBuildProperties(const aProperties: TArray<TMsBuildProperty>; aView: TMsBuildArgumentsView): string;
+var
+  lProperty: TMsBuildProperty;
+begin
+  Result := '';
+  for lProperty in aProperties do
+  begin
+    Result := Result + ' /p:' + lProperty.fName + '=';
+    if (aView = TMsBuildArgumentsView.avTrace) and
+      (lProperty.fOrigin = TMsBuildPropertyOrigin.poEnvironmentProj) then
+      Result := Result + cMsBuildRedactedValue
+    else
+      Result := Result + QuoteMsBuildPropertyValue(lProperty.fValue);
+  end;
 end;
 
 function NormalizeDelphiVerForBuild(const aValue: string): string;
@@ -238,58 +317,6 @@ begin
   Result := Format('%s|%s|%d|%d|%s', [aOperation, aFilePath, aLineNumber, aColNumber, aCandidate]);
 end;
 
-function EnrichmentOperationName(aOperation: TLspOperation): string;
-begin
-  case aOperation of
-    TLspOperation.loDefinition:
-      Result := 'definition';
-    TLspOperation.loHover:
-      Result := 'hover';
-    TLspOperation.loSymbols:
-      Result := 'symbols';
-  else
-    Result := 'unknown';
-  end;
-end;
-
-function SelectEnrichmentOperation(const aMessage, aToken, aEnclosingSymbol: string; out aOperation: TLspOperation): Boolean;
-begin
-  Result := False;
-  aOperation := TLspOperation.loNone;
-  if aToken = '' then
-  begin
-    if aEnclosingSymbol <> '' then
-    begin
-      aOperation := TLspOperation.loSymbols;
-      Exit(True);
-    end;
-    Exit(False);
-  end;
-
-  if ContainsText(aMessage, 'Undeclared identifier') or
-    ContainsText(aMessage, 'Identifier not found') or
-    ContainsText(aMessage, 'Undeclared field') or
-    ContainsText(aMessage, 'Undeclared method') or
-    ContainsText(aMessage, 'Undeclared member') then
-  begin
-    aOperation := TLspOperation.loDefinition;
-    Exit(True);
-  end;
-
-  if ContainsText(aMessage, 'Incompatible types') or
-    ContainsText(aMessage, 'Type mismatch') or
-    ContainsText(aMessage, 'Cannot convert') or
-    ContainsText(aMessage, 'Not enough actual parameters') or
-    ContainsText(aMessage, 'No overloaded method') then
-  begin
-    aOperation := TLspOperation.loHover;
-    Exit(True);
-  end;
-
-  aOperation := TLspOperation.loHover;
-  Result := True;
-end;
-
 function FindCandidateColumn(const aContext: TSourceContextSnippet; const aCandidate: string): Integer;
 var
   lIndex: Integer;
@@ -309,85 +336,6 @@ begin
   if lPos > 0 then
     Exit(lPos);
   Exit(1);
-end;
-
-function BuildSemanticHintText(const aOperation: TLspOperation; const aResponseText: string; out aHintText: string): Boolean;
-var
-  lItem: TJSONObject;
-  lJson: TJSONObject;
-  lJsonValue: TJSONValue;
-  lLocationArray: TJSONArray;
-  lResultObject: TJSONObject;
-  lSymbolsArray: TJSONArray;
-  lSummary: TStringBuilder;
-begin
-  Result := False;
-  aHintText := '';
-  lJsonValue := TJSONValue.ParseJSONValue(aResponseText);
-  if not (lJsonValue is TJSONObject) then
-  begin
-    lJsonValue.Free;
-    Exit(False);
-  end;
-  lJson := lJsonValue as TJSONObject;
-  try
-    if not (lJson.Values['result'] is TJSONObject) then
-      Exit(False);
-    lResultObject := lJson.Values['result'] as TJSONObject;
-    case aOperation of
-      TLspOperation.loDefinition:
-        begin
-          lLocationArray := lResultObject.GetValue<TJSONArray>('locations');
-          if (lLocationArray = nil) or (lLocationArray.Count = 0) then
-            Exit(False);
-          if not (lLocationArray.Items[0] is TJSONObject) then
-            Exit(False);
-          lItem := lLocationArray.Items[0] as TJSONObject;
-          aHintText := Format('semantic hint: %s -> %s(%d,%d)', [EnrichmentOperationName(aOperation),
-            lItem.GetValue<string>('file', ''),
-            lItem.GetValue<Integer>('line', 0),
-            lItem.GetValue<Integer>('col', 0)]);
-          Exit(aHintText <> '');
-        end;
-      TLspOperation.loHover:
-        begin
-          aHintText := Trim(lResultObject.GetValue<string>('contentsText', ''));
-          if aHintText = '' then
-            Exit(False);
-          aHintText := 'semantic hint: hover -> ' + aHintText;
-          Exit(True);
-        end;
-      TLspOperation.loSymbols:
-        begin
-          lSymbolsArray := lResultObject.GetValue<TJSONArray>('symbols');
-          if (lSymbolsArray = nil) or (lSymbolsArray.Count = 0) then
-            Exit(False);
-          lSummary := TStringBuilder.Create;
-          try
-            for var i := 0 to lSymbolsArray.Count - 1 do
-            begin
-              if i > 2 then
-                Break;
-              if not (lSymbolsArray.Items[i] is TJSONObject) then
-                Continue;
-              lItem := lSymbolsArray.Items[i] as TJSONObject;
-              if lSummary.Length > 0 then
-                lSummary.Append(', ');
-              lSummary.Append(lItem.GetValue<string>('name', ''));
-            end;
-            aHintText := Trim(lSummary.ToString);
-          finally
-            lSummary.Free;
-          end;
-          if aHintText = '' then
-            Exit(False);
-          aHintText := 'semantic hint: symbols -> ' + aHintText;
-          Exit(True);
-        end;
-    end;
-  finally
-    lJson.Free;
-  end;
 end;
 
 function TryBuildLspEnrichmentText(const aOptions: TAppOptions; const aDiagnostic: TBuildDiagnostic; const aContext: TLspContext;
@@ -508,8 +456,97 @@ begin
     TPath.Combine('Embarcadero\BDS', TPath.Combine(lVersion, 'environment.proj')));
 end;
 
+// DAK-376: environment.proj is read as text, not through an XML parser, so its entities arrive undecoded. One
+// left-to-right pass decodes the five predefined entities and numeric references; an unknown or malformed
+// entity stays as written, and decoded text is never decoded again (&amp;lt; becomes &lt;).
+function DecodeXmlEntities(const aText: string): string;
+var
+  lBuilder: TStringBuilder;
+  lCode: Integer;
+  lDigits: string;
+  lEnd: Integer;
+  lEntity: string;
+  lIndex: Integer;
+  lIsHex: Boolean;
+begin
+  if Pos('&', aText) = 0 then
+    Exit(aText);
+
+  lBuilder := TStringBuilder.Create(Length(aText));
+  try
+    lIndex := 1;
+    while lIndex <= Length(aText) do
+    begin
+      if aText[lIndex] <> '&' then
+      begin
+        lBuilder.Append(aText[lIndex]);
+        Inc(lIndex);
+        Continue;
+      end;
+
+      lEnd := PosEx(';', aText, lIndex + 1);
+      // The longest entity we accept is &#x10FFFF; (10 characters).
+      if (lEnd = 0) or (lEnd - lIndex > 9) then
+      begin
+        lBuilder.Append('&');
+        Inc(lIndex);
+        Continue;
+      end;
+
+      lEntity := Copy(aText, lIndex + 1, lEnd - lIndex - 1);
+      lCode := -1;
+      if lEntity = 'amp' then
+        lCode := Ord('&')
+      else if lEntity = 'lt' then
+        lCode := Ord('<')
+      else if lEntity = 'gt' then
+        lCode := Ord('>')
+      else if lEntity = 'quot' then
+        lCode := Ord('"')
+      else if lEntity = 'apos' then
+        lCode := Ord('''')
+      else if (Length(lEntity) > 1) and (lEntity[1] = '#') then
+      begin
+        lIsHex := (lEntity[2] = 'x');
+        if lIsHex then
+          lDigits := '$' + Copy(lEntity, 3, MaxInt)
+        else
+          lDigits := Copy(lEntity, 2, MaxInt);
+        // A sign or blank would be accepted by StrToIntDef; a numeric reference has digits only.
+        if (lDigits <> '') and (lDigits <> '$') and
+          TRegEx.IsMatch(lDigits, '^(?:\$[0-9A-Fa-f]+|[0-9]+)$') then
+          lCode := StrToIntDef(lDigits, -1);
+        // Surrogate halves and values past U+10FFFF are not characters.
+        if (lCode <= 0) or (lCode > $10FFFF) or ((lCode >= $D800) and (lCode <= $DFFF)) then
+          lCode := -1;
+      end;
+
+      if lCode < 0 then
+      begin
+        lBuilder.Append('&');
+        Inc(lIndex);
+        Continue;
+      end;
+      lBuilder.Append(Char.ConvertFromUtf32(lCode));
+      lIndex := lEnd + 1;
+    end;
+    Result := lBuilder.ToString;
+  finally
+    lBuilder.Free;
+  end;
+end;
+
+function HasLineBreak(const aText: string): Boolean;
+begin
+  Result := (Pos(#13, aText) > 0) or (Pos(#10, aText) > 0);
+end;
+
+// Policy (DAK-068, DAK-376): every environment.proj property that the process environment lacks is forwarded, as
+// the IDE does. DAK cannot know which custom variables a project references, so it does not filter by name.
+// A value with a line break cannot be put on a command line safely; such a property is skipped and only its
+// name is reported in aSkippedNames.
 procedure ApplyEnvironmentProjProps(const aEnvProjPath: string; const aEnvVars: TDictionary<string, string>;
-  var aMsBuildEnvProps: string);
+  out aMsBuildEnvProps: TArray<TMsBuildProperty>; out aSkippedNames: TArray<string>);
 var
   lBody: string;
   lGroupMatch: TMatch;
@@ -520,7 +557,8 @@ var
   lValue: string;
   lMatch: TMatch;
 begin
-  aMsBuildEnvProps := '';
+  aMsBuildEnvProps := nil;
+  aSkippedNames := nil;
   if not FileExists(aEnvProjPath) then
     Exit;
 
@@ -542,12 +580,16 @@ begin
       if aEnvVars.ContainsKey(lKey) and (Trim(aEnvVars[lKey]) <> '') then
         Continue;
 
-      lValue := Trim(TRegEx.Replace(lMatch.Groups['value'].Value, '<[^>]+>', ''));
+      // Tags go first: a decoded &lt; must not be mistaken for markup.
+      lValue := Trim(DecodeXmlEntities(Trim(TRegEx.Replace(lMatch.Groups['value'].Value, '<[^>]+>', ''))));
       if lValue = '' then
         Continue;
-      if aMsBuildEnvProps <> '' then
-        aMsBuildEnvProps := aMsBuildEnvProps + ' ';
-      aMsBuildEnvProps := aMsBuildEnvProps + '/p:' + lKey + '=' + QuoteCmdArg(lValue);
+      if HasLineBreak(lValue) then
+      begin
+        aSkippedNames := aSkippedNames + [lKey];
+        Continue;
+      end;
+      AddMsBuildProperty(aMsBuildEnvProps, lKey, lValue, TMsBuildPropertyOrigin.poEnvironmentProj);
     end;
   end;
 end;
@@ -564,6 +606,7 @@ end;
 
 function TryParseIniBool(const aValue: string; out aEnabled: Boolean): Boolean;
 begin
+  aEnabled := False;
   if aValue = '' then
     Exit(False);
 
@@ -654,40 +697,528 @@ end;
 
 function PropertyIsEnabled(const aValue: string): Boolean; forward;
 
-function ResolveOutputFileName(const aProps: TDictionary<string, string>;
-  const aProjectName: string): string;
-var
-  lAppType: string;
-  lDependencyOutput: string;
-  lGenDll: string;
-  lMainSource: string;
+// DAK-374: the extensions and prefixes CodeGear.Common.Targets defines for a platform.
+function TryGetArtifactNaming(const aProps: TDictionary<string, string>; const aPlatform: string;
+  out aNaming: TArtifactNaming): Boolean;
 begin
-  if aProps.TryGetValue('DCC_DependencyCheckOutputName', lDependencyOutput) then
+  aNaming := Default(TArtifactNaming);
+  // The project imports the compiler targets, so their evaluated values are the compiler's own naming rules.
+  if aProps.ContainsKey('ExeExt') then
   begin
-    Result := TPath.GetFileName(Trim(lDependencyOutput));
-    if (Result <> '') and (TPath.GetExtension(Result) <> '') then
-      Exit;
+    aProps.TryGetValue('ExeExt', aNaming.fExeExt);
+    aProps.TryGetValue('DllExt', aNaming.fDllExt);
+    aProps.TryGetValue('BplExt', aNaming.fBplExt);
+    aProps.TryGetValue('DllPlatformPrefix', aNaming.fDllPrefix);
+    aProps.TryGetValue('BplPlatformPrefix', aNaming.fBplPrefix);
+    aNaming.fSource := 'compiler targets';
+    Exit(True);
   end;
 
+  // Without the targets we use the same table as CodeGear.Common.Targets of Delphi 12.
+  aNaming.fSource := 'platform table';
+  if MatchText(aPlatform, ['Win32', 'WinNX32', 'Win64', 'Win64x']) then
+  begin
+    aNaming.fExeExt := 'exe';
+    aNaming.fDllExt := 'dll';
+    aNaming.fBplExt := 'bpl';
+  end else if SameText(aPlatform, 'Linux64') then
+  begin
+    aNaming.fDllExt := 'so';
+    aNaming.fBplExt := 'so';
+    aNaming.fDllPrefix := 'lib';
+    aNaming.fBplPrefix := 'bpl';
+  end else if MatchText(aPlatform, ['OSX32', 'OSX64', 'OSXARM64']) then
+  begin
+    aNaming.fDllExt := 'dylib';
+    aNaming.fBplExt := 'dylib';
+    aNaming.fDllPrefix := 'lib';
+    aNaming.fBplPrefix := 'bpl';
+  end else if MatchText(aPlatform, ['iOSDevice32', 'iOSDevice64', 'iOSSimulator', 'iOSSimulator64',
+    'iOSSimARM64']) then
+  begin
+    aNaming.fDllExt := 'dylib';
+    aNaming.fBplExt := 'a';
+    aNaming.fDllPrefix := 'lib';
+    aNaming.fBplPrefix := 'lib';
+  end else if MatchText(aPlatform, ['Android', 'Android64']) then
+  begin
+    aNaming.fExeExt := 'so';
+    aNaming.fDllExt := 'so';
+    aNaming.fBplExt := 'a';
+    aNaming.fDllPrefix := 'lib';
+    aNaming.fBplPrefix := 'lib';
+  end else
+    Exit(False);
+  Result := True;
+end;
+
+function AppendArtifactExtension(const aFileName, aExtension: string): string;
+begin
+  if aExtension = '' then
+    Exit(aFileName);
+  Result := aFileName + '.' + aExtension;
+end;
+
+// DAK-381: AUTO of {$LIBSUFFIX AUTO} is the version of the installed RTL package. The compiler has no property
+// for it (dcc32 and dcclinux64 write 290 on Delphi 23.0 although the targets define no such value), and the
+// Delphi bin folder holds exactly one rtl<N>.bpl (rtl290.bpl), which is the evidence we read instead of a table.
+function TryReadAutoLibrarySuffix(const aBdsRoot: string; out aSuffix, aReason: string): Boolean;
+var
+  lFile: string;
+  lFiles: TArray<string>;
+  lMatch: TMatch;
+begin
+  aSuffix := '';
+  aReason := '';
+  if Trim(aBdsRoot) = '' then
+  begin
+    aReason := 'the Delphi installation folder is unknown, so the RTL package suffix cannot be read';
+    Exit(False);
+  end;
+  try
+    lFiles := TDirectory.GetFiles(TPath.Combine(aBdsRoot, 'bin'), 'rtl*.bpl');
+  except
+    on E: Exception do
+    begin
+      aReason := Format('the RTL package suffix cannot be read from "%s" (%s)', [aBdsRoot, E.Message]);
+      Exit(False);
+    end;
+  end;
+  for lFile in lFiles do
+  begin
+    lMatch := TRegEx.Match(TPath.GetFileName(lFile), '^rtl(\d+)\.bpl$', [roIgnoreCase]);
+    if not lMatch.Success then
+      Continue;
+    if aSuffix <> '' then
+    begin
+      aSuffix := '';
+      aReason := Format('"%s\bin" holds more than one rtl<N>.bpl, so the suffix of AUTO is ambiguous', [aBdsRoot]);
+      Exit(False);
+    end;
+    aSuffix := lMatch.Groups[1].Value;
+  end;
+  Result := aSuffix <> '';
+  if not Result then
+    aReason := Format('"%s\bin" holds no rtl<N>.bpl to take the suffix of AUTO from', [aBdsRoot]);
+end;
+
+type
+  // The naming directives of a main source. The compiler takes the library prefix, suffix, version and extension
+  // from them. It ignores the project's DllPrefix, DllSuffix, DllVersion and DCC_DependencyCheckOutputName, which
+  // the IDE only mirrors, but it does honour the project's OutputExt for programs and libraries (a {$E} wins
+  // over it). Verified with dcc32, dcclinux64 and dccaarm64 on Delphi 23.0 (DAK-374 and DAK-381).
+  TSourceNaming = record
+    fHasPrefix: Boolean;
+    fPrefix: string;
+    fHasSuffix: Boolean;
+    fSuffixIsAuto: Boolean;
+    fSuffix: string;
+    fHasVersion: Boolean;
+    fVersion: string;
+    fHasExtension: Boolean;
+    fExtension: string;
+  end;
+
+const
+  cMaxIncludes = 256;
+  cNamingIncludeNote = 'naming include %s not read; name assumes no directives in it';
+
+// 'text' as the string it stands for ('' is a quote); False for anything else.
+function TryUnquoteDirectiveValue(const aArg: string; out aValue: string): Boolean;
+var
+  lInner: string;
+begin
+  aValue := '';
+  Result := False;
+  if (Length(aArg) < 2) or (aArg[1] <> '''') or (aArg[Length(aArg)] <> '''') then
+    Exit;
+  lInner := Copy(aArg, 2, Length(aArg) - 2);
+  aValue := StringReplace(lInner, '''''', '''', [rfReplaceAll]);
+  Result := Pos('''', StringReplace(lInner, '''''', '', [rfReplaceAll])) = 0;
+end;
+
+procedure AddOutputNote(var aNotes: string; const aNote: string);
+begin
+  if aNotes <> '' then
+    aNotes := aNotes + '; ';
+  aNotes := aNotes + aNote;
+end;
+
+type
+  // Resolves {$I file} for the lexer. A file next to the including one is read; one that cannot be found (Jedi.inc
+  // is often on a search path) or read is skipped with a note, so the name assumes no directive in it and the
+  // post-build existence check decides. An include DAK cannot even name (wildcard or %), or too many includes (a
+  // cycle), leave the naming unknown (fFatalReason).
+  TNamingIncludeHandler = class(TInterfacedObject, IIncludeHandler)
+  strict private
+    fCount: Integer;
+  public
+    fNotes: string;
+    fFatalReason: string;
+    function GetIncludeFileContent(const aParentFileName, aIncludeName: string; out aContent,
+      aFileName: string): Boolean;
+  end;
+
+function TNamingIncludeHandler.GetIncludeFileContent(const aParentFileName, aIncludeName: string; out aContent,
+  aFileName: string): Boolean;
+var
+  lPath: string;
+  lUsable: Boolean;
+begin
+  aContent := '';
+  aFileName := '';
+  Result := False;
+  Inc(fCount);
+  if fCount > cMaxIncludes then
+  begin
+    fFatalReason := Format('more than %d includes were followed, so the naming directives are not read',
+      [cMaxIncludes]);
+    Exit;
+  end;
+  if (aIncludeName = '') or (Pos('%', aIncludeName) > 0) or (Pos('*', aIncludeName) > 0) then
+  begin
+    fFatalReason := Format('"%s" includes "%s", which DAK cannot locate, so a naming directive there is not ' +
+      'ruled out', [TPath.GetFileName(aParentFileName), aIncludeName]);
+    Exit;
+  end;
+  lPath := aIncludeName;
+  lUsable := True;
+  try
+    if TPath.GetExtension(lPath) = '' then
+      lPath := lPath + '.inc';
+    if not TPath.IsPathRooted(lPath) then
+      lPath := TPath.Combine(TPath.GetDirectoryName(aParentFileName), lPath);
+    lPath := TPath.GetFullPath(lPath);
+  except
+    // An include path that is not a usable path is one DAK could not read: it gets the same note below.
+    on E: Exception do
+      lUsable := False;
+  end;
+  if lUsable and FileExists(lPath) then
+  begin
+    try
+      aContent := TFile.ReadAllText(lPath);
+      aFileName := lPath;
+      Exit(True);
+    except
+      // An unreadable include is noted below like a missing one.
+      on E: Exception do
+        aContent := '';
+    end;
+  end;
+  AddOutputNote(fNotes, Format(cNamingIncludeNote, [ExtractFileName(aIncludeName)]));
+end;
+
+// Applies one compiler directive token to aNaming. A token that is not a naming directive is left alone. A naming
+// directive in a form DAK does not evaluate makes the naming unknown.
+function TryApplyNamingDirective(const aToken: string; var aNaming: TSourceNaming; out aReason: string): Boolean;
+const
+  cNamingDirective = '^(?:\{\$|\(\*\$)\s*(LIBPREFIX|SOPREFIX|LIBSUFFIX|SOSUFFIX|LIBVERSION|SOVERSION|EXTENSION|E)' +
+    '(?![A-Za-z0-9_+-])\s*(.*?)\s*(?:\}|\*\))$';
+var
+  lArg: string;
+  lMatch: TMatch;
+  lName: string;
+  lQuoted: string;
+begin
+  aReason := '';
+  Result := True;
+  // Groups: 1 = the directive name, 2 = its argument.
+  lMatch := TRegEx.Match(aToken, cNamingDirective, [roIgnoreCase, roSingleLine]);
+  if not lMatch.Success then
+    Exit;
+  lName := UpperCase(lMatch.Groups[1].Value);
+  lArg := Trim(lMatch.Groups[2].Value);
+  if EndsStr('PREFIX', lName) and TryUnquoteDirectiveValue(lArg, lQuoted) then
+  begin
+    aNaming.fHasPrefix := True;
+    aNaming.fPrefix := lQuoted;
+  end else if EndsStr('SUFFIX', lName) and SameText(lArg, 'AUTO') then
+  begin
+    aNaming.fHasSuffix := True;
+    aNaming.fSuffixIsAuto := True;
+    aNaming.fSuffix := '';
+  end else if EndsStr('SUFFIX', lName) and TryUnquoteDirectiveValue(lArg, lQuoted) then
+  begin
+    aNaming.fHasSuffix := True;
+    aNaming.fSuffixIsAuto := False;
+    aNaming.fSuffix := lQuoted;
+  end else if EndsStr('VERSION', lName) and TryUnquoteDirectiveValue(lArg, lQuoted) then
+  begin
+    aNaming.fHasVersion := True;
+    aNaming.fVersion := lQuoted;
+  end else if (EndsStr('EXTENSION', lName) or (lName = 'E')) and
+    (TryUnquoteDirectiveValue(lArg, lQuoted) or TRegEx.IsMatch(lArg, '^\.?[A-Za-z0-9_]+$')) then
+  begin
+    // {$E ocx} is the usual form; a quoted value is taken as written.
+    if not TryUnquoteDirectiveValue(lArg, lQuoted) then
+      lQuoted := lArg;
+    aNaming.fHasExtension := True;
+    aNaming.fExtension := lQuoted;
+    if StartsStr('.', aNaming.fExtension) then
+      aNaming.fExtension := Copy(aNaming.fExtension, 2, MaxInt);
+  end else begin
+    aReason := Format('the naming directive {$%s %s} has a form DAK does not evaluate', [lName, lArg]);
+    Result := False;
+  end;
+end;
+
+// Reads {$LIBPREFIX}, {$LIBSUFFIX}, {$LIBVERSION} and {$E}/{$EXTENSION} (and the SO* aliases) from the main source
+// in source order, as the compiler does: DelphiAST's lexer (SimpleParser.Lexer, already part of DAK) skips //, { }
+// and (* *) comments and string literals, reads a directive wherever it sits on a line or spans lines, and expands
+// each {$I file} where it appears through TNamingIncludeHandler. The last directive of a kind wins. Conditional
+// compilation is not evaluated.
+function TryReadSourceNaming(const aMainSourcePath: string; out aNaming: TSourceNaming;
+  out aNotes, aReason: string): Boolean;
+var
+  lHandler: TNamingIncludeHandler;
+  lHandlerRef: IIncludeHandler;
+  lLexer: TmwBasePasLex;
+  lText: string;
+begin
+  aNaming := Default(TSourceNaming);
+  aNotes := '';
+  aReason := '';
+  Result := False;
+  try
+    lText := TFile.ReadAllText(aMainSourcePath);
+  except
+    on E: Exception do
+    begin
+      aReason := Format('the source "%s" cannot be read to find its naming directives (%s)',
+        [aMainSourcePath, E.Message]);
+      Exit;
+    end;
+  end;
+
+  lHandler := TNamingIncludeHandler.Create;
+  lHandlerRef := lHandler;
+  lLexer := TmwBasePasLex.Create;
+  try
+    try
+      lLexer.IncludeHandler := lHandlerRef;
+      lLexer.Buffer.FileName := aMainSourcePath;
+      lLexer.Origin := lText;
+      while lLexer.TokenID <> ptNull do
+      begin
+        if lHandler.fFatalReason <> '' then
+        begin
+          aReason := lHandler.fFatalReason;
+          Exit;
+        end;
+        if (lLexer.TokenID = ptCompDirect) and not TryApplyNamingDirective(lLexer.Token, aNaming, aReason) then
+          Exit;
+        lLexer.Next;
+      end;
+    except
+      on E: Exception do
+      begin
+        aReason := Format('the source "%s" could not be scanned for naming directives (%s)',
+          [aMainSourcePath, E.Message]);
+        Exit;
+      end;
+    end;
+    if lHandler.fFatalReason <> '' then
+    begin
+      aReason := lHandler.fFatalReason;
+      Exit;
+    end;
+    aNotes := lHandler.fNotes;
+  finally
+    lLexer.Free;
+  end;
+  Result := True;
+end;
+
+// Returns False with aReason when the name is unknown; no name is guessed then. The compiler names an artifact
+// <prefix><name><suffix>[.<version>].<ext> (DAK-374, DAK-381, compiler-verified on Win32, Linux64 and Android64):
+// - The prefix defaults to the platform's (empty on Windows, lib or bpl on Linux, lib on Android) and is replaced
+//   by {$LIBPREFIX}, also when that is empty. The extension defaults to the platform's and is replaced by {$E}.
+// - Libraries and packages add {$LIBSUFFIX} and {$LIBVERSION}; the version follows the extension on Linux and
+//   Android (CodeGear.Delphi.Targets l.104-105, but Linux64 as dcclinux64 does it) and precedes it elsewhere.
+// - Programs keep their name and take only {$E}, except an Android program, a shared library, which also takes the
+//   prefix and the suffix (not the version).
+// The project properties DllPrefix, DllSuffix, DllVersion and DCC_DependencyCheckOutputName are not used.
+function TryResolveOutputFileName(const aProps: TDictionary<string, string>; const aProjectName,
+  aPlatform, aMainSourcePath, aBdsRoot: string; out aFileName, aSource, aReason, aNote: string;
+  out aIsPackage: Boolean): Boolean;
+var
+  lAppType: string;
+  lBaseName: string;
+  lExtension: string;
+  lGenDll: string;
+  lIsAndroid: Boolean;
+  lIsLibrary: Boolean;
+  lMainSource: string;
+  lNaming: TArtifactNaming;
+  lOutputExt: string;
+  lPrefix: string;
+  lSourceNaming: TSourceNaming;
+  lSuffix: string;
+  lVersion: string;
+begin
+  aFileName := '';
+  aSource := '';
+  aReason := '';
+  aNote := '';
   lMainSource := '';
   aProps.TryGetValue('MainSource', lMainSource);
+  aIsPackage := SameText(TPath.GetExtension(Trim(lMainSource)), '.dpk');
+
+  if not TryGetArtifactNaming(aProps, aPlatform, lNaming) then
+  begin
+    aReason := Format('platform "%s" has no known artifact naming rules and the project did not import ' +
+      'compiler targets that define them', [aPlatform]);
+    Exit(False);
+  end;
+  aSource := lNaming.fSource;
+
   // The compiler names the output after the main source file. SanitizedProjectName is the program
   // identifier form, which differs for dotted names such as Build.Output.Name.dpr (T-264).
   if Trim(lMainSource) <> '' then
-    Result := TPath.GetFileNameWithoutExtension(Trim(lMainSource))
+    lBaseName := TPath.GetFileNameWithoutExtension(Trim(lMainSource))
   else
-    Result := ResolveOutputName(aProps, aProjectName);
-  if SameText(TPath.GetExtension(lMainSource), '.dpk') then
-    Exit(Result + '.bpl');
+    lBaseName := ResolveOutputName(aProps, aProjectName);
 
   lAppType := '';
   lGenDll := '';
   aProps.TryGetValue('AppType', lAppType);
   aProps.TryGetValue('GenDll', lGenDll);
-  if SameText(Trim(lAppType), 'Library') or PropertyIsEnabled(lGenDll) then
-    Exit(Result + '.dll');
+  lIsLibrary := aIsPackage or SameText(Trim(lAppType), 'Library') or PropertyIsEnabled(lGenDll);
+  lIsAndroid := MatchText(aPlatform, ['Android', 'Android64']);
 
-  Result := Result + '.exe';
+  if aIsPackage then
+  begin
+    lPrefix := lNaming.fBplPrefix;
+    lExtension := lNaming.fBplExt;
+  end else if lIsLibrary then
+  begin
+    lPrefix := lNaming.fDllPrefix;
+    lExtension := lNaming.fDllExt;
+  end else begin
+    // An Android program is a shared library: dccaarm/dccaarm64 write lib<name>.so.
+    if lIsAndroid then
+      lPrefix := lNaming.fDllPrefix
+    else
+      lPrefix := '';
+    lExtension := lNaming.fExeExt;
+  end;
+
+  // An Android package is a static library: dccaarm64 writes lib<name>.a into DCC_DcpOutput and ignores the naming
+  // directives (verified with {$LIBPREFIX}, {$LIBSUFFIX}, {$LIBVERSION} and {$E}).
+  if aIsPackage and lIsAndroid then
+  begin
+    aFileName := AppendArtifactExtension(lPrefix + lBaseName, lExtension);
+    Exit(True);
+  end;
+
+  // The IDE's "Target file extension" (OutputExt) reaches dcc for programs and libraries, with a dot put in front
+  // of it by the targets, so ".ocx" gives "..ocx". A package ignores it, and {$E} below wins over it (DAK-374).
+  if not aIsPackage then
+  begin
+    lOutputExt := '';
+    aProps.TryGetValue('OutputExt', lOutputExt);
+    lOutputExt := Trim(lOutputExt);
+    if Pos('$(', lOutputExt) > 0 then
+    begin
+      aReason := Format('OutputExt "%s" contains an unexpanded property', [lOutputExt]);
+      Exit(False);
+    end;
+    // With the targets imported, the evaluated value already carries the dot they put in front of it (l.94: the
+    // platform default, or the project's value behind a dot), and the name adds its own. Without them the value
+    // is the project's own.
+    if (lNaming.fSource = 'compiler targets') and StartsStr('.', lOutputExt) then
+      lOutputExt := Copy(lOutputExt, 2, MaxInt);
+    if lOutputExt <> '' then
+      lExtension := lOutputExt;
+  end;
+
+  if not TryReadSourceNaming(aMainSourcePath, lSourceNaming, aNote, aReason) then
+    Exit(False);
+  if lSourceNaming.fHasExtension then
+    lExtension := lSourceNaming.fExtension;
+
+  lSuffix := '';
+  lVersion := '';
+  if lIsLibrary or lIsAndroid then
+  begin
+    if lSourceNaming.fHasPrefix then
+      lPrefix := lSourceNaming.fPrefix;
+    if lSourceNaming.fHasSuffix then
+    begin
+      if lSourceNaming.fSuffixIsAuto then
+      begin
+        if not TryReadAutoLibrarySuffix(aBdsRoot, lSuffix, aReason) then
+          Exit(False);
+      end else
+        lSuffix := lSourceNaming.fSuffix;
+    end;
+  end;
+  if lIsLibrary and lSourceNaming.fHasVersion then
+    lVersion := '.' + lSourceNaming.fVersion;
+
+  if MatchText(aPlatform, ['Linux32', 'Linux64', 'Android', 'Android64']) then
+    aFileName := AppendArtifactExtension(lPrefix + lBaseName + lSuffix, lExtension) + lVersion
+  else
+    aFileName := AppendArtifactExtension(lPrefix + lBaseName + lSuffix + lVersion, lExtension);
+  Result := True;
+end;
+
+// DAK-382: a directory property as a full path, or a reason. GetFullPath and Combine raise on a value with invalid
+// path characters, which an evaluated property can hold, so they run here and never outside a guard.
+function TryResolveProjectDirectory(const aValue, aProjectDir, aLabel: string; out aFullDir,
+  aReason: string): Boolean;
+var
+  lValue: string;
+begin
+  aFullDir := '';
+  aReason := '';
+  lValue := Trim(aValue);
+  if Pos('$(', lValue) > 0 then
+  begin
+    aReason := Format('%s "%s" contains an unexpanded property', [aLabel, lValue]);
+    Exit(False);
+  end;
+  try
+    if TPath.IsPathRooted(lValue) then
+      aFullDir := TPath.GetFullPath(lValue)
+    else
+      aFullDir := TPath.GetFullPath(TPath.Combine(aProjectDir, lValue));
+  except
+    on E: Exception do
+    begin
+      aFullDir := '';
+      aReason := Format('%s "%s" is not a usable path (%s)', [aLabel, lValue, E.Message]);
+      Exit(False);
+    end;
+  end;
+  Result := True;
+end;
+
+// DAK-382: a file property as a full path next to the project, or a reason; same guard as the directory form.
+function TryResolveProjectFile(const aValue, aProjectDir, aLabel: string; out aFullPath,
+  aReason: string): Boolean;
+begin
+  Result := TryResolveProjectDirectory(aValue, aProjectDir, aLabel, aFullPath, aReason);
+end;
+
+// DAK-374: the directory the compiler writes a package to. CodeGear.Delphi.Targets l.55 defaults an empty
+// DCC_BplOutput to DelphiDLLOutputPath (EnvOptions.proj); with the targets imported the evaluated
+// DCC_BplOutput already holds that default. Without either, the directory is unknown.
+function TryResolvePackageOutputDir(const aProps: TDictionary<string, string>; const aProjectDir: string;
+  out aOutputDir, aReason: string): Boolean;
+var
+  lValue: string;
+begin
+  aOutputDir := '';
+  aReason := '';
+  if not aProps.TryGetValue('DCC_BplOutput', lValue) or (Trim(lValue) = '') then
+    if not aProps.TryGetValue('DelphiDLLOutputPath', lValue) or (Trim(lValue) = '') then
+    begin
+      aReason := 'the package output directory is unknown: DCC_BplOutput and DelphiDLLOutputPath are empty';
+      Exit(False);
+    end;
+  Result := TryResolveProjectDirectory(lValue, aProjectDir, 'the package output directory', aOutputDir, aReason);
 end;
 
 function PropertyIsEnabled(const aValue: string): Boolean;
@@ -907,12 +1438,17 @@ end;
 
 function BuildProjectInfo(const aProjectPath, aConfig, aPlatform: string;
   const aEnvVars: TDictionary<string, string>; const aTestOutputDir, aBuildDefines,
-  aBuildUnitSearchPath: string; out aError: string): TBuildProjectInfo;
+  aBuildUnitSearchPath, aBdsRoot: string; out aError: string): TBuildProjectInfo;
 var
   lError: string;
+  lIsPackage: Boolean;
   lProps: TDictionary<string, string>;
   lOutputDir: string;
+  lMainSourcePath: string;
+  lMainSourceUsable: Boolean;
   lOutputFileName: string;
+  lOutputValue: string;
+  lPackageDir: string;
 begin
   Result := Default(TBuildProjectInfo);
   aError := '';
@@ -932,21 +1468,41 @@ begin
 
     if not lProps.TryGetValue('MainSource', Result.fMainSourcePath) or (Trim(Result.fMainSourcePath) = '') then
       Result.fMainSourcePath := Result.fProjectName + '.dpr';
-    if not TPath.IsPathRooted(Result.fMainSourcePath) then
-      Result.fMainSourcePath := TPath.Combine(Result.fProjectDir, Result.fMainSourcePath);
-    Result.fMainSourcePath := TPath.GetFullPath(Result.fMainSourcePath);
+    // DAK-382: MainSource is an evaluated property too, so an unusable value is a named reason, not an exception.
+    lMainSourceUsable := TryResolveProjectFile(Result.fMainSourcePath, Result.fProjectDir, 'MainSource',
+      lMainSourcePath, Result.fOutputUnresolvedReason);
+    if lMainSourceUsable then
+      Result.fMainSourcePath := lMainSourcePath;
 
-    if not lProps.TryGetValue('DCC_ExeOutput', lOutputDir) or (Trim(lOutputDir) = '') then
-      lOutputDir := Result.fProjectDir
-    else if not TPath.IsPathRooted(lOutputDir) then
-      lOutputDir := TPath.GetFullPath(TPath.Combine(Result.fProjectDir, lOutputDir))
-    else
-      lOutputDir := TPath.GetFullPath(lOutputDir);
-
-    lOutputFileName := ResolveOutputFileName(lProps, Result.fProjectName);
-    Result.fOutputPath := TPath.Combine(lOutputDir, lOutputFileName);
-    if aTestOutputDir <> '' then
-      Result.fOutputPath := TPath.Combine(TPath.GetFullPath(aTestOutputDir), TPath.GetFileName(Result.fOutputPath));
+    if lMainSourceUsable and TryResolveOutputFileName(lProps, Result.fProjectName, aPlatform,
+      Result.fMainSourcePath, aBdsRoot, lOutputFileName, Result.fOutputNameSource,
+      Result.fOutputUnresolvedReason, Result.fOutputNote, lIsPackage) then
+    begin
+      // aTestOutputDir is already a validated full path (NormalizeBuildOptions).
+      if aTestOutputDir <> '' then
+        Result.fOutputPath := TPath.Combine(aTestOutputDir, lOutputFileName)
+      else if not lIsPackage then
+      begin
+        // DAK-382: an unusable DCC_ExeOutput leaves the path unresolved with a reason instead of raising.
+        if not lProps.TryGetValue('DCC_ExeOutput', lOutputValue) or (Trim(lOutputValue) = '') then
+          lOutputDir := Result.fProjectDir
+        else
+          TryResolveProjectDirectory(lOutputValue, Result.fProjectDir, 'DCC_ExeOutput', lOutputDir,
+            Result.fOutputUnresolvedReason);
+        if lOutputDir <> '' then
+          Result.fOutputPath := TPath.Combine(lOutputDir, lOutputFileName);
+      end else if MatchText(aPlatform, ['Android', 'Android64']) then
+      begin
+        // The static package lands next to the .dcp files, not in DCC_BplOutput.
+        if not lProps.TryGetValue('DCC_DcpOutput', lOutputValue) or (Trim(lOutputValue) = '') then
+          Result.fOutputUnresolvedReason := 'the Android package output directory is unknown: DCC_DcpOutput is empty'
+        else if TryResolveProjectDirectory(lOutputValue, Result.fProjectDir, 'DCC_DcpOutput', lPackageDir,
+          Result.fOutputUnresolvedReason) then
+          Result.fOutputPath := TPath.Combine(lPackageDir, lOutputFileName);
+      end else if TryResolvePackageOutputDir(lProps, Result.fProjectDir, lPackageDir,
+        Result.fOutputUnresolvedReason) then
+        Result.fOutputPath := TPath.Combine(lPackageDir, lOutputFileName);
+    end;
 
     lProps.TryGetValue('DCC_Define', Result.fDefines);
     Result.fDefines := MergeSemicolonValues(aBuildDefines, Result.fDefines);
@@ -963,6 +1519,9 @@ begin
       Result.fMadExceptReason := 'define-missing'
     else if MesFileDisablesMadExcept(Result.fMesPath) then
       Result.fMadExceptReason := 'mes-disabled'
+    else if not MatchText(aPlatform, ['Win32', 'Win64']) then
+      // madExceptPatch patches Windows binaries; the resolved output of another platform is an ELF, .so or .a.
+      Result.fMadExceptReason := 'platform-not-windows'
     else
     begin
       Result.fMadExceptRequired := True;
@@ -1180,34 +1739,147 @@ begin
   Result := False;
 end;
 
-function BuildMsBuildArguments(const aOptions: TAppOptions; const aProjectInfo: TBuildProjectInfo;
-  const aExtraProps: string): string;
+function BuildMsBuildSelectionProperties(const aOptions: TAppOptions): TArray<TMsBuildProperty>;
+begin
+  Result := nil;
+  AddMsBuildProperty(Result, 'Config', aOptions.fConfig, TMsBuildPropertyOrigin.poOption);
+  AddMsBuildProperty(Result, 'Platform', aOptions.fPlatform, TMsBuildPropertyOrigin.poOption);
+end;
+
+// The properties whose values come from the caller or the machine, in the order they follow the fixed switches.
+function BuildMsBuildOverrideProperties(const aOptions: TAppOptions; const aProjectInfo: TBuildProjectInfo;
+  const aEnvProps: TArray<TMsBuildProperty>): TArray<TMsBuildProperty>;
 var
   lOutputDir: string;
 begin
-  Result := QuoteCmdArg(aProjectInfo.fProjectPath) +
-    ' /t:' + aOptions.fBuildTarget +
-    ' /p:Config=' + aOptions.fConfig +
-    ' /p:Platform=' + aOptions.fPlatform +
-    ' /p:DCC_Quiet=true /p:DCC_UseMSBuildExternally=true /p:DCC_UseResponseFile=1 /p:DCC_UseCommandFile=1 /nologo /v:m /fl /m';
-
+  Result := nil;
   if aOptions.fHasBuildTestOutputDir then
   begin
-    lOutputDir := TPath.GetFullPath(aOptions.fBuildTestOutputDir);
-    Result := Result +
-      ' /p:DCC_ExeOutput=' + QuoteCmdArg(lOutputDir) +
-      ' /p:DCC_UnitOutputDirectory=' + QuoteCmdArg(lOutputDir) +
-      ' /p:DCC_BplOutput=' + QuoteCmdArg(lOutputDir) +
-      ' /p:DCC_DcpOutput=' + QuoteCmdArg(lOutputDir);
+    // Already a validated full path (NormalizeBuildOptions), so nothing here can raise.
+    lOutputDir := aOptions.fBuildTestOutputDir;
+    AddMsBuildProperty(Result, 'DCC_ExeOutput', lOutputDir, TMsBuildPropertyOrigin.poOption);
+    // DAK-375: unit output is a build artifact too. DCC_DcuOutput is the compiler's property (the retired
+    // wrapper's DCC_UnitOutputDirectory was ignored); DCC_ObjOutput follows it so .o/.obj files move as well.
+    AddMsBuildProperty(Result, 'DCC_DcuOutput', TPath.Combine(lOutputDir, 'dcu'), TMsBuildPropertyOrigin.poOption);
+    AddMsBuildProperty(Result, 'DCC_ObjOutput', TPath.Combine(lOutputDir, 'dcu'), TMsBuildPropertyOrigin.poOption);
+    AddMsBuildProperty(Result, 'DCC_BplOutput', lOutputDir, TMsBuildPropertyOrigin.poOption);
+    AddMsBuildProperty(Result, 'DCC_DcpOutput', lOutputDir, TMsBuildPropertyOrigin.poOption);
+    // DAK-382: C++ headers are unit-derived output and follow the DCUs; the package interface (.bpi) follows the
+    // .dcp files. Both default to a project or machine folder (CodeGear.Delphi.Targets l.59-60), and DCC_BpiOutput
+    // only follows DCC_DcpOutput when the project leaves it empty.
+    AddMsBuildProperty(Result, 'DCC_HppOutput', TPath.Combine(lOutputDir, 'dcu'), TMsBuildPropertyOrigin.poOption);
+    AddMsBuildProperty(Result, 'DCC_BpiOutput', lOutputDir, TMsBuildPropertyOrigin.poOption);
   end;
 
-  if Trim(aExtraProps) <> '' then
-    Result := Result + ' ' + aExtraProps;
+  Result := Result + aEnvProps;
 
-  if aOptions.fHasBuildDefines then
-    AppendMsBuildProperty(Result, 'DCC_Define', aProjectInfo.fDefines);
-  if aOptions.fHasBuildUnitSearchPath then
-    AppendMsBuildProperty(Result, 'DCC_UnitSearchPath', aProjectInfo.fUnitSearchPath);
+  if aOptions.fHasBuildDefines and (Trim(aProjectInfo.fDefines) <> '') then
+    AddMsBuildProperty(Result, 'DCC_Define', Trim(aProjectInfo.fDefines), TMsBuildPropertyOrigin.poOption);
+  if aOptions.fHasBuildUnitSearchPath and (Trim(aProjectInfo.fUnitSearchPath) <> '') then
+    AddMsBuildProperty(Result, 'DCC_UnitSearchPath', Trim(aProjectInfo.fUnitSearchPath),
+      TMsBuildPropertyOrigin.poOption);
+end;
+
+function BuildMsBuildArguments(const aOptions: TAppOptions; const aProjectInfo: TBuildProjectInfo;
+  const aOverrideProps: TArray<TMsBuildProperty>; aView: TMsBuildArgumentsView): string;
+begin
+  Result := QuoteCmdArg(aProjectInfo.fProjectPath) +
+    ' /t:' + aOptions.fBuildTarget +
+    RenderMsBuildProperties(BuildMsBuildSelectionProperties(aOptions), aView) +
+    ' /p:DCC_Quiet=true /p:DCC_UseMSBuildExternally=true /p:DCC_UseResponseFile=1 /p:DCC_UseCommandFile=1 /nologo /v:m /fl /m' +
+    RenderMsBuildProperties(aOverrideProps, aView);
+
+  if (aView = TMsBuildArgumentsView.avTrace) and (Length(Result) > cMsBuildTraceMaxLength) then
+    Result := Copy(Result, 1, cMsBuildTraceMaxLength) + cMsBuildTraceTruncated;
+end;
+
+// MSBuild words MSB1006 in the user's language, so only the error code and the layout are used: the first
+// non-empty line after the error repeats the rejected text after a label and a colon.
+function TryReadMsBuildRejectedSwitch(const aLogPath: string; out aRejectedText: string): Boolean;
+var
+  lErrorSeen: Boolean;
+  lLine: string;
+  lLineCount: Integer;
+  lPos: Integer;
+  lReader: TStreamReader;
+begin
+  aRejectedText := '';
+  if (aLogPath = '') or (not FileExists(aLogPath)) then
+    Exit(False);
+
+  lReader := TStreamReader.Create(aLogPath, TEncoding.Default, True);
+  try
+    lErrorSeen := False;
+    lLineCount := 0;
+    // MSBuild rejects the command line before it builds anything, so the error leads the log.
+    while (not lReader.EndOfStream) and (lLineCount < cMsBuildRejectedSwitchScanLines) do
+    begin
+      lLine := Trim(lReader.ReadLine);
+      Inc(lLineCount);
+      if lLine = '' then
+        Continue;
+      if lErrorSeen then
+      begin
+        lPos := Pos(':', lLine);
+        if lPos > 0 then
+          aRejectedText := Trim(Copy(lLine, lPos + 1, MaxInt));
+        Break;
+      end;
+      lErrorSeen := ContainsText(lLine, cMsBuildInvalidPropertyError);
+    end;
+  finally
+    lReader.Free;
+  end;
+  Result := aRejectedText <> '';
+end;
+
+// MSBuild reports the piece it could not read as a property, which is one ';' or ',' separated part of a
+// generated value. That text can be part of a secret, so we report only the names of the properties it fits.
+function DescribeMsBuildPropertyRejection(const aProperties: TArray<TMsBuildProperty>;
+  const aRejectedText: string): string;
+var
+  lNames: string;
+  lPart: string;
+  lProperty: TMsBuildProperty;
+begin
+  lNames := '';
+  if aRejectedText <> '' then
+    for lProperty in aProperties do
+      for lPart in lProperty.fValue.Split([';', ',']) do
+        if SameStr(Trim(lPart), aRejectedText) then
+        begin
+          if lNames <> '' then
+            lNames := lNames + ', ';
+          lNames := lNames + '/p:' + lProperty.fName;
+          if lProperty.fOrigin = TMsBuildPropertyOrigin.poEnvironmentProj then
+            lNames := lNames + ' (' + cMsBuildOriginEnvironmentProj + ')'
+          else
+            lNames := lNames + ' (' + cMsBuildOriginOption + ')';
+          Break;
+        end;
+
+  if lNames = '' then
+    Exit(cMsBuildRejectedUnknownMessage);
+  Result := Format(cMsBuildRejectedPropertyMessage, [lNames]);
+end;
+
+procedure AnnotateMsBuildPropertyRejection(const aOutLogPath, aErrLogPath: string;
+  const aProperties: TArray<TMsBuildProperty>; var aSummary: TBuildSummary);
+var
+  i: Integer;
+  lRejectedText: string;
+begin
+  for i := 0 to High(aSummary.fErrors) do
+    if ContainsText(aSummary.fErrors[i], cMsBuildInvalidPropertyError) then
+    begin
+      // Without the rejected text the description says that the property could not be identified.
+      if (not TryReadMsBuildRejectedSwitch(aOutLogPath, lRejectedText)) and
+        (not TryReadMsBuildRejectedSwitch(aErrLogPath, lRejectedText)) then
+        lRejectedText := '';
+      aSummary.fErrors[i] := aSummary.fErrors[i] + sLineBreak +
+        DescribeMsBuildPropertyRejection(aProperties, lRejectedText);
+      Exit;
+    end;
 end;
 
 function FileUtcTicks(const aPath: string): Int64;
@@ -1240,8 +1912,17 @@ function BuildMadExceptMissingDcuGuidance(const aErrors: TArray<string>): string
 procedure PrintPostBuildDfmCheckNotes(const aOptions: TAppOptions; const aSummary: TBuildSummary;
   const aSourceBuildFailed: Boolean); forward;
 
+procedure PrintLogRetention(const aLogRetention: TBuildLogRetention; const aErrorPrefix: string);
+begin
+  // The failure message names the directory; a "kept" line next to it would claim a success.
+  if aLogRetention.fError <> '' then
+    Writeln(aErrorPrefix + aLogRetention.fError)
+  else if aLogRetention.fRunDir <> '' then
+    Writeln(Format(cBuildLogsKept, [aLogRetention.fRunDir]));
+end;
+
 procedure PrintSummary(const aOptions: TAppOptions; const aProjectInfo: TBuildProjectInfo;
-  const aSummary: TBuildSummary; const aSourceBuildFailed: Boolean);
+  const aSummary: TBuildSummary; const aSourceBuildFailed: Boolean; const aLogRetention: TBuildLogRetention);
 var
   lLine: string;
 begin
@@ -1275,13 +1956,22 @@ begin
     if aSummary.fOutputStale and (aSummary.fOutputMessage <> '') then
       Writeln('WARNING. ' + aSummary.fOutputMessage);
     if (not aSummary.fOutputStale) and (aSummary.fOutputMessage <> '') then
-      Writeln('ERROR. ' + aSummary.fOutputMessage);
+    begin
+      if aSummary.fExitCode = 0 then
+        Writeln('NOTE. ' + aSummary.fOutputMessage)
+      else
+        Writeln('ERROR. ' + aSummary.fOutputMessage);
+    end;
+    PrintLogRetention(aLogRetention, 'ERROR. ');
     PrintPostBuildDfmCheckNotes(aOptions, aSummary, aSourceBuildFailed);
     Exit;
   end;
 
   if aSummary.fExitCode <> 0 then
     Writeln('Build FAILED.')
+  else if aProjectInfo.fOutputPath = '' then
+    // DAK-374: the name is unresolved; the output message below says why.
+    Writeln('Build succeeded.')
   else
     Writeln('Build succeeded: ' + aProjectInfo.fOutputPath);
 
@@ -1297,6 +1987,7 @@ begin
     Writeln(aSummary.fOutputMessage);
   if (not aSummary.fOutputStale) and (aSummary.fOutputMessage <> '') then
     Writeln(aSummary.fOutputMessage);
+  PrintLogRetention(aLogRetention, '');
   PrintPostBuildDfmCheckNotes(aOptions, aSummary, aSourceBuildFailed);
 end;
 
@@ -1310,7 +2001,12 @@ var
   lTracePath: string;
 begin
   if aOptions.fVerbose and (not aOptions.fBuildQuiet) then
+  begin
     Writeln(ErrOutput, '[build] ' + aStep);
+    // A line longer than the text buffer is written in pieces; flush so a verbose line is never left
+    // half-buffered while later stdout/stderr output reaches a shared pipe first (DAK-372).
+    Flush(ErrOutput);
+  end;
   lTracePath := Trim(GetEnvironmentVariable('DAK_TRACE_BUILD'));
   if lTracePath <> '' then
     TFile.AppendAllText(lTracePath, FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now) + ' ' + aStep + sLineBreak,
@@ -1549,6 +2245,130 @@ begin
   TFile.Copy(aSourcePath, lTargetPath, True);
 end;
 
+// DAK-379: <log root>\run-<guid>. The root is the project's .dak build folder, or --log-dir: relative to the
+// project directory (never the working directory), or absolute. The GUID keeps concurrent builds apart.
+// A root such as `\logs` or `D:logs` depends on the working directory's drive or directory, not on the project.
+function IsDriveRelativePath(const aPath: string): Boolean;
+begin
+  Result := ((Length(aPath) >= 1) and (aPath[1] = '\') and ((Length(aPath) = 1) or (aPath[2] <> '\'))) or
+    ((Length(aPath) >= 2) and (aPath[2] = ':') and ((Length(aPath) = 2) or (not CharInSet(aPath[3], ['\', '/']))));
+end;
+
+// The RTL ForceDirectories fails when a concurrent build creates a shared parent first. A directory that
+// exists afterwards is what we need, whoever made it.
+function EnsureDirectoryExists(const aPath: string): Boolean;
+var
+  lParent: string;
+begin
+  if DirectoryExists(aPath) then
+    Exit(True);
+  lParent := ExtractFileDir(ExcludeTrailingPathDelimiter(aPath));
+  if (lParent <> '') and (Length(lParent) < Length(aPath)) and (not DirectoryExists(lParent)) then
+    EnsureDirectoryExists(lParent);
+  Result := CreateDir(aPath) or DirectoryExists(aPath);
+end;
+
+function EnsureDirectoryExistsWithRetry(const aPath: string): Boolean;
+var
+  lAttempt: Integer;
+begin
+  Result := False;
+  for lAttempt := 1 to cBuildLogsCreateAttempts do
+  begin
+    if EnsureDirectoryExists(aPath) then
+      Exit(True);
+    Sleep(10 * lAttempt);
+  end;
+end;
+
+function TryCreateBuildLogRunDir(const aOptions: TAppOptions; out aRunDir: string; out aError: string): Boolean;
+var
+  lError: string;
+  lGuid: TGUID;
+  lLogDir: string;
+  lNormalizedDir: string;
+  lRoot: string;
+  lRunDir: string;
+begin
+  aRunDir := '';
+  aError := '';
+  lRunDir := '';
+  try
+    lLogDir := Trim(aOptions.fBuildLogDir);
+    if lLogDir = '' then
+      lRoot := DakProjectPath(DakProjectRootForProjectPath(aOptions.fDprojPath), ['build'])
+    else
+    begin
+      if not TryNormalizeInputPath(lLogDir, lNormalizedDir, lError) then
+      begin
+        aError := Format(cBuildLogsRootUnusable, [aOptions.fBuildLogDir, lError]);
+        Exit(False);
+      end;
+      if IsDriveRelativePath(lNormalizedDir) then
+      begin
+        aError := Format(cBuildLogsRootUnusable, [aOptions.fBuildLogDir, cBuildLogsDriveRelative]);
+        Exit(False);
+      end;
+      lRoot := TPath.GetFullPath(TPath.Combine(ExtractFilePath(aOptions.fDprojPath), lNormalizedDir));
+    end;
+
+    CreateGUID(lGuid);
+    lRunDir := TPath.Combine(lRoot, cBuildLogsRunDirPrefix + Copy(GUIDToString(lGuid), 2, 36));
+    // The long-path form only matters for creation; the plain path is what we report.
+    if not EnsureDirectoryExistsWithRetry(LongPathSafe(lRoot)) then
+      raise EInOutError.Create(SysErrorMessage(GetLastError));
+    // The GUID makes the run directory ours alone, so failing to create it is a real failure.
+    if not CreateDir(LongPathSafe(lRunDir)) then
+      raise EInOutError.Create(SysErrorMessage(GetLastError));
+  except
+    on E: Exception do
+    begin
+      if lRunDir = '' then
+        lRunDir := aOptions.fBuildLogDir;
+      aError := Format(cBuildLogsDirCreateFailed, [lRunDir, E.Message]);
+      Exit(False);
+    end;
+  end;
+  aRunDir := lRunDir;
+  Result := True;
+end;
+
+// Only an empty directory goes: RemoveDir fails on a directory that holds anything, so kept files are safe.
+procedure RemoveEmptyRunDir(const aRunDir: string);
+begin
+  if aRunDir = '' then
+    Exit;
+  // A failed removal leaves an empty directory behind; the failure being reported matters more.
+  RemoveDir(LongPathSafe(aRunDir));
+end;
+
+procedure RetainBuildLog(const aRunDir, aSourcePath, aTargetName: string);
+begin
+  // The shared copier skips a missing source; a requested log that is missing must not vanish quietly.
+  if not FileExists(aSourcePath) then
+    raise EFileNotFoundException.CreateFmt(cBuildLogMissing, [aTargetName]);
+  PreserveBuildDiagnosticLog(aRunDir, aSourcePath, aTargetName);
+end;
+
+// Runs once the build process has ended, so the files are complete. A failure is recorded, never raised: the
+// caller still owes the build result.
+procedure RetainBuildLogs(var aLogRetention: TBuildLogRetention; const aOutLog, aErrLog: string);
+var
+  lCurrentLog: string;
+begin
+  if aLogRetention.fRunDir = '' then
+    Exit;
+  lCurrentLog := 'stdout.log';
+  try
+    RetainBuildLog(aLogRetention.fRunDir, aOutLog, lCurrentLog);
+    lCurrentLog := 'stderr.log';
+    RetainBuildLog(aLogRetention.fRunDir, aErrLog, lCurrentLog);
+  except
+    on E: Exception do
+      aLogRetention.fError := Format(cBuildLogsCopyFailed, [lCurrentLog, aLogRetention.fRunDir, E.Message]);
+  end;
+end;
+
 procedure RunWebCorePatchHook(const aRunner: IBuildProcessRunner; const aProjectInfo: TWebCoreProjectInfo;
   const aOptions: TAppOptions);
 var
@@ -1672,7 +2492,7 @@ begin
     if aOptions.fBuildJson then
       Writeln(BuildSummaryAsJson(lProjectInfo.fProjectPath, aOptions, lSummary, aOptions.fBuildTarget, lTimeMs))
     else
-      PrintSummary(aOptions, lProjectInfo, lSummary, lSummary.fExitCode <> 0);
+      PrintSummary(aOptions, lProjectInfo, lSummary, lSummary.fExitCode <> 0, Default(TBuildLogRetention));
   end;
 
   Result := True;
@@ -1711,6 +2531,53 @@ begin
     Exit(False);
   end;
 
+  if aOptions.fBuildKeepLogs then
+  begin
+    if Trim(aOptions.fBuildLogDir) <> '' then
+      aError := Format(SBuildOptionDelphiOnly, ['--log-dir'])
+    else
+      aError := Format(SBuildOptionDelphiOnly, ['--keep-logs']);
+    Exit(False);
+  end;
+
+  Result := True;
+end;
+
+// DAK-374: --test-output-dir is normalized once here, where a failure is a named error, and the full path is
+// reused by BuildProjectInfo and BuildMsBuildOverrideProperties. A relative value keeps its meaning (relative to
+// the working directory); a value such as `\out` or `D:out` depends on the working directory's drive and is
+// rejected with the rule --log-dir uses (IsDriveRelativePath).
+function TryNormalizeTestOutputDir(const aValue: string; out aFullPath, aError: string): Boolean;
+var
+  lError: string;
+  lNormalized: string;
+begin
+  aFullPath := '';
+  aError := '';
+  if Trim(aValue) = '' then
+  begin
+    aError := Format(cTestOutputDirUnusable, [aValue, 'a directory is required']);
+    Exit(False);
+  end;
+  if not TryNormalizeInputPath(aValue, lNormalized, lError) then
+  begin
+    aError := Format(cTestOutputDirUnusable, [aValue, lError]);
+    Exit(False);
+  end;
+  if IsDriveRelativePath(lNormalized) then
+  begin
+    aError := Format(cTestOutputDirUnusable, [aValue, cTestOutputDirDriveRelative]);
+    Exit(False);
+  end;
+  try
+    aFullPath := TPath.GetFullPath(lNormalized);
+  except
+    on E: Exception do
+    begin
+      aError := Format(cTestOutputDirUnusable, [aValue, E.Message]);
+      Exit(False);
+    end;
+  end;
   Result := True;
 end;
 
@@ -1718,6 +2585,7 @@ function NormalizeBuildOptions(const aOptions: TAppOptions; out aNormalizedOptio
   out aError: string): Boolean;
 var
   lBuildBackend: TBuildBackend;
+  lTestOutputDir: string;
 begin
   Result := False;
   aError := '';
@@ -1740,6 +2608,13 @@ begin
     Exit(True);
   end;
 
+  if aNormalizedOptions.fHasBuildTestOutputDir then
+  begin
+    if not TryNormalizeTestOutputDir(aNormalizedOptions.fBuildTestOutputDir, lTestOutputDir, aError) then
+      Exit(False);
+    aNormalizedOptions.fBuildTestOutputDir := lTestOutputDir;
+  end;
+
   if Trim(aNormalizedOptions.fDelphiVersion) = '' then
   begin
     if not LoadDefaultDelphiVersion(aNormalizedOptions.fDprojPath, aNormalizedOptions.fDelphiVersion) and
@@ -1752,6 +2627,23 @@ begin
 
   aNormalizedOptions.fDelphiVersion := NormalizeDelphiVerForBuild(aNormalizedOptions.fDelphiVersion);
   Result := True;
+end;
+
+// DAK-382: the semantic project loader raises EArgumentException for a MainSource with invalid path characters.
+// Source context is optional, so that becomes the lookup error the caller already reports with --verbose.
+function TryBuildProjectSourceLookupGuarded(const aDprojPath, aConfig, aPlatform, aDelphiVersion: string;
+  const aEnvVars: TDictionary<string, string>; out aLookup: TProjectSourceLookup; out aError: string): Boolean;
+begin
+  try
+    Result := TryBuildProjectSourceLookup(aDprojPath, aConfig, aPlatform, aDelphiVersion, aEnvVars, nil, aLookup,
+      aError);
+  except
+    on E: EArgumentException do
+    begin
+      aError := E.Message;
+      Result := False;
+    end;
+  end;
 end;
 
 function TryRunBuildInternal(const aOptions: TAppOptions; out aExitCode: Integer; out aError: string): Boolean;
@@ -1777,7 +2669,7 @@ var
   lDiagnosticsDefaults: TDiagnosticsDefaults;
   lEnvVars: TDictionary<string, string>;
   lErrLog: string;
-  lExtraProps: string;
+  lExtraProps: TArray<TMsBuildProperty>;
   lJson: string;
   lLookupError: string;
   lMadErrLog: string;
@@ -1789,6 +2681,7 @@ var
   lLspHintText: string;
   lLspLookup: TProjectSourceLookup;
   lLspLookupError: string;
+  lLogRetention: TBuildLogRetention;
   lLspNotePrinted: Boolean;
   lNormalizedOptions: TAppOptions;
   lOutLog: string;
@@ -1798,7 +2691,10 @@ var
   lProjectLookup: TProjectSourceLookup;
   lRsVarsEnvironment: TRsVarsEnvironment;
   lRsVarsEnvironmentBlock: string;
+  lRunProcessOk: Boolean;
   lSettings: TDakBuildSettings;
+  lSkippedEnvProjNames: TArray<string>;
+  lSkippedName: string;
   lSourceBuildExitCode: Integer;
   lSourceBuildTimedOut: Boolean;
   lStartTick: Int64;
@@ -1808,17 +2704,19 @@ var
   lTimeMs: Int64;
   lTimedOut: Boolean;
   lMsBuildPath: string;
+  lMsBuildProps: TArray<TMsBuildProperty>;
 begin
   Result := False;
   aExitCode := 1;
   aError := '';
   lEnvVars := nil;
   lDiagnosticsWarnings := nil;
-  lExtraProps := '';
+  lExtraProps := nil;
   lOutLog := '';
   lErrLog := '';
   lMadErrLog := '';
   lTempBase := '';
+  lLogRetention := Default(TBuildLogRetention);
 
   if not NormalizeBuildOptions(aOptions, lNormalizedOptions, aError) then
     Exit(False);
@@ -1863,16 +2761,29 @@ begin
     end;
 
     PrintVerboseStep(lNormalizedOptions, 'environment-props');
-    ApplyEnvironmentProjProps(BuildEnvironmentProjPath(lNormalizedOptions.fDelphiVersion, lBdsRoot), lEnvVars, lExtraProps);
+    ApplyEnvironmentProjProps(BuildEnvironmentProjPath(lNormalizedOptions.fDelphiVersion, lBdsRoot), lEnvVars,
+      lExtraProps, lSkippedEnvProjNames);
+    // Only the name: an environment.proj value can be a secret.
+    for lSkippedName in lSkippedEnvProjNames do
+      PrintVerboseStep(lNormalizedOptions, 'environment-props: skipped ' + lSkippedName +
+        ' (its value contains a line break)');
     PrintVerboseStep(lNormalizedOptions, 'preflight');
     EmitBuildPreflightWarnings(lNormalizedOptions, lEnvVars);
     PrintVerboseStep(lNormalizedOptions, 'project-info');
     lProjectInfo := BuildProjectInfo(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
       lNormalizedOptions.fPlatform, lEnvVars, IfThen(lNormalizedOptions.fHasBuildTestOutputDir,
       lNormalizedOptions.fBuildTestOutputDir, ''), lNormalizedOptions.fBuildDefines,
-      lNormalizedOptions.fBuildUnitSearchPath, aError);
+      lNormalizedOptions.fBuildUnitSearchPath, lBdsRoot, aError);
     if aError <> '' then
       Exit(False);
+    if lProjectInfo.fOutputPath <> '' then
+      PrintVerboseStep(lNormalizedOptions, 'output-name: ' + TPath.GetFileName(lProjectInfo.fOutputPath) +
+        ' (from ' + lProjectInfo.fOutputNameSource + ')')
+    else
+      PrintVerboseStep(lNormalizedOptions, 'output-name: unresolved (' + lProjectInfo.fOutputUnresolvedReason + ')');
+    if lProjectInfo.fMadExceptReason = 'platform-not-windows' then
+      PrintVerboseStep(lNormalizedOptions, 'madexcept-patch: skipped (platform ' + lNormalizedOptions.fPlatform +
+        ' is not Win32 or Win64; madExceptPatch patches Windows binaries only)');
 
     lTempBase := TPath.Combine(TPath.GetTempPath,
       'dak-build-' + IntToStr(GetCurrentProcessId) + '-' + IntToStr(GetTickCount));
@@ -1882,11 +2793,36 @@ begin
 
     lOutputPreTicks := FileUtcTicks(lProjectInfo.fOutputPath);
     lStartTick := CurrentTicks;
+    lMsBuildProps := BuildMsBuildOverrideProperties(lNormalizedOptions, lProjectInfo, lExtraProps);
     PrintVerboseStep(lNormalizedOptions, 'run-msbuild');
-    if not aRunner.RunProcess(lMsBuildPath, BuildMsBuildArguments(lNormalizedOptions, lProjectInfo, lExtraProps),
-      lProjectInfo.fProjectDir, lOutLog, lErrLog, lRsVarsEnvironmentBlock, lNormalizedOptions.fBuildTimeoutSec,
-      aExitCode, lTimedOut, aError) then
+    PrintVerboseStep(lNormalizedOptions, 'msbuild-exe: ' + lMsBuildPath);
+    PrintVerboseStep(lNormalizedOptions, 'msbuild-args: ' +
+      BuildMsBuildArguments(lNormalizedOptions, lProjectInfo, lMsBuildProps, TMsBuildArgumentsView.avTrace));
+    // The run directory is made before the build starts, so a location we cannot write fails fast instead of
+    // after a long build. The files follow once the process has ended.
+    if lNormalizedOptions.fBuildKeepLogs then
+      if not TryCreateBuildLogRunDir(lNormalizedOptions, lLogRetention.fRunDir, aError) then
+        Exit(False);
+    try
+      lRunProcessOk := aRunner.RunProcess(lMsBuildPath,
+        BuildMsBuildArguments(lNormalizedOptions, lProjectInfo, lMsBuildProps, TMsBuildArgumentsView.avProcess),
+        lProjectInfo.fProjectDir, lOutLog, lErrLog, lRsVarsEnvironmentBlock, lNormalizedOptions.fBuildTimeoutSec,
+        aExitCode, lTimedOut, aError);
+    except
+      // The launcher failed before any log existed: do not leave an empty run directory behind.
+      RemoveEmptyRunDir(lLogRetention.fRunDir);
+      raise;
+    end;
+    // A process that never started has no logs to keep; only its failure is reported.
+    if lRunProcessOk or FileExists(lOutLog) then
+      RetainBuildLogs(lLogRetention, lOutLog, lErrLog);
+    if not lRunProcessOk then
+    begin
+      RemoveEmptyRunDir(lLogRetention.fRunDir);
+      if lLogRetention.fError <> '' then
+        aError := Trim(aError + sLineBreak + lLogRetention.fError);
       Exit(False);
+    end;
     lSourceBuildExitCode := aExitCode;
     lSourceBuildTimedOut := lTimedOut;
     lTimeMs := CurrentTicks - lStartTick;
@@ -1902,6 +2838,9 @@ begin
     lSummaryOptions.fIncludeHints := lNormalizedOptions.fBuildShowHints;
 
     lSummary := ParseBuildLogs(lOutLog, lErrLog, lSummaryOptions);
+    if lSourceBuildExitCode <> 0 then
+      AnnotateMsBuildPropertyRejection(lOutLog, lErrLog,
+        BuildMsBuildSelectionProperties(lNormalizedOptions) + lMsBuildProps, lSummary);
     if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) or
       ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
     begin
@@ -1910,8 +2849,8 @@ begin
       lProjectLookup.fProjectDproj := lNormalizedOptions.fDprojPath;
       lProjectLookup.fProjectDir := lProjectInfo.fProjectDir;
         lProjectLookup.fMainSourcePath := lProjectInfo.fMainSourcePath;
-      if TryBuildProjectSourceLookup(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
-        lNormalizedOptions.fPlatform, lNormalizedOptions.fDelphiVersion, lEnvVars, nil, lProjectLookup, lLookupError)
+      if TryBuildProjectSourceLookupGuarded(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
+        lNormalizedOptions.fPlatform, lNormalizedOptions.fDelphiVersion, lEnvVars, lProjectLookup, lLookupError)
       then
       begin
         lBuildSourceContextCache := TSourceContextRunCache.Create(lProjectLookup);
@@ -2019,18 +2958,31 @@ begin
         lSummary.fOutputStale := True;
         lSummary.fOutputMessage := cOutputLockedMessage;
         lSummary.fStatus := cStatusOutputLocked;
+      end else if lProjectInfo.fOutputPath = '' then
+      begin
+        // DAK-374: an unknown artifact name is reported with its reason instead of a guessed path.
+        lSummary.fOutputStale := True;
+        lSummary.fOutputMessage := Format(cOutputUnresolvedMessage, [lProjectInfo.fOutputUnresolvedReason]);
+        lSummary.fStatus := cStatusOutputMissing;
       end else if not FileExists(lProjectInfo.fOutputPath) then
       begin
         // A predicted output the compiler did not write is never reported as a fresh result.
         lSummary.fOutputStale := True;
         lSummary.fOutputMessage := Format(cOutputMissingMessage, [lProjectInfo.fOutputPath]);
+        if lProjectInfo.fOutputNote <> '' then
+          lSummary.fOutputMessage := lSummary.fOutputMessage + ' (' + lProjectInfo.fOutputNote + ')';
         lSummary.fStatus := cStatusOutputMissing;
-      end else if lSummary.fWarningCount > 0 then
-        lSummary.fStatus := cStatusWarnings
-      else if lSummary.fHintCount > 0 then
-        lSummary.fStatus := cStatusHints
-      else
-        lSummary.fStatus := cStatusOk;
+      end else
+      begin
+        if lSummary.fWarningCount > 0 then
+          lSummary.fStatus := cStatusWarnings
+        else if lSummary.fHintCount > 0 then
+          lSummary.fStatus := cStatusHints
+        else
+          lSummary.fStatus := cStatusOk;
+        // DAK-374: the file exists and is fresh; the note says what its name assumed.
+        lSummary.fOutputMessage := lProjectInfo.fOutputNote;
+      end;
     end;
 
     if (aExitCode = 0) and lProjectInfo.fMadExceptRequired then
@@ -2041,7 +2993,10 @@ begin
         lSummary.fStatus := cStatusInternalError;
         lSummary.fExitCode := 1;
         aExitCode := 1;
-        lSummary.fOutputMessage := Format(cMadExceptOutputMissingMessage, [lProjectInfo.fOutputPath]);
+        if lProjectInfo.fOutputPath = '' then
+          lSummary.fOutputMessage := Format(cOutputUnresolvedMessage, [lProjectInfo.fOutputUnresolvedReason])
+        else
+          lSummary.fOutputMessage := Format(cMadExceptOutputMissingMessage, [lProjectInfo.fOutputPath]);
       end else
       begin
         lMadExceptExe := ResolveMadExceptPatchExe(lSettings.fMadExceptPath);
@@ -2065,6 +3020,16 @@ begin
       end;
     end;
 
+    // A build whose requested logs were lost is not a clean success; a failed build keeps its own result.
+    if (lLogRetention.fError <> '') and (aExitCode = 0) then
+    begin
+      lSummary.fStatus := cStatusInternalError;
+      lSummary.fExitCode := 1;
+      aExitCode := 1;
+    end;
+    lSummary.fLogsDir := lLogRetention.fRunDir;
+    lSummary.fLogsError := lLogRetention.fError;
+
     if not lNormalizedOptions.fBuildQuiet then
     begin
       if lNormalizedOptions.fBuildJson then
@@ -2076,7 +3041,8 @@ begin
       end else
       begin
         PrintVerboseStep(lNormalizedOptions, 'print-summary');
-        PrintSummary(lNormalizedOptions, lProjectInfo, lSummary, (lSourceBuildExitCode <> 0) or lSourceBuildTimedOut);
+        PrintSummary(lNormalizedOptions, lProjectInfo, lSummary, (lSourceBuildExitCode <> 0) or lSourceBuildTimedOut,
+          lLogRetention);
       end;
     end;
 

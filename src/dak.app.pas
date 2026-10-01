@@ -31,9 +31,10 @@ uses
   Xml.omnixmldom, Xml.xmldom,
   maxLogic.CmdLineParams, MaxMadExcept,
   Dak.Analysis.Doctor, Dak.Analysis.ReportCommand, Dak.Analysis.WorkspaceCommand, Dak.Analyze, Dak.Build, Dak.Cli,
-  Dak.Deps, Dak.DfmCheck,
+  Dak.Consistency.Command, Dak.Deps, Dak.DfmCheck,
   Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
-  Dak.Messages, Dak.Refactor, Dak.RemoveWith, Dak.Resolve, Dak.SymbolMap, Dak.Utils;
+  Dak.Messages, Dak.Refactor, Dak.Refactor.ApplyCommand, Dak.RemoveWith, Dak.Resolve,
+  Dak.Signature.Command, Dak.SymbolMap, Dak.Utils;
 
 procedure InitializeCommandLine;
 var
@@ -194,6 +195,14 @@ begin
     Result := RunRenameCommand(fOptions)
   else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckDeadCode) then
     Result := RunDeadCodeCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckRefactorApply) then
+    Result := RunRefactorApplyCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckUses) then
+    Result := RunUsesPlanCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckConsistency) then
+    Result := RunConsistencyCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckSignature) then
+    Result := RunSignatureCommand(fOptions)
   else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeWorkspace) then
     Result := RunAnalyzeWorkspaceCommand(fOptions)
   else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeDoctor) then

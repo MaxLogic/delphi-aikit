@@ -23,7 +23,7 @@ uses
 type
   TCommandRoute = (crResolve, crAnalyze, crBuild, crDfmCheck, crDfmInspect, crGlobalVars, crDeps, crLsp,
     crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode, crAnalyzeWorkspace, crAnalyzeDoctor,
-    crAnalyzeReport);
+    crAnalyzeReport, crRefactorApply, crUses, crConsistency, crSignature);
   TCommandRouteSet = set of TCommandRoute;
   TSwitchValuePolicy = (svpFlag, svpRequiredValue, svpOptionalBoolValue);
 
@@ -43,7 +43,7 @@ type
 
 const
   cAllCommandRoutes: TCommandRouteSet = [crResolve, crAnalyze, crBuild, crDfmCheck, crDfmInspect, crGlobalVars,
-    crDeps, crLsp, crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode];
+    crDeps, crLsp, crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode, crRefactorApply, crUses, crConsistency, crSignature];
 
 function CommandDescriptor(const aCommand: TCommandKind; const aPrimaryToken: string; const aAliases: string;
   const aUsage: string; const aRoute: TCommandRoute): TCommandDescriptor;
@@ -94,7 +94,7 @@ begin
     Add('baseline', '', svpRequiredValue, [crAnalyzeReport]);
     Add('update-baseline', '', svpOptionalBoolValue, [crAnalyzeReport]);
     Add('format', 'out-kind', svpRequiredValue, [crResolve, crDfmInspect, crGlobalVars, crDeps, crLsp,
-      crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode]);
+      crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode, crUses, crConsistency, crSignature]);
     Add('out-file', 'out', svpRequiredValue, [crResolve]);
     Add('out', '', svpRequiredValue, [crAnalyze, crAnalyzeWorkspace, crAnalyzeReport]);
     Add('fi-output', 'output', svpRequiredValue, [crResolve]);
@@ -132,6 +132,8 @@ begin
     Add('max-findings', '', svpRequiredValue, [crBuild]);
     Add('build-timeout-sec', '', svpRequiredValue, [crBuild]);
     Add('test-output-dir', '', svpRequiredValue, [crBuild]);
+    Add('keep-logs', '', svpFlag, [crBuild]);
+    Add('log-dir', '', svpRequiredValue, [crBuild]);
     Add('define', '', svpRequiredValue, [crBuild]);
     Add('unit-search-path', '', svpRequiredValue, [crBuild]);
     Add('builder', '', svpRequiredValue, [crBuild]);
@@ -169,6 +171,9 @@ begin
     Add('new-name', '', svpRequiredValue, [crRename]);
     Add('profile', '', svpRequiredValue, [crDeadCode]);
     Add('apply', '', svpOptionalBoolValue, [crRename, crDeadCode]);
+    Add('apply-plan', '', svpRequiredValue, [crRefactorApply]);
+    Add('request', '', svpRequiredValue, [crUses, crSignature]);
+    Add('plan-out', '', svpRequiredValue, [crUses, crSignature]);
     Result := lDescriptors.ToArray;
   finally
     lDescriptors.Free;
@@ -286,7 +291,7 @@ end;
 
 function GetCommandDescriptors: TArray<TCommandDescriptor>;
 begin
-  SetLength(Result, 17);
+  SetLength(Result, 21);
   Result[0] := CommandDescriptor(TCommandKind.ckResolve, 'resolve', '', SUsageResolve, TCommandRoute.crResolve);
   Result[1] := CommandDescriptor(TCommandKind.ckAnalyzeProject, 'analyze', 'analyze-project', SUsageAnalyze,
     TCommandRoute.crAnalyze);
@@ -316,6 +321,13 @@ begin
     TCommandRoute.crAnalyzeDoctor);
   Result[16] := CommandDescriptor(TCommandKind.ckAnalyzeReport, 'analyze-report', '', rsUsageAnalyzeReport,
     TCommandRoute.crAnalyzeReport);
+  Result[17] := CommandDescriptor(TCommandKind.ckRefactorApply, 'refactor-apply', '', SUsageRefactorApply,
+    TCommandRoute.crRefactorApply);
+  Result[18] := CommandDescriptor(TCommandKind.ckUses, 'uses', '', SUsageUses, TCommandRoute.crUses);
+  Result[19] := CommandDescriptor(TCommandKind.ckConsistency, 'consistency', '', rsUsageConsistency,
+    TCommandRoute.crConsistency);
+  Result[20] := CommandDescriptor(TCommandKind.ckSignature, 'signature', '', rsUsageSignature,
+    TCommandRoute.crSignature);
 end;
 
 function CommandDescriptorMatchesToken(const aDescriptor: TCommandDescriptor; const aToken: string): Boolean;
@@ -586,6 +598,8 @@ type
       const aHasInlineValue: Boolean): Boolean;
     function TryParseRefactorSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
+    function TryParseRefactorApplySwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
     function TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
     function TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
@@ -597,6 +611,7 @@ type
     class function HasPositionTarget(const aFilePath: string; const aLine, aCol: Integer): Boolean; static;
     function ValidateSymbolOrPositionTarget(const aSymbol, aFilePath: string; const aLine, aCol: Integer;
       const aMixedTargetError, aMissingTargetError: string): Boolean;
+    function ValidateRefactoringCommand: Boolean;
     function ValidateOptions: Boolean;
   public
     class function Create: TOptionParser; static;
@@ -1223,6 +1238,9 @@ begin
 
   if fOptions.fCommand in [TCommandKind.ckFindUsages, TCommandKind.ckRename, TCommandKind.ckDeadCode] then
     Exit(TryParseRefactorSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
+
+  if fOptions.fCommand in [TCommandKind.ckRefactorApply, TCommandKind.ckUses, TCommandKind.ckConsistency, TCommandKind.ckSignature] then
+    Exit(TryParseRefactorApplySwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
 end;
@@ -2225,6 +2243,44 @@ begin
   Result := False;
 end;
 
+function TOptionParser.TryParseRefactorApplySwitch(const aArg: string; const aSwitch: string;
+  const aInlineValue: string; const aHasInlineValue: Boolean): Boolean;
+var
+  lValue: string;
+begin
+  if SwitchMatches(aSwitch, 'request') or SwitchMatches(aSwitch, 'plan-out') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--' + aSwitch) then
+      Exit(False);
+    if SwitchMatches(aSwitch, 'request') then
+      fOptions.fRefactorRequestPath := lValue
+    else
+      fOptions.fRefactorPlanOutPath := lValue;
+    Exit(True);
+  end;
+  if SwitchMatches(aSwitch, 'format') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
+      Exit(False);
+    if not SameText(lValue, 'json') then
+    begin
+      fError := Format(SInvalidOutKind, [lValue]);
+      Exit(False);
+    end;
+    fOptions.fRefactorFormat := TRefactorFormat.rffJson;
+    Exit(True);
+  end;
+  if SwitchMatches(aSwitch, 'apply-plan') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--apply-plan') then
+      Exit(False);
+    fOptions.fRefactorApplyPlanPath := lValue;
+    Exit(True);
+  end;
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
 function TOptionParser.TryParseRefactorSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
@@ -2590,6 +2646,32 @@ begin
     Exit(True);
   end;
 
+  if SwitchMatches(aSwitch, 'keep-logs') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fBuildKeepLogs := True;
+    Exit(True);
+  end;
+
+  // A caller-chosen log root is a request to keep the logs.
+  if SwitchMatches(aSwitch, 'log-dir') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--log-dir') then
+      Exit(False);
+    if Trim(lValue) = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--log-dir']);
+      Exit(False);
+    end;
+    fOptions.fBuildLogDir := lValue;
+    fOptions.fBuildKeepLogs := True;
+    Exit(True);
+  end;
+
   if SwitchMatches(aSwitch, 'define') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--define') then
@@ -2742,6 +2824,29 @@ begin
   end;
 
   Result := True;
+end;
+
+function TOptionParser.ValidateRefactoringCommand: Boolean;
+var
+  lMissing: string;
+begin
+  lMissing := '';
+  if fOptions.fDprojPath = '' then
+    lMissing := 'project'
+  else if (fOptions.fCommand = TCommandKind.ckRefactorApply) and (fOptions.fRefactorApplyPlanPath = '') then
+    lMissing := 'apply-plan'
+  else if (fOptions.fCommand in [TCommandKind.ckUses, TCommandKind.ckSignature]) and
+    (fOptions.fRefactorRequestPath = '') then
+    lMissing := 'request'
+  else if not SwitchGiven('platform') then
+    lMissing := 'platform'
+  else if not SwitchGiven('config') then
+    lMissing := 'config'
+  else if not SwitchGiven('delphi') then
+    lMissing := 'delphi';
+  Result := lMissing = '';
+  if not Result then
+    fError := Format(SArgMissingValue, ['--' + lMissing]);
 end;
 
 function TOptionParser.ValidateOptions: Boolean;
@@ -3046,6 +3151,10 @@ begin
       fError := Format(SArgMissingValue, ['--new-name']);
       Exit(False);
     end;
+  end else if fOptions.fCommand in [TCommandKind.ckRefactorApply, TCommandKind.ckUses, TCommandKind.ckConsistency, TCommandKind.ckSignature] then
+  begin
+    if not ValidateRefactoringCommand then
+      Exit(False);
   end else if fOptions.fCommand = TCommandKind.ckDeadCode then
   begin
     if fOptions.fDprojPath = '' then
@@ -3095,6 +3204,14 @@ begin
     if (fOptions.fBuildBackend = TBuildBackend.bbWebCore) and fOptions.fHasBuildUnitSearchPath then
     begin
       fError := Format(SBuildOptionDelphiOnly, ['--unit-search-path']);
+      Exit(False);
+    end;
+    if (fOptions.fBuildBackend = TBuildBackend.bbWebCore) and fOptions.fBuildKeepLogs then
+    begin
+      if fOptions.fBuildLogDir <> '' then
+        fError := Format(SBuildOptionDelphiOnly, ['--log-dir'])
+      else
+        fError := Format(SBuildOptionDelphiOnly, ['--keep-logs']);
       Exit(False);
     end;
     if (fOptions.fBuildBackend = TBuildBackend.bbDelphi) and (fOptions.fDelphiVersion = '') then

@@ -81,6 +81,10 @@ type
     procedure PipelineAddsUnitSearchPathWhenProjectInheritsOptsetSearchPath;
     [Test]
     procedure PipelineImportedOptsetCannotReintroduceMadExcept;
+    // DAK-373: dfm-check must hand a spaced output path ending in '\' and a comma-bearing define to a real
+    // MSBuild command-line parser intact.
+    [Test]
+    procedure PipelineMsBuildArgumentsSurviveRealMsBuildParsing;
     [Test]
     procedure PipelineRebasesRelativeProjectImportsForGeneratedProject;
     [Test]
@@ -132,6 +136,10 @@ type
     [Test]
     procedure PipelinePrunesStaleDakRunsBeforeGeneratingNewWorkspace;
     [Test]
+    procedure PipelineKeepsAConcurrentRunsWorkspaceAndPrunesAbandonedOnes;
+    [Test]
+    procedure LocateGeneratedProjectIgnoresAnotherRunsWorkspace;
+    [Test]
     procedure PipelineCleansGeneratedArtifactsByDefault;
     [Test]
     procedure PipelineAllModeCacheHashingDoesNotOverflowWithDebugChecks;
@@ -150,6 +158,13 @@ type
   end;
 
 implementation
+
+procedure WriteGeneratedProjectStub(const aPaths: TDfmCheckPaths);
+begin
+  TDirectory.CreateDirectory(aPaths.fGeneratedDir);
+  TFile.WriteAllText(aPaths.fGeneratedDproj, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(aPaths.fGeneratedDpr, 'program Sample_DfmCheck; begin end.', TEncoding.ASCII);
+end;
 
 function ReadGeneratedDpr(const aPaths: TDfmCheckPaths): string;
 begin
@@ -1482,6 +1497,112 @@ begin
     Assert.IsTrue(DprojElementTextContains(lGeneratedXmlDoc, 'DCC_UnitSearchPath', '$(DCC_UnitSearchPath)'),
       'Generated checker DPROJ should still preserve inherited DCC_UnitSearchPath macros.');
   finally
+    lEnvGuard := nil;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineMsBuildArgumentsSurviveRealMsBuildParsing;
+const
+  cProbeProject =
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">' + #13#10 +
+    '  <Target Name="Build">' + #13#10 +
+    '    <Message Importance="high" Text="DAK373 Define=[$(DCC_Define)]" />' + #13#10 +
+    '    <Message Importance="high" Text="DAK373 ExeOutput=[$(DCC_ExeOutput)]" />' + #13#10 +
+    '    <Message Importance="high" Text="DAK373 DcuOutput=[$(DCC_DcuOutput)]" />' + #13#10 +
+    '    <Message Importance="high" Text="DAK373 Force=[$(DCC_ForceExecute)]" />' + #13#10 +
+    '  </Target>' + #13#10 +
+    '</Project>' + #13#10;
+var
+  lArgsTail: string;
+  lCategory: TDfmCheckErrorCategory;
+  lDefineMatch: TMatch;
+  lDprojPath: string;
+  lDprojText: string;
+  lEnvGuard: IInterface;
+  lError: string;
+  lEvidence: string;
+  lExitCode: Cardinal;
+  lInjectDir: string;
+  lMsBuild: string;
+  lMsBuildArgs: string;
+  lMsBuildOutput: string;
+  lOptions: TAppOptions;
+  lOutputPath: string;
+  lPlainRoot: string;
+  lProbePath: string;
+  lResult: Integer;
+  lRunner: IDfmCheckProcessRunner;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lSpacedRoot: string;
+  lTailPos: Integer;
+begin
+  lMsBuild := TPath.Combine(GetEnvironmentVariable('WINDIR'), 'Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe');
+  if not TFile.Exists(lMsBuild) then
+    lMsBuild := TPath.Combine(GetEnvironmentVariable('WINDIR'), 'Microsoft.NET\Framework\v4.0.30319\MSBuild.exe');
+  Assert.IsTrue(TFile.Exists(lMsBuild), 'This test needs the .NET Framework MSBuild: ' + lMsBuild);
+
+  // The run directory lives under <project>\.dak, so a project directory with a space gives spaced output paths.
+  CreateFixtureProject(lDprojPath);
+  lPlainRoot := ExtractFileDir(lDprojPath);
+  lSpacedRoot := TPath.Combine(TempRoot, 'dfm check spaced root');
+  if TDirectory.Exists(lSpacedRoot) then
+    TDirectory.Delete(lSpacedRoot, True);
+  TDirectory.Copy(lPlainRoot, lSpacedRoot);
+  lDprojPath := TPath.Combine(lSpacedRoot, 'Sample.dproj');
+  lDprojText := TFile.ReadAllText(lDprojPath);
+  Assert.IsTrue(Pos('<DCC_Define>madExcept;TRACE</DCC_Define>', lDprojText) > 0, 'Fixture define changed.');
+  TFile.WriteAllText(lDprojPath,
+    StringReplace(lDprojText, '<DCC_Define>madExcept;TRACE</DCC_Define>',
+      '<DCC_Define>madExcept;TRACE,EXTRA</DCC_Define>', []), TEncoding.UTF8);
+
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-real-msbuild');
+  WriteInjectStubs(lInjectDir);
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+    Assert.AreEqual(0, lResult, 'Expected the mock pipeline to complete. Error: ' + lError);
+    lMsBuildArgs := lRunnerImpl.MsBuildArguments;
+
+    // Keep the generated property arguments, swap the generated project for a probe that reports what it got.
+    lTailPos := Pos(' /t:Build', lMsBuildArgs);
+    Assert.IsTrue(lTailPos > 0, 'Expected the generated MSBuild arguments to carry /t:Build: ' + lMsBuildArgs);
+    lProbePath := TPath.Combine(lSpacedRoot, 'Probe373.proj');
+    TFile.WriteAllText(lProbePath, cProbeProject, TEncoding.UTF8);
+    lArgsTail := StringReplace(Copy(lMsBuildArgs, lTailPos, MaxInt), '/v:q', '/v:m', []);
+    lOutputPath := TPath.Combine(lSpacedRoot, 'probe373.out');
+    Assert.IsTrue(Test.Support.RunProcess(lMsBuild, '"' + lProbePath + '"' + lArgsTail, lSpacedRoot, lOutputPath,
+      lExitCode), 'MSBuild must start.');
+    lMsBuildOutput := TFile.ReadAllText(lOutputPath);
+    lEvidence := ' Arguments: ' + lMsBuildArgs + sLineBreak + 'Output: ' + lMsBuildOutput;
+
+    Assert.AreEqual(Cardinal(0), lExitCode, 'MSBuild must accept the generated arguments.' + lEvidence);
+    Assert.IsTrue(Pos('DAK373 Force=[true]', lMsBuildOutput) > 0,
+      'The property after the output directories must still arrive.' + lEvidence);
+    Assert.IsTrue(Pos('TRACE,EXTRA', lMsBuildOutput) > 0,
+      'The comma-bearing define must reach MSBuild in one piece.' + lEvidence);
+    lDefineMatch := TRegEx.Match(lMsBuildOutput, 'DAK373 Define=\[([^\]]*)\]');
+    Assert.IsTrue(lDefineMatch.Success, 'MSBuild did not report the define.' + lEvidence);
+    Assert.IsTrue(Pos('DFMCheck', lDefineMatch.Groups[1].Value) > 0,
+      'The semicolon-separated defines must stay intact.' + lEvidence);
+    Assert.IsTrue(TRegEx.IsMatch(lMsBuildOutput, 'DAK373 ExeOutput=\[[^\]]*dfm check spaced root[^\]]*\\bin\\\]'),
+      'The spaced exe output directory must keep its trailing backslash.' + lEvidence);
+    Assert.IsTrue(TRegEx.IsMatch(lMsBuildOutput, 'DAK373 DcuOutput=\[[^\]]*dfm check spaced root[^\]]*\\dcu\\\]'),
+      'The spaced dcu output directory must keep its trailing backslash.' + lEvidence);
+  finally
+    lRunner := nil;
     lEnvGuard := nil;
   end;
 end;
@@ -3249,6 +3370,127 @@ begin
   finally
     lEnvGuard := nil;
     lOutputLines.Free;
+  end;
+end;
+
+// DAK-386: a second dfm-check run of the same project must not delete the workspace of a run still in
+// progress, and must still remove what abandoned runs left behind: a directory without a lock file (an older
+// DAK, or a run that failed right after creating it) and one whose lock file nobody holds (a crashed run).
+procedure TDfmCheckTests.PipelineKeepsAConcurrentRunsWorkspaceAndPrunesAbandonedOnes;
+var
+  lAbandonedRunDir: string;
+  lCategory: TDfmCheckErrorCategory;
+  lCrashedRunDir: string;
+  lDprojPath: string;
+  lEnvGuard: IInterface;
+  lError: string;
+  lFirstLock: THandle;
+  lFirstMarker: string;
+  lFirstPaths: TDfmCheckPaths;
+  lInjectDir: string;
+  lKeepArtifactsGuard: IInterface;
+  lOptions: TAppOptions;
+  lResult: Integer;
+  lRunner: IDfmCheckProcessRunner;
+  lRunsDir: string;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-concurrent-run');
+  WriteInjectStubs(lInjectDir);
+  lRunsDir := TPath.Combine(GetDfmCheckWorkRoot(lDprojPath), 'runs');
+
+  lAbandonedRunDir := TPath.Combine(lRunsDir, 'abandoned-run');
+  TDirectory.CreateDirectory(TPath.Combine(lAbandonedRunDir, 'generated'));
+  TFile.WriteAllText(TPath.Combine(lAbandonedRunDir, 'generated\stale.txt'), 'stale', TEncoding.ASCII);
+  lCrashedRunDir := TPath.Combine(lRunsDir, 'crashed-run');
+  TDirectory.CreateDirectory(TPath.Combine(lCrashedRunDir, 'generated'));
+  TFile.WriteAllText(TPath.Combine(lCrashedRunDir, cDfmCheckRunLockFileName), '', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lCrashedRunDir, 'generated\stale.txt'), 'stale', TEncoding.ASCII);
+
+  // The first run is still in progress: it created and locked its workspace through the product routine the
+  // pipeline uses, and its generated files are in place while the second run starts.
+  lFirstPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+  Assert.IsTrue(TryCreateDfmCheckRunWorkspace(lFirstPaths, lFirstLock, lError), lError);
+  try
+    TDirectory.CreateDirectory(lFirstPaths.fGeneratedDir);
+    lFirstMarker := TPath.Combine(lFirstPaths.fGeneratedDir, 'first-run-in-progress.txt');
+    TFile.WriteAllText(lFirstMarker, 'in use', TEncoding.ASCII);
+
+    lEnvGuard := SetScopedEnvironmentVariables([
+      'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+      'DAK_DFMCHECK_MSBUILD', 'msbuild.exe'
+    ]);
+    lKeepArtifactsGuard := ClearScopedEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+    try
+      lRunner := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+      lOptions := Default(TAppOptions);
+      lOptions.fDprojPath := lDprojPath;
+      lOptions.fConfig := 'Release';
+      lOptions.fPlatform := 'Win32';
+      lOptions.fDfmCheckFilter := 'MainForm.dfm';
+      lOptions.fHasRsVarsPath := True;
+      lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+      lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+      Assert.AreEqual(0, lResult, 'The second run must succeed: ' + lError);
+      Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, lError);
+      Assert.IsTrue(FileExists(lFirstMarker), 'The second run deleted the workspace of a run still in progress.');
+      Assert.IsFalse(DirectoryExists(lAbandonedRunDir), 'A lock-less abandoned run directory must be pruned.');
+      Assert.IsFalse(DirectoryExists(lCrashedRunDir), 'A crashed run''s directory with an unheld lock must be pruned.');
+      Assert.AreEqual(1, Integer(Length(TDirectory.GetDirectories(lRunsDir))),
+        'Only the in-progress run may remain; the second run removes its own workspace.');
+    finally
+      lKeepArtifactsGuard := nil;
+      lEnvGuard := nil;
+    end;
+  finally
+    ReleaseDfmCheckRunLock(lFirstLock);
+  end;
+end;
+
+// DAK-386: with concurrent runs, runs\ holds another run's generated project. A run must build its own, even when
+// the other run's directory sorts first.
+procedure TDfmCheckTests.LocateGeneratedProjectIgnoresAnotherRunsWorkspace;
+var
+  lDprojPath: string;
+  lError: string;
+  lLockA: THandle;
+  lLockB: THandle;
+  lOther: TDfmCheckPaths;
+  lOwn: TDfmCheckPaths;
+  lPathsA: TDfmCheckPaths;
+  lPathsB: TDfmCheckPaths;
+  lTemp: TDfmCheckPaths;
+begin
+  CreateFixtureProject(lDprojPath);
+  lPathsA := BuildExpectedDfmCheckPaths(lDprojPath);
+  lPathsB := lPathsA;
+  lLockA := INVALID_HANDLE_VALUE;
+  lLockB := INVALID_HANDLE_VALUE;
+  try
+    Assert.IsTrue(TryCreateDfmCheckRunWorkspace(lPathsA, lLockA, lError), lError);
+    Assert.IsTrue(TryCreateDfmCheckRunWorkspace(lPathsB, lLockB, lError), lError);
+    WriteGeneratedProjectStub(lPathsA);
+    WriteGeneratedProjectStub(lPathsB);
+    // The lookup sorts candidate directories case-insensitively; our run is the one that sorts last.
+    if AnsiCompareText(lPathsA.fGeneratedDir, lPathsB.fGeneratedDir) < 0 then
+    begin
+      lOther := lPathsA;
+      lOwn := lPathsB;
+    end else begin
+      lOther := lPathsB;
+      lOwn := lPathsA;
+    end;
+
+    lTemp := lOwn;
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lTemp, lError), lError);
+    Assert.AreEqual(lOwn.fGeneratedDir, lTemp.fGeneratedDir, 'Located another run''s generated project: ' +
+      lOther.fGeneratedDir);
+    Assert.AreEqual(lOwn.fGeneratedDproj, lTemp.fGeneratedDproj);
+  finally
+    ReleaseDfmCheckRunLock(lLockB);
+    ReleaseDfmCheckRunLock(lLockA);
   end;
 end;
 

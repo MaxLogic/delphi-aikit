@@ -91,6 +91,19 @@ type
     [Test]
     procedure BuildCommandRejectsCompilerOverlaysForWebCore;
     [Test]
+    procedure BuildCommandKeepsNoLogsByDefault;
+    [Test]
+    procedure BuildCommandParsesKeepLogs;
+    [Test]
+    procedure BuildCommandLogDirImpliesKeepLogs;
+    [TestCase('keep-logs value', 'build --project C:\repo\Sample.dproj --delphi 23.0 --keep-logs=true,Unknown argument: --keep-logs=true')]
+    [TestCase('log-dir without value', 'build --project C:\repo\Sample.dproj --delphi 23.0 --log-dir,--log-dir')]
+    [TestCase('log-dir blank', 'build --project C:\repo\Sample.dproj --delphi 23.0 --log-dir " ",--log-dir')]
+    [TestCase('keep-logs for webcore', 'build --project C:\repo\Sample.dproj --builder webcore --keep-logs,only supported for Delphi/MSBuild builds')]
+    [TestCase('log-dir for webcore', 'build --project C:\repo\Sample.dproj --builder webcore --log-dir logs,only supported for Delphi/MSBuild builds')]
+    [TestCase('keep-logs outside build', 'dfm-check --dproj C:\repo\Sample.dproj --keep-logs,Unknown argument: --keep-logs')]
+    procedure BuildCommandRejectsInvalidLogOptions(const aArguments, aExpectedError: string);
+    [Test]
     procedure BuildCommandParsesWebCoreBuilder;
     [Test]
     procedure BuildCommandAutoDetectsWebCoreProject;
@@ -236,6 +249,40 @@ type
     procedure DeadCodeProfileParsingUsesDakAdapter;
     [Test]
     procedure RefactorCommandsRejectPartialPositionTargetsPrecisely;
+    [Test]
+    [Category('RefactoringLightApply')]
+    procedure RefactorApplyRequiresSavedPlan;
+    [Test]
+    [Category('RefactoringLightConsistency')]
+    procedure ConsistencyParsesExplicitReadOnlyContext;
+    [Test]
+    [Category('RefactoringLightAlign')]
+    procedure SignatureParsesExplicitRequest;
+    [Test]
+    [Category('RefactoringLightAlign')]
+    [TestCase('Missing request', '--project sample.dproj --platform Win64 --config Debug --delphi 23.0,--request')]
+    [TestCase('Missing project', '--request request.json --platform Win64 --config Debug --delphi 23.0,--project')]
+    [TestCase('Missing platform', '--project sample.dproj --request request.json --config Debug --delphi 23.0,--platform')]
+    [TestCase('Missing config', '--project sample.dproj --request request.json --platform Win64 --delphi 23.0,--config')]
+    [TestCase('Missing compiler', '--project sample.dproj --request request.json --platform Win64 --config Debug,--delphi')]
+    procedure SignatureRequiresContextAndRequest(const aArguments, aMissing: string);
+    [Test]
+    [TestCase('Project', ',--project')]
+    [TestCase('Platform', '--project sample.dproj,--platform')]
+    [TestCase('Config', '--project sample.dproj --platform Win64,--config')]
+    [TestCase('Delphi', '--project sample.dproj --platform Win64 --config Debug,--delphi')]
+    [Category('RefactoringLightConsistency')]
+    procedure ConsistencyRequiresExplicitContext(const aArguments, aMissing: string);
+    [Test]
+    [TestCase('Apply', '--apply')]
+    [TestCase('SavedPlan', '--apply-plan saved.json')]
+    [TestCase('Request', '--request request.json')]
+    [TestCase('Text', '--format text')]
+    [Category('RefactoringLightConsistency')]
+    procedure ConsistencyRejectsUnsupportedSwitches(const aArguments: string);
+    [Test]
+    [Category('RefactoringLightApply')]
+    procedure RefactorApplyRequiresExplicitBuildContext;
     [Test]
     procedure LspCommandParsesOperationsAndRequiredArgs;
     [Test]
@@ -743,6 +790,50 @@ begin
     'Expected WebCore incompatibility error to mention --unit-search-path. Actual: ' + lError);
   Assert.IsTrue(Pos('only supported for Delphi/MSBuild builds', lError) > 0,
     'Expected Delphi-only incompatibility error. Actual: ' + lError);
+end;
+
+procedure TCliTests.BuildCommandKeepsNoLogsByDefault;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --delphi 23.0');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.IsFalse(lOptions.fBuildKeepLogs, 'Logs are not retained unless requested.');
+  Assert.AreEqual('', lOptions.fBuildLogDir, 'No log root is chosen unless requested.');
+end;
+
+procedure TCliTests.BuildCommandParsesKeepLogs;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --delphi 23.0 --keep-logs');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected build --keep-logs to parse. Error: ' + lError);
+  Assert.IsTrue(lOptions.fBuildKeepLogs, 'Expected --keep-logs to request retention.');
+  Assert.AreEqual('', lOptions.fBuildLogDir, 'Expected --keep-logs alone to keep the default log root.');
+end;
+
+procedure TCliTests.BuildCommandLogDirImpliesKeepLogs;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --delphi 23.0 --log-dir "build logs\run one"');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected build --log-dir to parse. Error: ' + lError);
+  Assert.IsTrue(lOptions.fBuildKeepLogs, 'Expected --log-dir to imply retention.');
+  Assert.AreEqual('build logs\run one', lOptions.fBuildLogDir, 'Expected the log root exactly as given.');
+end;
+
+procedure TCliTests.BuildCommandRejectsInvalidLogOptions(const aArguments, aExpectedError: string);
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams(aArguments);
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected parsing to fail: ' + aArguments);
+  Assert.IsTrue(Pos(aExpectedError, lError) > 0,
+    'Expected error containing "' + aExpectedError + '". Actual: ' + lError);
 end;
 
 procedure TCliTests.BuildCommandParsesWebCoreBuilder;
@@ -3065,6 +3156,86 @@ begin
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected --unused-only to parse. Error: ' + lError);
   Assert.AreEqual(TCommandKind.ckGlobalVars, lOptions.fCommand);
   Assert.IsTrue(lOptions.fGlobalVarsUnusedOnly);
+end;
+
+procedure TCliTests.SignatureParsesExplicitRequest;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('signature --project sample.dproj --platform Win64 --config Debug --delphi 23.0 ' +
+    '--request request.json --format json');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.AreEqual('request.json', lOptions.fRefactorRequestPath);
+  Assert.AreEqual('sample.dproj', lOptions.fDprojPath);
+  Assert.AreEqual(TRefactorFormat.rffJson, lOptions.fRefactorFormat);
+end;
+
+procedure TCliTests.SignatureRequiresContextAndRequest(const aArguments, aMissing: string);
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('signature ' + aArguments);
+  Assert.IsFalse(TryParseOptions(lOptions, lError));
+  Assert.IsTrue(ContainsText(lError, aMissing), lError);
+end;
+
+procedure TCliTests.ConsistencyParsesExplicitReadOnlyContext;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('consistency --project sample.dproj --platform Win64 --config Debug --delphi 23.0 --format json');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.AreEqual('sample.dproj', lOptions.fDprojPath);
+  Assert.AreEqual('Win64', lOptions.fPlatform);
+  Assert.AreEqual('Debug', lOptions.fConfig);
+  Assert.AreEqual('23.0', lOptions.fDelphiVersion);
+  Assert.AreEqual(TRefactorFormat.rffJson, lOptions.fRefactorFormat);
+end;
+
+procedure TCliTests.ConsistencyRequiresExplicitContext(const aArguments, aMissing: string);
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams(Trim('consistency ' + aArguments));
+  Assert.IsFalse(TryParseOptions(lOptions, lError));
+  Assert.IsTrue(ContainsText(lError, aMissing), lError);
+end;
+
+procedure TCliTests.ConsistencyRejectsUnsupportedSwitches(const aArguments: string);
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('consistency --project sample.dproj --platform Win64 --config Debug --delphi 23.0 ' + aArguments);
+  Assert.IsFalse(TryParseOptions(lOptions, lError));
+  Assert.IsFalse(ContainsText(lError, 'Unknown command'), lError);
+end;
+
+procedure TCliTests.RefactorApplyRequiresSavedPlan;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('refactor-apply --project c:\temp\sample.dproj --platform Win64 --config Debug --delphi 23.0');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Apply must require --apply-plan.');
+  Assert.IsTrue(ContainsText(lError, '--apply-plan'),
+    'Expected the missing saved-plan diagnostic, got: ' + lError);
+end;
+
+procedure TCliTests.RefactorApplyRequiresExplicitBuildContext;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('refactor-apply --project c:\temp\sample.dproj --apply-plan c:\temp\plan.json');
+  Assert.IsFalse(TryParseOptions(lOptions, lError),
+    'Apply must not inherit implicit Win32/Release defaults.');
+  Assert.IsTrue(ContainsText(lError, '--platform'),
+    'Expected the missing explicit platform diagnostic, got: ' + lError);
 end;
 
 procedure TCliTests.ParseGlobalVarsFilters;

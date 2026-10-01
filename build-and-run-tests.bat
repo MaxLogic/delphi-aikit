@@ -3,8 +3,11 @@ setlocal
 
 pushd "%~dp0"
 
-call tests\run.bat
+call build.bat
+if errorlevel 1 goto done
+call tests\run.bat %*
 
+:done
 set "EXITCODE=%ERRORLEVEL%"
 popd
 exit /b %EXITCODE%

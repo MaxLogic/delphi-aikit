@@ -6,9 +6,8 @@ Set stable environment variables so we can call DelphiAIKit without hardcoded pa
 
 - `DAK_EXE`: absolute path to `DelphiAIKit.exe`
 
-## Optional WSL Convenience Variable
-
-- `DAK_BUILD_SH`: absolute path to `build-delphi.sh`
+There is no build wrapper script. `build-delphi.bat` and `build-delphi.sh` were
+retired; call `"$DAK_EXE" build` (WSL) or `& $env:DAK_EXE build` (Windows) directly.
 
 ## WSL (bash, primary)
 
@@ -16,7 +15,6 @@ Add to `~/.bashrc`:
 
 ```bash
 export DAK_EXE="/mnt/f/projects/MaxLogic/DelphiAiKit/bin/DelphiAIKit.exe"
-export DAK_BUILD_SH="/mnt/f/projects/MaxLogic/DelphiAiKit/build-delphi.sh"
 ```
 
 Reload:
@@ -45,15 +43,7 @@ PLATFORM="${DAK_PLATFORM:-Win32}"
 "$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --dfmcheck --all --ai
 ```
 
-Direct Linux absolute paths are supported only in `/mnt/<drive>/...` form; other `/...` inputs are rejected, so `wslpath -w` remains our canonical safe conversion.
-
-Optional compatibility conversion (older DelphiAIKit builds):
-
-```bash
-PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
-PLATFORM="${DAK_PLATFORM:-Win32}"
-"$DAK_EXE" build --project "$PROJECT_WIN" --delphi 23.0 --platform "$PLATFORM" --config Debug --ai
-```
+Linux-style absolute paths are supported only in `/mnt/<drive>/...` form and relative paths resolve against the current directory; other `/...` inputs (for example `/home/...`) are rejected with exit code 6. Paths DAK does not accept can be converted with `wslpath -w -a` and passed as Windows paths.
 
 Locked-output-safe rebuild:
 
@@ -76,14 +66,6 @@ PLATFORM="${DAK_PLATFORM:-Win64}"
 ```
 
 Use these typed overlays for MaxProfiler-style temporary Delphi compiler context instead of raw MSBuild `/p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` calls.
-
-WSL wrapper (optional):
-
-```bash
-cd /path/to/target-repo
-PLATFORM="${DAK_PLATFORM:-Win32}"
-"$DAK_BUILD_SH" _Source/ActiveAppView.dproj -config Debug -platform "$PLATFORM" -ver 23 -ai
-```
 
 ## Windows (PowerShell, secondary)
 
@@ -108,9 +90,4 @@ For DelphiAiKit itself, set `DAK_PLATFORM=Win64` or pass `--platform Win64` expl
 
 ```bash
 test -x "$DAK_EXE" && echo "DAK_EXE OK"
-if grep -qi microsoft /proc/version 2>/dev/null; then
-  if [ -n "${DAK_BUILD_SH:-}" ]; then
-    test -x "$DAK_BUILD_SH" && echo "DAK_BUILD_SH OK"
-  fi
-fi
 ```

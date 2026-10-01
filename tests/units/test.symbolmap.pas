@@ -71,6 +71,12 @@ type
     procedure RejectsUnsupportedSchemaWithoutApplyingV1Tables;
     [Test]
     procedure ConcurrentCentralCacheCreationIsSerialized;
+    [Test]
+    [TestCase('Project unit', '0')]
+    [TestCase('RTL profile', '1')]
+    procedure ConcurrentIndexPublishesReusableCache(aFullProject: Integer);
+    [Test]
+    procedure HeldCacheMutexDoesNotBlockOtherRoots;
   end;
 
   [TestFixture]
@@ -294,11 +300,12 @@ type
 implementation
 
 uses
-  System.Classes,
+  System.Classes, System.Hash,
   System.Threading,
   Winapi.Windows,
   FireDAC.Comp.Client,
-  FireDAC.Phys.SQLite;
+  FireDAC.Phys.SQLite,
+  AutoFree;
 
 function SymbolMapMemberKey(const aOwnerName, aName, aKind: string): string;
 begin
@@ -816,6 +823,121 @@ begin
   Assert.IsTrue(Pos('Unsupported Symbol Map cache schema version: 99', lError) > 0,
     'Expected actionable schema-version error. Actual: ' + lError);
   Assert.IsFalse(TableExists(lDbPath, 'source_files'), 'Expected v1 tables not to be applied to newer cache.');
+end;
+
+procedure TSymbolMapCacheTests.HeldCacheMutexDoesNotBlockOtherRoots;
+var
+  lRoot, lOtherRoot, lProject, lOtherProject, lExe, lLog, lOtherLog, lMutexName, lError: string;
+  lMutex: THandle;
+  lTask: ITask;
+  lCompleted: Boolean;
+  lExit, lOtherExit: Cardinal;
+begin
+  EnsureResolverBuilt;
+  lExe := ResolverExePath;
+  lRoot := UniqueTempPath('symbol-map-held-cache');
+  lOtherRoot := UniqueTempPath('symbol-map-independent-cache');
+  CopyFixtureProject(UniqueTempPath('symbol-map-held-project'), lProject);
+  CopyFixtureProject(UniqueTempPath('symbol-map-independent-project'), lOtherProject);
+  lLog := UniqueTempPath('symbol-map-held.log');
+  lOtherLog := UniqueTempPath('symbol-map-independent.log');
+  lMutexName := 'Local\DelphiAIKit.SymbolMap.Cache.' +
+    THashSHA2.GetHashString(LowerCase(TPath.GetFullPath(TPath.Combine(lRoot, 'symbol-map.sqlite3'))));
+  lMutex := CreateMutex(nil, True, PChar(lMutexName));
+  Assert.AreNotEqual(NativeUInt(0), NativeUInt(lMutex));
+  try
+    lTask := TTask.Run(
+      procedure
+      begin
+        try
+          lCompleted := RunProcessWithTimeout(lExe, 'symbol-map stats --project ' + QuoteArg(lProject) +
+            ' --cache-root ' + QuoteArg(lRoot) + ' --format json', RepoRoot, lLog, 35000, lExit);
+        except
+          on E: Exception do
+            lError := E.ClassName + ': ' + E.Message;
+        end;
+      end);
+    Assert.IsFalse(lTask.Wait(1200), 'Same-root command must wait while its cache mutex is held');
+    Assert.IsTrue(RunProcessWithTimeout(lExe, 'symbol-map stats --project ' + QuoteArg(lOtherProject) +
+      ' --cache-root ' + QuoteArg(lOtherRoot) + ' --format json', RepoRoot, lOtherLog, 10000, lOtherExit));
+    Assert.AreEqual(Cardinal(0), lOtherExit, lOtherLog);
+    Assert.IsFalse(lTask.Wait(0), 'Independent-root completion must not release the held cache');
+  finally
+    if not ReleaseMutex(lMutex) then
+      RaiseLastOSError;
+    CloseHandle(lMutex);
+    // Join before captured locals leave scope, including an assertion failure.
+    if lTask <> nil then
+      lTask.Wait;
+  end;
+  Assert.AreEqual('', lError, lLog);
+  Assert.IsTrue(lCompleted, lLog);
+  Assert.AreEqual(Cardinal(0), lExit, lLog);
+end;
+
+procedure TSymbolMapCacheTests.ConcurrentIndexPublishesReusableCache(aFullProject: Integer);
+var
+  g: TGarbos;
+  lArgs, lCacheRoot, lCheckLog, lExe, lProjectPath, lText: string;
+  lLogs, lErrors: TArray<string>;
+  lExits: TArray<Cardinal>;
+  lCompleted: TArray<Boolean>;
+  i, lCount: Integer;
+  lExit: Cardinal;
+  lJson: TJSONObject;
+begin
+  EnsureResolverBuilt;
+  lExe := ResolverExePath;
+  lCacheRoot := UniqueTempPath('symbol-map-index-race');
+  CopyFixtureProject(UniqueTempPath('symbol-map-index-project'), lProjectPath);
+  lArgs := 'symbol-map index --project ' + QuoteArg(lProjectPath) +
+    ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
+  lCount := 2;
+  if aFullProject = 0 then
+  begin
+    lCount := 4;
+    lArgs := lArgs + ' --unit ' + QuoteArg(TPath.Combine(ExtractFileDir(lProjectPath), 'Unit1.pas'));
+  end;
+  SetLength(lLogs, lCount);
+  SetLength(lErrors, lCount);
+  SetLength(lExits, lCount);
+  SetLength(lCompleted, lCount);
+  for i := 0 to lCount - 1 do
+    lLogs[i] := UniqueTempPath('symbol-map-index-' + IntToStr(i) + '.log');
+  TParallel.For(0, lCount - 1,
+    procedure(aIndex: Integer)
+    begin
+      try
+        lCompleted[aIndex] := RunProcessWithTimeout(lExe, lArgs, RepoRoot, lLogs[aIndex],
+          300000, lExits[aIndex]);
+      except
+        on E: Exception do
+          lErrors[aIndex] := E.ClassName + ': ' + E.Message;
+      end;
+    end);
+  for i := 0 to lCount - 1 do
+  begin
+    Assert.AreEqual('', lErrors[i], lLogs[i]);
+    Assert.IsTrue(lCompleted[i], lLogs[i]);
+    Assert.AreEqual(Cardinal(0), lExits[i], lLogs[i]);
+  end;
+  lCheckLog := UniqueTempPath('symbol-map-index-reuse.log');
+  Assert.IsTrue(RunProcessWithTimeout(lExe, lArgs, RepoRoot, lCheckLog, 60000, lExit));
+  Assert.AreEqual(Cardinal(0), lExit, lCheckLog);
+  lText := ReadUtf8TextFile(lCheckLog);
+  lJson := TJSONObject.ParseJSONValue(lText) as TJSONObject;
+  GC(lJson, g);
+  Assert.IsNotNull(lJson, 'The reuse check must return a JSON object: ' + lCheckLog);
+  if aFullProject <> 0 then
+  begin
+    Assert.IsTrue(lJson.GetValue<Boolean>('rtlSource.cacheHit'));
+    Assert.IsTrue(lJson.GetValue<Integer>('rtlSource.unitsDiscovered') > 0);
+    Assert.AreEqual(lJson.GetValue<Integer>('rtlSource.unitsDiscovered'),
+      lJson.GetValue<Integer>('rtlSource.unitCacheHits'));
+  end else begin
+    Assert.AreEqual(1, lJson.GetValue<Integer>('result.centralCacheHits'));
+    Assert.AreEqual(0, lJson.GetValue<Integer>('result.centralCacheMisses'));
+  end;
 end;
 
 procedure TSymbolMapCacheTests.ConcurrentCentralCacheCreationIsSerialized;
@@ -1495,36 +1617,9 @@ begin
 end;
 
 function TSymbolMapIntrinsicProfileTests.BuildFreshResolverExe: string;
-var
-  lArgs: string;
-  lBat: string;
-  lBinaryType: Cardinal;
-  lCmdArgs: string;
-  lExitCode: Cardinal;
-  lLogPath: string;
-  lLogText: string;
-  lOutputDir: string;
 begin
-  lOutputDir := UniqueTempPath('symbol-map-intrinsic-resolver');
-  ForceDirectories(lOutputDir);
-  lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
-  lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
-    ' -config Release -platform Win64 -ver 23 -test-output-dir ' + QuoteArg(lOutputDir);
-  lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
-  lLogPath := UniqueTempPath('symbol-map-intrinsic-resolver-build') + '.log';
-  Assert.IsTrue(RunProcess(WindowsCmdExePath, lCmdArgs, RepoRoot, lLogPath, lExitCode),
-    'Failed to start resolver build.');
-  if lExitCode <> 0 then
-  begin
-    lLogText := '';
-    if TFile.Exists(lLogPath) then
-      lLogText := ReadUtf8TextFile(lLogPath);
-    Assert.Fail('Expected resolver build to succeed. See: ' + lLogPath + sLineBreak + lLogText);
-  end;
-  Result := TPath.Combine(lOutputDir, 'DelphiAIKit.exe');
-  Assert.IsTrue(TFile.Exists(Result), 'Expected fresh resolver exe: ' + Result);
-  Assert.IsTrue(GetBinaryType(PChar(Result), lBinaryType), 'Expected readable resolver binary: ' + Result);
-  Assert.AreEqual(Cardinal(SCS_64BIT_BINARY), lBinaryType, 'Expected a Win64 DAK host for every fixture target.');
+  // The candidate is built once before the suite; each CLI invocation still starts a fresh process.
+  Result := ResolverExePath;
 end;
 
 function TSymbolMapIntrinsicProfileTests.BuildContext(const aCacheRoot: string;
@@ -1867,36 +1962,9 @@ begin
 end;
 
 function TSymbolMapDefinitionQueryTests.BuildFreshResolverExe: string;
-var
-  lArgs: string;
-  lBat: string;
-  lBinaryType: Cardinal;
-  lCmdArgs: string;
-  lExitCode: Cardinal;
-  lLogPath: string;
-  lLogText: string;
-  lOutputDir: string;
 begin
-  lOutputDir := UniqueTempPath('symbol-map-query-resolver');
-  ForceDirectories(lOutputDir);
-  lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
-  lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
-    ' -config Release -platform Win64 -ver 23 -test-output-dir ' + QuoteArg(lOutputDir);
-  lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
-  lLogPath := UniqueTempPath('symbol-map-query-resolver-build') + '.log';
-  Assert.IsTrue(RunProcess(WindowsCmdExePath, lCmdArgs, RepoRoot, lLogPath, lExitCode),
-    'Failed to start resolver build.');
-  if lExitCode <> 0 then
-  begin
-    lLogText := '';
-    if TFile.Exists(lLogPath) then
-      lLogText := ReadUtf8TextFile(lLogPath);
-    Assert.Fail('Expected resolver build to succeed. See: ' + lLogPath + sLineBreak + lLogText);
-  end;
-  Result := TPath.Combine(lOutputDir, 'DelphiAIKit.exe');
-  Assert.IsTrue(TFile.Exists(Result), 'Expected fresh resolver exe: ' + Result);
-  Assert.IsTrue(GetBinaryType(PChar(Result), lBinaryType), 'Expected readable resolver binary: ' + Result);
-  Assert.AreEqual(Cardinal(SCS_64BIT_BINARY), lBinaryType, 'Expected a Win64 DAK host for every fixture target.');
+  // The candidate is built once before the suite; each CLI invocation still starts a fresh process.
+  Result := ResolverExePath;
 end;
 
 function TSymbolMapDefinitionQueryTests.FixtureProjectPath: string;

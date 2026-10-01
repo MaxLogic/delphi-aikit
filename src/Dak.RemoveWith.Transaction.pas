@@ -48,6 +48,16 @@ type
     fStatus: TRemoveWithTransactionStatus;
   end;
 
+const
+  // DAK-385: a run workspace is .dak\<ProjectName>\remove-with\<run token>\ (Dak.Paths.TryCreateDakRunDirectory).
+  // Short verification folder names keep its paths within the classic Windows limit for deep project
+  // locations. Before DAK-385: vpre = verification-preflight, vapp = verification-apply. Manifests record
+  // absolute paths, so runs made under the old names keep their backups and logs reachable.
+  cRemoveWithWorkspaceDirName = 'remove-with';
+  cRemoveWithPreflightDirName = 'vpre';
+  cRemoveWithApplyDirName = 'vapp';
+  cRemoveWithBackupDirName = 'backup';
+
 function RemoveWithTransactionStatusToText(const aStatus: TRemoveWithTransactionStatus): string;
 function BuildRemoveWithPlanApplyContext(const aPlanResult: TRemoveWithPlanResult;
   out aContext: TRemoveWithPlanApplyContext; out aError: string): Boolean;
@@ -57,6 +67,11 @@ function ApplyRemoveWithPlanTransactionally(const aOptions: TAppOptions; const a
 function ApplyRemoveWithPlanTransactionally(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
   const aPlanResult: TRemoveWithPlanResult; out aTransactionResult: TRemoveWithTransactionResult;
   out aError: string): Boolean; overload;
+// The name of the temporary file an atomic workspace write creates beside its target (DAK-385 measures it).
+function AtomicTempFileName: string;
+// DAK-385: creates a run workspace, .dak\<ProjectName>\remove-with\<run token>, exclusively.
+function TryCreateRemoveWithWorkspace(const aProjectPath: string; out aWorkspaceRoot: string;
+  out aError: string): Boolean;
 
 implementation
 
@@ -65,7 +80,7 @@ uses
   Winapi.Windows,
   DelphiSemantics.Api.RemoveWith.Compatibility,
   MaxLogic.StrUtils,
-  Dak.Build.Runner, Dak.RemoveWith.Discovery, Dak.RemoveWith.Source, Dak.Utils;
+  Dak.Build.Runner, Dak.Paths, Dak.RemoveWith.Discovery, Dak.RemoveWith.Source, Dak.Utils;
 
 const
   cApplyTransactionMutexPrefix = 'Local\DakRemoveWithApplyTransaction-';
@@ -478,6 +493,13 @@ begin
   SetReportApplyMismatch(aTransactionResult, 'statement-id-set-mismatch', lReportIds, lApplyIds,
     aError);
   Result := False;
+end;
+
+function TryCreateRemoveWithWorkspace(const aProjectPath: string; out aWorkspaceRoot: string;
+  out aError: string): Boolean;
+begin
+  Result := TryCreateDakRunDirectory(DakProjectPath(DakProjectRootForProjectPath(aProjectPath),
+    [cRemoveWithWorkspaceDirName]), aWorkspaceRoot, aError);
 end;
 
 function AtomicTempFileName: string;
@@ -1100,7 +1122,7 @@ var
   lWaitResult: DWORD;
 begin
   aTransactionResult := Default(TRemoveWithTransactionResult);
-  aTransactionResult.fBackupRoot := TPath.Combine(aWorkspaceRoot, 'backup');
+  aTransactionResult.fBackupRoot := TPath.Combine(aWorkspaceRoot, cRemoveWithBackupDirName);
   aTransactionResult.fManifestPath := TPath.Combine(aWorkspaceRoot, 'manifest.json');
   aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxNotRun;
   aTransactionResult.fVerificationStatus := 'not-run';
@@ -1193,7 +1215,7 @@ begin
     Exit(False);
   end;
 
-  if not VerifyBuild(aOptions, aProjectPath, TPath.Combine(aWorkspaceRoot, 'verification-preflight'),
+  if not VerifyBuild(aOptions, aProjectPath, TPath.Combine(aWorkspaceRoot, cRemoveWithPreflightDirName),
     aTransactionResult, aError) then
   begin
     if aError <> '' then
@@ -1220,7 +1242,7 @@ begin
 
   if ApplyEdits(aPlanResult, aTransactionResult, aError) then
   begin
-    if VerifyBuild(aOptions, aProjectPath, TPath.Combine(aWorkspaceRoot, 'verification-apply'),
+    if VerifyBuild(aOptions, aProjectPath, TPath.Combine(aWorkspaceRoot, cRemoveWithApplyDirName),
       aTransactionResult, aError) then
     begin
       aTransactionResult.fVerificationStatus := 'passed';

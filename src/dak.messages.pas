@@ -14,6 +14,7 @@ resourcestring
     '  build     Build a Delphi or TMS WEB Core project (.dproj; or .dpr/.dpk with sibling .dproj)' + #13#10 +
     '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
     '  dfm-inspect Inspect text DFM structure and event bindings' + #13#10 +
+    '  consistency Inspect interface GUIDs and source-backed DFM event signatures (read-only)' + #13#10 +
     '  global-vars List project global variables and their routine usages' + #13#10 +
     '  deps      Analyze project unit dependencies for AI debugging' + #13#10 +
     '  lsp       Query Delphi semantic navigation and capability probes via DelphiLSP.exe' + #13#10 +
@@ -79,6 +80,7 @@ resourcestring
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--target <Build|Rebuild>] [--rebuild [true|false]] ' +
     '[--builder <auto|delphi|webcore>] [--webcore-compiler "<path>"] [--pwa] [--no-pwa] ' +
     '[--json [true|false]] [--max-findings <N>] [--build-timeout-sec <N default 0>] [--test-output-dir "<path>"] ' +
+    '[--keep-logs] [--log-dir "<path>"] ' +
     '[--define <symbol>] [--unit-search-path "<path>"] ' +
     '[--ai] [--show-warnings] [--show-hints] [--dfmcheck] ' +
     '[--dfm "<file.dfm[,file2.dfm]>"] [--all] ' +
@@ -141,6 +143,18 @@ resourcestring
     '[--semantic-cache "<sqlite-path>"|--no-semantic-cache]' + #13#10 +
     '  default is report-only and non-mutating; --apply requires an explicit --profile, writes edits transactionally, ' +
     'backs up changed files, verifies the build, and rolls back on failure';
+  SUsageRefactorApply =
+    'DelphiAIKit.exe refactor-apply --project "<path>" --platform <Win32|Win64> ' +
+    '--config <Debug|Release> --delphi <23.0> --apply-plan "<file.json>"' + #13#10 +
+    '  Applies only a saved plan whose operation and semantic context can be independently reverified.';
+  rsUsageSignature = 'signature --project <file.dproj> --platform <platform> --config <config> ' +
+    '--delphi <version> --request <file.json> [--format json] [--plan-out <new-file.json>]';
+  rsUsageConsistency = 'consistency --project <file.dproj> --platform <platform> --config <config> ' +
+    '--delphi <version> [--format json]';
+  SUsageUses =
+    'DelphiAIKit.exe uses --project "<path>" --platform <Win32|Win64> ' +
+    '--config <Debug|Release> --delphi <23.0> --format json --request "<file.json>" [--plan-out "<new-file.json>"]' + #13#10 +
+    '  Plans uses.remove-implementation-import with --plan-out, or reports uses.suggest-explicit-import-candidates without it. Source files are not changed.';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -195,7 +209,6 @@ resourcestring
   rsAnalyzeUnitPalIniContext = 'PAL.INI supplied compiler context; this context-free unit result is not ' +
     'project-equivalent proof.';
   rsProjectContextUnitOnly = '--project-context is only supported with unit analysis.';
-  SBuildBatMissing = 'build-delphi.bat not found: %s';
   SFileNotFound = 'File not found: %s';
   SUnsupportedLinuxPath = 'Unsupported Linux path format: %s. Use /mnt/<drive>/... or a Windows path.';
   SUnsupportedProjectInput = 'Unsupported project input: %s. Expected .dproj, .dpr, or .dpk.';
@@ -300,7 +313,6 @@ begin
     Touch(SSourceDproj);
     Touch(SRegistryLibraryMissing);
     Touch(SSourceRegistry);
-    Touch(SBuildBatMissing);
     Touch(SInfoEnvVarCount);
     Touch(SSourceSearchPath);
     Touch(SSourceOptset);

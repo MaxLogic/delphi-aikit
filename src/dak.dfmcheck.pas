@@ -9,7 +9,7 @@ uses
   Winapi.Messages,
   Winapi.Windows,
   DfmCheck_Utils,
-  Dak.Diagnostics, Dak.Messages, Dak.RsVars, Dak.Settings, Dak.SourceContext, Dak.Types, Dak.Utils;
+  Dak.Diagnostics, Dak.Messages, Dak.MsBuild.Args, Dak.RsVars, Dak.Settings, Dak.SourceContext, Dak.Types, Dak.Utils;
 
 type
   TDfmCheckErrorCategory = (
@@ -80,9 +80,22 @@ type
       out aError: string): Boolean;
   end;
 
+const
+  // DAK-386: the file in dfm-check\runs\<run token>\ that the owning run keeps open without sharing while it runs.
+  cDfmCheckRunLockFileName = 'run.lock';
+
 function TryResolveDfmCheckProjectPath(const aInputPath: string; out aDprojPath: string; out aError: string): Boolean;
 function TryResolveBundledInjectDir(const aExePath: string; out aInjectDir: string; out aError: string): Boolean;
 function BuildExpectedDfmCheckPaths(const aDprojPath: string): TDfmCheckPaths;
+// DAK-385: points the generated-project paths at dfm-check\runs\<aRunSuffix>\generated\.
+procedure AssignOwnedRunPaths(var aPaths: TDfmCheckPaths; const aRunSuffix: string);
+// DAK-385: creates dfm-check\runs\<run token> exclusively and points aPaths at it.
+// DAK-386: aRunLock is the open run lock that marks the directory as in use; the caller keeps it for the whole
+// run and closes it with ReleaseDfmCheckRunLock on every path.
+function TryCreateDfmCheckRunWorkspace(var aPaths: TDfmCheckPaths; out aRunLock: THandle;
+  out aError: string): Boolean;
+// DAK-386: closes a run lock from TryCreateDfmCheckRunWorkspace; safe to call again or on INVALID_HANDLE_VALUE.
+procedure ReleaseDfmCheckRunLock(var aRunLock: THandle);
 function TryLocateGeneratedDfmCheckProject(var aPaths: TDfmCheckPaths; out aError: string): Boolean;
 function TryPatchDfmCheckDpr(const aInputText: string; out aOutputText: string; out aChanged: Boolean;
   out aError: string; const aRegisterUnitName: string = ''; const aProgramName: string = ''): Boolean;
@@ -97,13 +110,16 @@ uses
   System.Diagnostics, System.Variants,
   Winapi.TlHelp32,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
-  Dak.DfmText, Dak.Project.BuildParams, Dak.Project.Semantics, Dak.Registry;
+  Dak.DfmText, Dak.Paths, Dak.Project.BuildParams, Dak.Project.Semantics, Dak.Registry;
 
 const
   cDfmCheckCacheMutexPrefix = 'Local\DelphiAIKit_DfmCheckCache_';
   cDfmCheckCacheMutexTimeoutMs = 30000;
   cDfmCheckDefaultTimeoutMs = 30 * 60 * 1000;
   cDfmCheckTimeoutEnvVar = 'DAK_DFMCHECK_TIMEOUT_MS';
+  // DAK-386: a run directory whose lock a concurrent cleanup took first is replaced by a new one this many times.
+  cDfmCheckRunLockAttempts = 10;
+  cDfmCheckRunLockFailed = 'dfm-check run lock could not be created under %s (%s)';
 
 type
   TWinProcessRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
@@ -2000,7 +2016,7 @@ begin
   Result.fProjectDproj := TPath.GetFullPath(aDprojPath);
   Result.fProjectDir := ExcludeTrailingPathDelimiter(ExtractFilePath(Result.fProjectDproj));
   Result.fProjectName := TPath.GetFileNameWithoutExtension(Result.fProjectDproj);
-  Result.fDakRootDir := TPath.Combine(Result.fProjectDir, '.dak\' + Result.fProjectName + '\dfm-check');
+  Result.fDakRootDir := DakProjectPath(DakProjectRoot(Result.fProjectDir, Result.fProjectName), ['dfm-check']);
   Result.fRunsDir := TPath.Combine(Result.fDakRootDir, 'runs');
   Result.fGeneratedDir := TPath.Combine(Result.fDakRootDir, 'generated');
   Result.fGeneratedDproj := TPath.Combine(Result.fGeneratedDir, Result.fProjectName + '_DfmCheck.dproj');
@@ -2017,26 +2033,214 @@ begin
   aPaths.fGeneratedRegisterUnit := TPath.Combine(aPaths.fGeneratedDir, aPaths.fProjectName + '_DfmCheck_Register.pas');
 end;
 
+// DAK-386: opens (aDisposition OPEN_EXISTING) or creates (CREATE_NEW) a run lock without sharing. While the handle
+// is open nobody else can open or delete the lock file, so the directory cannot be emptied and removed. No
+// security attributes are passed, so the handle is not inheritable: MSBuild, the validator and any process they
+// leave behind never hold it, and the OS closes it when this process ends, even when it crashes.
+function TryOpenDfmCheckRunLock(const aLockPath: string; const aDisposition: DWORD; out aRunLock: THandle): Boolean;
+begin
+  aRunLock := CreateFile(PChar(aLockPath), GENERIC_READ or GENERIC_WRITE, 0, nil, aDisposition,
+    FILE_ATTRIBUTE_NORMAL, 0);
+  Result := aRunLock <> INVALID_HANDLE_VALUE;
+end;
+
+function TryCreateDfmCheckRunWorkspace(var aPaths: TDfmCheckPaths; out aRunLock: THandle;
+  out aError: string): Boolean;
+var
+  lAttempt: Integer;
+  lLockError: string;
+  lRunDir: string;
+begin
+  aRunLock := INVALID_HANDLE_VALUE;
+  aError := '';
+  lLockError := '';
+  lAttempt := 0;
+  while lAttempt < cDfmCheckRunLockAttempts do
+  begin
+    Inc(lAttempt);
+    // DAK-385: runs\<token> (was a 32-character GUID).
+    if not TryCreateDakRunDirectory(aPaths.fRunsDir, lRunDir, aError) then
+      Exit(False);
+    // Until the lock exists, another run's cleanup may claim this directory (CleanupOwnedRunDirectories). Nothing
+    // of ours is in it yet, so we draw a new one; the empty directory is removed by a later cleanup.
+    if TryOpenDfmCheckRunLock(TPath.Combine(lRunDir, cDfmCheckRunLockFileName), CREATE_NEW, aRunLock) then
+    begin
+      AssignOwnedRunPaths(aPaths, ExtractFileName(lRunDir));
+      Exit(True);
+    end;
+    lLockError := SysErrorMessage(GetLastError);
+  end;
+  aError := Format(cDfmCheckRunLockFailed, [aPaths.fRunsDir, lLockError]);
+  Result := False;
+end;
+
+procedure ReleaseDfmCheckRunLock(var aRunLock: THandle);
+begin
+  if (aRunLock <> 0) and (aRunLock <> INVALID_HANDLE_VALUE) then
+    CloseHandle(aRunLock);
+  aRunLock := INVALID_HANDLE_VALUE;
+end;
+
+procedure AppendCleanupError(var aErrors: string; const aError: string);
+begin
+  if aErrors <> '' then
+    aErrors := aErrors + '; ';
+  aErrors := aErrors + aError;
+end;
+
+// DAK-386: takes the run lock of aRunDir for the cleanup. False when a run holds it (aInUse), when the directory is
+// already gone (another cleanup removed it), or with aError for any other failure.
+function TryClaimRunDirectory(const aRunDir: string; out aRunLock: THandle; out aInUse: Boolean;
+  out aError: string): Boolean;
+var
+  lLastError: DWORD;
+  lLockPath: string;
+begin
+  aInUse := False;
+  aError := '';
+  lLockPath := TPath.Combine(aRunDir, cDfmCheckRunLockFileName);
+  if TryOpenDfmCheckRunLock(lLockPath, OPEN_EXISTING, aRunLock) then
+    Exit(True);
+  lLastError := GetLastError;
+  if lLastError = ERROR_FILE_NOT_FOUND then
+  begin
+    if TryOpenDfmCheckRunLock(lLockPath, CREATE_NEW, aRunLock) then
+      Exit(True);
+    lLastError := GetLastError;
+  end;
+  // A sharing violation means a run holds the lock; a lock created between our two calls means a run has just
+  // taken the directory.
+  aInUse := (lLastError = ERROR_SHARING_VIOLATION) or (lLastError = ERROR_FILE_EXISTS);
+  if (not aInUse) and (lLastError <> ERROR_PATH_NOT_FOUND) then
+    aError := 'Run lock of ' + aRunDir + ' could not be taken: ' + SysErrorMessage(lLastError);
+  Result := False;
+end;
+
+// DAK-386: deletes an unused run directory while holding its lock, so no run can be using it: everything except
+// the lock file goes first, then the lock is closed and deleted, then the empty directory is removed.
+procedure DeleteUnusedRunDirectory(const aRunDir: string; out aInUse: Boolean; var aErrors: string);
+var
+  lEntry: string;
+  lError: string;
+  lRunLock: THandle;
+begin
+  if not TryClaimRunDirectory(aRunDir, lRunLock, aInUse, lError) then
+  begin
+    if lError <> '' then
+      AppendCleanupError(aErrors, lError);
+    Exit;
+  end;
+  try
+    try
+      for lEntry in TDirectory.GetDirectories(aRunDir, '*', TSearchOption.soTopDirectoryOnly) do
+        CleanupDirectory(lEntry, aErrors);
+      for lEntry in TDirectory.GetFiles(aRunDir, '*', TSearchOption.soTopDirectoryOnly) do
+        if not SameText(ExtractFileName(lEntry), cDfmCheckRunLockFileName) then
+          CleanupFile(lEntry, aErrors);
+    except
+      on E: Exception do
+        AppendCleanupError(aErrors, 'Stale run ' + aRunDir + ' could not be listed: ' + E.Message);
+    end;
+  finally
+    ReleaseDfmCheckRunLock(lRunLock);
+  end;
+  CleanupFile(TPath.Combine(aRunDir, cDfmCheckRunLockFileName), aErrors);
+  // Fails when a file could not be deleted, or when a run took the emptied directory in the meantime (it then
+  // holds a fresh lock); either way a later cleanup tries again.
+  if not RemoveDir(aRunDir) then
+    AppendCleanupError(aErrors, 'Delete directory failed (' + aRunDir + '): ' + SysErrorMessage(GetLastError));
+end;
+
+// DAK-386: removes the run directories under runs\ that no run is using, and only those. A run holds
+// runs\<token>\run.lock open without sharing for its whole life (TryCreateDfmCheckRunWorkspace), and cleanup
+// decides and deletes under that same lock (DeleteUnusedRunDirectory):
+// - lock held by a live run (possibly another dfm-check of this project): cannot be opened; the directory stays.
+// - lock file present but not held: the run ended with its artifacts kept, or crashed (the OS closed its handle);
+//   removed.
+// - no lock file: left by an older DAK or by a run that failed before it took the lock; cleanup creates the lock
+//   and removes the directory. A run creating its lock in that moment fails and draws a new directory, so cleanup
+//   never takes a directory from a run that holds its lock.
 procedure CleanupOwnedRunDirectories(const aRunsDir: string; const aRunDirToKeep: string; const aOutput: TDfmCheckOutputProc;
   const aVerbose: Boolean);
 var
   lDirPath: string;
   lError: string;
+  lInUse: Boolean;
   lRunDirToKeepNormalized: string;
+  lRunDirs: TArray<string>;
 begin
   if not DirectoryExists(aRunsDir) then
     Exit;
 
+  try
+    lRunDirs := TDirectory.GetDirectories(aRunsDir, '*', TSearchOption.soTopDirectoryOnly);
+  except
+    on E: Exception do
+    begin
+      EmitVerboseLine(aVerbose, aOutput, '[dfm-check] Stale-run cleanup warning: ' + aRunsDir +
+        ' could not be listed: ' + E.Message);
+      Exit;
+    end;
+  end;
   lRunDirToKeepNormalized := ExcludeTrailingPathDelimiter(aRunDirToKeep);
-  for lDirPath in TDirectory.GetDirectories(aRunsDir, '*', TSearchOption.soTopDirectoryOnly) do
+  for lDirPath in lRunDirs do
   begin
     if SameText(ExcludeTrailingPathDelimiter(lDirPath), lRunDirToKeepNormalized) then
       Continue;
 
     lError := '';
-    CleanupDirectory(lDirPath, lError);
+    DeleteUnusedRunDirectory(lDirPath, lInUse, lError);
+    if lInUse then
+      EmitVerboseLine(aVerbose, aOutput, '[dfm-check] Kept run directory in use by another run: ' + lDirPath);
     if (lError <> '') and aVerbose then
       EmitLine(aOutput, '[dfm-check] Stale-run cleanup warning: ' + lError);
+  end;
+end;
+
+function LongerPath(const aCurrent, aCandidate: string): string;
+begin
+  if Length(aCandidate) > Length(aCurrent) then
+    Exit(aCandidate);
+  Result := aCurrent;
+end;
+
+// DAK-385, DAK-386: MSBuild and the Delphi compiler work in the run workspace and are not long-path aware, so a
+// project too deep for the deepest file a run writes is refused before anything is written. The candidates are the
+// generated files, the copied inject units (DfmCheckRuntimeGuard.pas is the deepest for a one- or two-character
+// project name) and the DCU in runs\<run>\dcu\ of each unit the project lists. Units the compiler finds only
+// through the search path are not known before the build, so their DCUs are not covered.
+// Any token of the run length gives the same lengths; the refusal shows the run directory as a placeholder of that
+// length, so the reported path and its length agree and no made-up directory name appears.
+function TryCheckDfmCheckRunPathLimit(const aDprojPath: string; const aSourceFileNames: TArray<string>;
+  out aError: string): Boolean;
+var
+  lDcuDir: string;
+  lDeepest: string;
+  lDisplayPath: string;
+  lPaths: TDfmCheckPaths;
+  lPlaceholder: string;
+  lSourceFileName: string;
+begin
+  lPaths := BuildExpectedDfmCheckPaths(aDprojPath);
+  AssignOwnedRunPaths(lPaths, StringOfChar('0', cDakRunTokenLength));
+  lDeepest := lPaths.fGeneratedRegisterUnit;
+  lDeepest := LongerPath(lDeepest, lPaths.fGeneratedDproj + '.local');
+  lDeepest := LongerPath(lDeepest, TPath.Combine(lPaths.fGeneratedDir, 'DfmCheckRuntimeGuard.pas'));
+  lDeepest := LongerPath(lDeepest, TPath.Combine(lPaths.fGeneratedDir, 'DfmStreamAll.pas'));
+  lDeepest := LongerPath(lDeepest, TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckValidator.log'));
+  lDcuDir := TPath.Combine(lPaths.fRunDir, 'dcu');
+  for lSourceFileName in aSourceFileNames do
+    if SameText(ExtractFileExt(lSourceFileName), '.pas') then
+      lDeepest := LongerPath(lDeepest, TPath.Combine(lDcuDir,
+        TPath.GetFileNameWithoutExtension(lSourceFileName) + '.dcu'));
+
+  Result := TryCheckClassicPathLimit('dfm-check', 'MSBuild and the Delphi compiler', lDeepest, aError);
+  if not Result then
+  begin
+    lPlaceholder := Copy('<run-id' + StringOfChar('-', cDakRunTokenLength), 1, cDakRunTokenLength - 1) + '>';
+    lDisplayPath := IncludeTrailingPathDelimiter(lPaths.fRunsDir) + lPlaceholder +
+      Copy(lDeepest, Length(lPaths.fRunDir) + 1, MaxInt);
+    aError := StringReplace(aError, lDeepest, lDisplayPath, []);
   end;
 end;
 
@@ -3399,7 +3603,9 @@ begin
     if DirectoryExists(lExpectedDir) then
       lDirectoryList.Add(lExpectedDir);
 
-    if DirectoryExists(aPaths.fRunsDir) then
+    // DAK-386: a run that owns a run workspace uses only its own generated project there; the other directories
+    // under runs\ belong to other runs, which may still be in progress.
+    if (aPaths.fRunDir = '') and DirectoryExists(aPaths.fRunsDir) then
     begin
       lDirectoryArray := TDirectory.GetDirectories(aPaths.fRunsDir, '*', TSearchOption.soTopDirectoryOnly);
       for lDirectoryPath in lDirectoryArray do
@@ -3819,8 +4025,6 @@ var
   lForcedDcuOutputDir: string;
   lForcedExeOutputDir: string;
   lGeneratorFilterCsv: string;
-  lRunGuid: TGUID;
-  lRunSuffix: string;
   lRsVarsEnvironment: TRsVarsEnvironment;
   lRsVarsEnvironmentBlock: string;
   lSourceContextCache: TSourceContextRunCache;
@@ -3847,8 +4051,10 @@ var
   lWarnedResources: TStringList;
   lCleanupErrors: string;
   lPreserveArtifactsForDiagnostics: Boolean;
+  lRunLock: THandle;
 begin
   Result := 1;
+  lRunLock := INVALID_HANDLE_VALUE;
   aError := '';
   aCategory := TDfmCheckErrorCategory.ecNone;
   lCopiedDfmStreamAll := False;
@@ -4009,16 +4215,23 @@ begin
     if Trim(lPlatform) = '' then
       lPlatform := 'Win32';
 
+    // DAK-385: refuse a project too deep for the run workspace before anything is written. The check comes after
+    // the cache short-circuit, so a project with nothing to validate still succeeds. lPaths stays empty until the
+    // workspace exists, so the final cleanup has nothing of this run to remove.
+    if not TryCheckDfmCheckRunPathLimit(lDprojPath, lProjectContext.SourceFileNames, aError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
-    if CreateGUID(lRunGuid) = S_OK then
-      lRunSuffix := GUIDToString(lRunGuid)
-    else
-      lRunSuffix := FormatDateTime('yyyymmddhhnnsszzz', Now);
-    lRunSuffix := StringReplace(lRunSuffix, '{', '', [rfReplaceAll]);
-    lRunSuffix := StringReplace(lRunSuffix, '}', '', [rfReplaceAll]);
-    lRunSuffix := StringReplace(lRunSuffix, '-', '', [rfReplaceAll]);
-    AssignOwnedRunPaths(lPaths, lRunSuffix);
-    TDirectory.CreateDirectory(lPaths.fRunsDir);
+    if not TryCreateDfmCheckRunWorkspace(lPaths, lRunLock, aError) then
+    begin
+      // No run workspace exists, so the final cleanup must not act on one.
+      lPaths := Default(TDfmCheckPaths);
+      aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
     CleanupOwnedRunDirectories(lPaths.fRunsDir, lPaths.fRunDir, aOutput, lVerbose);
 
     if not TryResolveInjectDir(lPaths.fInjectDir, aError) then
@@ -4084,10 +4297,12 @@ begin
     lEffectiveDefines := EnsureDefineSymbol(lEffectiveDefines, 'NO_LOCALIZATION');
     lBuildVerbosity := '/v:q';
     lBuildArgs :=
-      QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build /p:Config=' + lConfig + ' /p:Platform=' + lPlatform +
-      ' /p:DCC_Define=' + QuoteCmdArg(lEffectiveDefines) +
-      ' /p:DCC_ForceExecute=true /p:DCC_ExeOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedExeOutputDir)) +
-      ' /p:DCC_DcuOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedDcuOutputDir)) +
+      QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build ' + FormatMsBuildProperty('Config', lConfig) +
+      ' ' + FormatMsBuildProperty('Platform', lPlatform) +
+      ' ' + FormatMsBuildProperty('DCC_Define', lEffectiveDefines) +
+      ' /p:DCC_ForceExecute=true ' +
+      FormatMsBuildProperty('DCC_ExeOutput', IncludeTrailingPathDelimiter(lForcedExeOutputDir)) +
+      ' ' + FormatMsBuildProperty('DCC_DcuOutput', IncludeTrailingPathDelimiter(lForcedDcuOutputDir)) +
       ' ' + lBuildVerbosity;
     lBuildLogPath := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckBuild.log');
     lBuildCmdPath := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckBuild.cmd');
@@ -4219,6 +4434,9 @@ begin
     else
       Result := MapDfmCheckExitCode(TDfmCheckErrorCategory.ecValidatorFailed, 0);
   finally
+    // DAK-386: the run is over, so its directory is no longer in use. Closing the lock first lets our own
+    // cleanup delete it; a kept directory becomes stale and the next run's cleanup removes it.
+    ReleaseDfmCheckRunLock(lRunLock);
     lDiagnostics.Free;
     lWarnReasons.Free;
     lWarnedResources.Free;

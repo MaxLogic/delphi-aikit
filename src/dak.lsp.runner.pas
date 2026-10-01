@@ -16,6 +16,9 @@ function TryResolveDelphiLspExe(const aOptions: TAppOptions; const aContext: TLs
   out aExePath: string; out aError: string): Boolean;
 function TryRunLspRequest(const aOptions: TAppOptions; const aContext: TLspContext;
   out aResult: TLspRunnerResult; out aError: string): Boolean;
+// Removes a stale compatibility context file and writes the canonical settings file.
+function TryPrepareLspRequestFiles(const aContext: TLspContext; const aCompilerDllName: string;
+  out aSettingsFilePath: string; out aError: string): Boolean;
 
 implementation
 
@@ -24,7 +27,7 @@ uses
   System.StrUtils, System.SysUtils,
   Winapi.Windows,
   maxLogic.ioUtils,
-  Dak.Lsp.Transport,
+  Dak.Lsp.Protocol, Dak.Lsp.Transport,
   Dak.RadStudio.Locator,
   Dak.Utils;
 
@@ -35,772 +38,10 @@ begin
   Result := aObject;
 end;
 
-function BuildContextFileInitializeOptions(const aContext: TLspContext): TJSONObject;
-begin
-  Result := TJSONObject.Create;
-  AddJsonStringPair(Result, 'contextFile', aContext.fContextFilePath);
-  AddJsonStringPair(Result, 'contextFileUri', FilePathToURL(aContext.fContextFilePath));
-  AddJsonStringPair(Result, 'logsDir', aContext.fLogsDir);
-end;
-
-function BuildSettingsFileInitializeOptions(const aContext: TLspContext; const aSettingsFilePath: string): TJSONObject;
-begin
-  Result := TJSONObject.Create;
-  AddJsonStringPair(Result, 'settingsFile', aSettingsFilePath);
-  AddJsonStringPair(Result, 'settingsFileUri', FilePathToURL(aSettingsFilePath));
-  AddJsonStringPair(Result, 'logsDir', aContext.fLogsDir);
-end;
-
-function BuildInitializeParamsWithOptions(const aContext: TLspContext; aInitializeOptions: TJSONObject): string;
-var
-  lClientInfo: TJSONObject;
-  lFolders: TJSONArray;
-  lParams: TJSONObject;
-  lWorkspaceFolder: TJSONObject;
-begin
-  lParams := TJSONObject.Create;
-  try
-    lParams.AddPair('processId', TJSONNumber.Create(GetCurrentProcessId));
-    lParams.AddPair('rootUri', FilePathToURL(aContext.fProjectDir));
-    lParams.AddPair('capabilities', TJSONObject.Create);
-
-    lClientInfo := TJSONObject.Create;
-    lClientInfo.AddPair('name', 'DelphiAIKit');
-    lParams.AddPair('clientInfo', lClientInfo);
-
-    lFolders := TJSONArray.Create;
-    lWorkspaceFolder := TJSONObject.Create;
-    AddJsonStringPair(lWorkspaceFolder, 'uri', FilePathToURL(aContext.fProjectDir));
-    AddJsonStringPair(lWorkspaceFolder, 'name', aContext.fProjectName);
-    lFolders.AddElement(lWorkspaceFolder);
-    lParams.AddPair('workspaceFolders', lFolders);
-
-    lParams.AddPair('initializationOptions', aInitializeOptions);
-
-    Result := lParams.ToJSON;
-  finally
-    lParams.Free;
-  end;
-end;
-
-function BuildSettingsConfigurationParams(const aSettingsFilePath: string): string;
-var
-  lRoot: TJSONObject;
-  lSettings: TJSONObject;
-begin
-  lRoot := TJSONObject.Create;
-  try
-    lSettings := TJSONObject.Create;
-    AddJsonStringPair(lSettings, 'settingsFile', aSettingsFilePath);
-    AddJsonStringPair(lSettings, 'settingsFileUri', FilePathToURL(aSettingsFilePath));
-    lRoot.AddPair('settings', lSettings);
-    Result := lRoot.ToJSON;
-  finally
-    lRoot.Free;
-  end;
-end;
-
-
-function BuildOperationEnvelope(const aOptions: TAppOptions; const aContext: TLspContext; const aLspPath,
-  aOperationName: string; const aRequestFilePath: string; const aRawResultJson: string): string;
-var
-  lJsonValue: TJSONValue;
-  lLspObject: TJSONObject;
-  lProjectObject: TJSONObject;
-  lQueryObject: TJSONObject;
-  lRoot: TJSONObject;
-  lWarnings: TJSONArray;
-begin
-  lRoot := TJSONObject.Create;
-  try
-    lRoot.AddPair('operation', aOperationName);
-
-    lProjectObject := TJSONObject.Create;
-    AddJsonStringPair(lProjectObject, 'path', aContext.fProjectPath);
-    AddJsonStringPair(lProjectObject, 'platform', aContext.fParams.fPlatform);
-    AddJsonStringPair(lProjectObject, 'config', aContext.fParams.fConfig);
-    AddJsonStringPair(lProjectObject, 'contextMode', 'full');
-    lRoot.AddPair('project', lProjectObject);
-
-    lQueryObject := TJSONObject.Create;
-    if aOptions.fLspOperation = TLspOperation.loSymbols then
-    begin
-      AddJsonStringPair(lQueryObject, 'file', aRequestFilePath);
-      AddJsonStringPair(lQueryObject, 'query', aOptions.fLspQuery);
-      lQueryObject.AddPair('limit', TJSONNumber.Create(aOptions.fLspLimit));
-    end else
-    begin
-      AddJsonStringPair(lQueryObject, 'file', aRequestFilePath);
-      lQueryObject.AddPair('line', TJSONNumber.Create(aOptions.fLspLine));
-      lQueryObject.AddPair('col', TJSONNumber.Create(aOptions.fLspCol));
-    end;
-    lRoot.AddPair('query', lQueryObject);
-
-    lLspObject := TJSONObject.Create;
-    AddJsonStringPair(lLspObject, 'path', aLspPath);
-    lRoot.AddPair('lsp', lLspObject);
-
-    lJsonValue := TJSONObject.ParseJSONValue(aRawResultJson);
-    if lJsonValue = nil then
-      lRoot.AddPair('result', aRawResultJson)
-    else
-      lRoot.AddPair('result', lJsonValue);
-
-    lWarnings := TJSONArray.Create;
-    lRoot.AddPair('warnings', lWarnings);
-
-    Result := lRoot.ToJSON;
-  finally
-    lRoot.Free;
-  end;
-end;
-
-function BuildHoverText(const aResultJson: string): string; forward;
-
-function BuildOperationText(const aOptions: TAppOptions; const aContext: TLspContext; const aLspPath,
-  aOperationName: string; const aRequestFilePath: string; const aRawResultJson: string): string;
-var
-  lLines: TStringBuilder;
-begin
-  if aOptions.fLspOperation = TLspOperation.loHover then
-    Exit(BuildHoverText(aRawResultJson));
-
-  lLines := TStringBuilder.Create;
-  try
-    lLines.AppendLine('operation: ' + aOperationName);
-    lLines.AppendLine('project: ' + aContext.fProjectPath);
-    if aOptions.fLspOperation = TLspOperation.loSymbols then
-    begin
-      lLines.AppendLine('file: ' + aRequestFilePath);
-      lLines.AppendLine('query: ' + aOptions.fLspQuery);
-      lLines.AppendLine('limit: ' + IntToStr(aOptions.fLspLimit));
-    end else
-      lLines.AppendLine(Format('query: %s:%d:%d', [aRequestFilePath, aOptions.fLspLine, aOptions.fLspCol]));
-    lLines.AppendLine('lsp: ' + aLspPath);
-    lLines.Append('result: ' + aRawResultJson);
-    Result := lLines.ToString;
-  finally
-    lLines.Free;
-  end;
-end;
-
-function BuildPositionParams(const aOptions: TAppOptions; const aFileUri: string): string;
-var
-  lContextObject: TJSONObject;
-  lParams: TJSONObject;
-  lPositionObject: TJSONObject;
-  lTextDocumentObject: TJSONObject;
-begin
-  lParams := TJSONObject.Create;
-  try
-    lTextDocumentObject := TJSONObject.Create;
-    AddJsonStringPair(lTextDocumentObject, 'uri', aFileUri);
-    lParams.AddPair('textDocument', lTextDocumentObject);
-
-    lPositionObject := TJSONObject.Create;
-    lPositionObject.AddPair('line', TJSONNumber.Create(aOptions.fLspLine - 1));
-    lPositionObject.AddPair('character', TJSONNumber.Create(aOptions.fLspCol - 1));
-    lParams.AddPair('position', lPositionObject);
-
-    Result := lParams.ToJSON;
-  finally
-    lParams.Free;
-  end;
-end;
-
-function BuildDocumentSymbolParams(const aFileUri: string): string;
-var
-  lParams: TJSONObject;
-  lTextDocumentObject: TJSONObject;
-begin
-  lParams := TJSONObject.Create;
-  try
-    lTextDocumentObject := TJSONObject.Create;
-    AddJsonStringPair(lTextDocumentObject, 'uri', aFileUri);
-    lParams.AddPair('textDocument', lTextDocumentObject);
-    Result := lParams.ToJSON;
-  finally
-    lParams.Free;
-  end;
-end;
-
-function BuildRequestParams(const aOptions: TAppOptions; const aFileUri: string): string;
-begin
-  if aOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loHover] then
-    Exit(BuildPositionParams(aOptions, aFileUri));
-  if aOptions.fLspOperation = TLspOperation.loSymbols then
-    Exit(BuildDocumentSymbolParams(aFileUri));
-  Result := '{}';
-end;
-
-function BuildDidOpenParams(const aFilePath: string): string;
-var
-  lParams: TJSONObject;
-  lTextDocumentObject: TJSONObject;
-begin
-  lParams := TJSONObject.Create;
-  try
-    lTextDocumentObject := TJSONObject.Create;
-    AddJsonStringPair(lTextDocumentObject, 'uri', FilePathToURL(aFilePath));
-    AddJsonStringPair(lTextDocumentObject, 'languageId', 'delphi');
-    lTextDocumentObject.AddPair('version', TJSONNumber.Create(1));
-    AddJsonStringPair(lTextDocumentObject, 'text', TFile.ReadAllText(aFilePath));
-    lParams.AddPair('textDocument', lTextDocumentObject);
-    Result := lParams.ToJSON;
-  finally
-    lParams.Free;
-  end;
-end;
-
-function BuildResponseError(const aStage: string; const aResponse: TJSONObject): string;
-var
-  lCode: string;
-  lErrorObject: TJSONObject;
-  lMessage: string;
-begin
-  if not (aResponse.Values['error'] is TJSONObject) then
-    Exit('DelphiLSP ' + aStage + ' failed.');
-  lErrorObject := aResponse.Values['error'] as TJSONObject;
-  lCode := lErrorObject.GetValue<string>('code', '');
-  lMessage := lErrorObject.GetValue<string>('message', '');
-  if lCode <> '' then
-    Result := Format('DelphiLSP %s failed (%s): %s', [aStage, lCode, lMessage])
-  else
-    Result := Format('DelphiLSP %s failed: %s', [aStage, lMessage]);
-end;
-
-function ExtractRawResultText(aResponse: TJSONObject): string;
-var
-  lResultValue: TJSONValue;
-begin
-  lResultValue := aResponse.Values['result'];
-  if lResultValue = nil then
-    Exit('null');
-  Result := lResultValue.ToJSON;
-end;
 
 function FileExistsAt(const aPath: string): Boolean;
 begin
   Result := (Trim(aPath) <> '') and FileExists(aPath);
-end;
-
-function TryDecodeFileUri(const aUri: string; out aFilePath: string): Boolean;
-var
-  lAuthority: string;
-  lDecodedPath: string;
-  lEncodedPath: string;
-  lPathStart: Integer;
-  lUri: string;
-begin
-  aFilePath := '';
-  lUri := Trim(aUri);
-  if not SameText(Copy(lUri, 1, 7), 'file://') then
-    Exit(False);
-
-  lUri := Copy(lUri, 8, MaxInt);
-  lPathStart := Pos('/', lUri);
-  if lPathStart = 0 then
-    Exit(False);
-
-  lAuthority := Copy(lUri, 1, lPathStart - 1);
-  lEncodedPath := Copy(lUri, lPathStart, MaxInt);
-  lDecodedPath := TNetEncoding.URL.Decode(StringReplace(lEncodedPath, '+', '%2B', [rfReplaceAll]));
-  lDecodedPath := StringReplace(lDecodedPath, '/', '\', [rfReplaceAll]);
-
-  if (Length(lAuthority) = 2) and CharInSet(lAuthority[1], ['A'..'Z', 'a'..'z']) and (lAuthority[2] = ':') then
-  begin
-    aFilePath := lAuthority + lDecodedPath;
-    Exit(True);
-  end;
-
-  if (lAuthority = '') or SameText(lAuthority, 'localhost') then
-  begin
-    if (Length(lDecodedPath) >= 3) and (lDecodedPath[1] = '\') and
-      CharInSet(lDecodedPath[2], ['A'..'Z', 'a'..'z']) and (lDecodedPath[3] = ':') then
-      Delete(lDecodedPath, 1, 1);
-    aFilePath := lDecodedPath;
-    Exit(True);
-  end;
-
-  if (lDecodedPath <> '') and (lDecodedPath[1] = '\') then
-    Delete(lDecodedPath, 1, 1);
-  aFilePath := '\\' + lAuthority + '\' + lDecodedPath;
-  Result := True;
-end;
-
-function BuildNormalizedLocationObject(aLocationValue: TJSONValue): TJSONObject;
-var
-  lEndObject: TJSONObject;
-  lFilePath: string;
-  lLocationObject: TJSONObject;
-  lRangeObject: TJSONObject;
-  lResult: TJSONObject;
-  lStartObject: TJSONObject;
-  lUri: string;
-begin
-  Result := nil;
-  if not (aLocationValue is TJSONObject) then
-    Exit(nil);
-
-  lLocationObject := aLocationValue as TJSONObject;
-  lUri := lLocationObject.GetValue<string>('uri', '');
-  lRangeObject := nil;
-  if lUri <> '' then
-  begin
-    if lLocationObject.Values['range'] is TJSONObject then
-      lRangeObject := lLocationObject.Values['range'] as TJSONObject;
-  end else
-  begin
-    lUri := lLocationObject.GetValue<string>('targetUri', '');
-    if lLocationObject.Values['targetRange'] is TJSONObject then
-      lRangeObject := lLocationObject.Values['targetRange'] as TJSONObject
-    else if lLocationObject.Values['targetSelectionRange'] is TJSONObject then
-      lRangeObject := lLocationObject.Values['targetSelectionRange'] as TJSONObject;
-  end;
-
-  if (lUri = '') or (lRangeObject = nil) then
-    Exit(nil);
-  if not (lRangeObject.Values['start'] is TJSONObject) or not (lRangeObject.Values['end'] is TJSONObject) then
-    Exit(nil);
-
-  lStartObject := lRangeObject.Values['start'] as TJSONObject;
-  lEndObject := lRangeObject.Values['end'] as TJSONObject;
-  lFilePath := lUri;
-  TryDecodeFileUri(lUri, lFilePath);
-
-  lResult := TJSONObject.Create;
-  AddJsonStringPair(lResult, 'file', lFilePath);
-  AddJsonStringPair(lResult, 'uri', lUri);
-  lResult.AddPair('line', TJSONNumber.Create(lStartObject.GetValue<Integer>('line', 0) + 1));
-  lResult.AddPair('col', TJSONNumber.Create(lStartObject.GetValue<Integer>('character', 0) + 1));
-  lResult.AddPair('endLine', TJSONNumber.Create(lEndObject.GetValue<Integer>('line', 0) + 1));
-  lResult.AddPair('endCol', TJSONNumber.Create(lEndObject.GetValue<Integer>('character', 0) + 1));
-  Result := lResult;
-end;
-
-function BuildNormalizedLocationsArray(aResultValue: TJSONValue): TJSONArray;
-
-  procedure AppendLocation(aTarget: TJSONArray; aLocationValue: TJSONValue);
-  var
-    lLocationObject: TJSONObject;
-  begin
-    lLocationObject := BuildNormalizedLocationObject(aLocationValue);
-    if lLocationObject <> nil then
-      aTarget.AddElement(lLocationObject);
-  end;
-
-var
-  lItemValue: TJSONValue;
-  lResult: TJSONArray;
-begin
-  lResult := TJSONArray.Create;
-  if (aResultValue = nil) or (aResultValue is TJSONNull) then
-    Exit(lResult);
-
-  if aResultValue is TJSONArray then
-  begin
-    for lItemValue in aResultValue as TJSONArray do
-      AppendLocation(lResult, lItemValue);
-    Exit(lResult);
-  end;
-
-  AppendLocation(lResult, aResultValue);
-  Result := lResult;
-end;
-
-function BuildNormalizedLocationsResult(const aCollectionName: string; aResultValue: TJSONValue): string;
-var
-  lLocations: TJSONArray;
-  lResultObject: TJSONObject;
-begin
-  lResultObject := TJSONObject.Create;
-  try
-    lLocations := BuildNormalizedLocationsArray(aResultValue);
-    lResultObject.AddPair(aCollectionName, lLocations);
-    Result := lResultObject.ToJSON;
-  finally
-    lResultObject.Free;
-  end;
-end;
-
-function BuildNormalizedRangeObject(aRangeValue: TJSONValue): TJSONObject;
-var
-  lEndObject: TJSONObject;
-  lRangeObject: TJSONObject;
-  lResult: TJSONObject;
-  lStartObject: TJSONObject;
-begin
-  Result := nil;
-  if not (aRangeValue is TJSONObject) then
-    Exit(nil);
-
-  lRangeObject := aRangeValue as TJSONObject;
-  if not (lRangeObject.Values['start'] is TJSONObject) or not (lRangeObject.Values['end'] is TJSONObject) then
-    Exit(nil);
-
-  lStartObject := lRangeObject.Values['start'] as TJSONObject;
-  lEndObject := lRangeObject.Values['end'] as TJSONObject;
-  lResult := TJSONObject.Create;
-  lResult.AddPair('line', TJSONNumber.Create(lStartObject.GetValue<Integer>('line', 0) + 1));
-  lResult.AddPair('col', TJSONNumber.Create(lStartObject.GetValue<Integer>('character', 0) + 1));
-  lResult.AddPair('endLine', TJSONNumber.Create(lEndObject.GetValue<Integer>('line', 0) + 1));
-  lResult.AddPair('endCol', TJSONNumber.Create(lEndObject.GetValue<Integer>('character', 0) + 1));
-  Result := lResult;
-end;
-
-procedure AppendHoverSegment(aBuilder: TStringBuilder; const aValue: string);
-begin
-  if aValue = '' then
-    Exit;
-  if aBuilder.Length > 0 then
-    aBuilder.AppendLine.AppendLine;
-  aBuilder.Append(aValue);
-end;
-
-procedure ExtractHoverContent(aContentsValue: TJSONValue; aTextBuilder: TStringBuilder; aMarkdownBuilder: TStringBuilder);
-var
-  lContentsArray: TJSONArray;
-  lContentsObject: TJSONObject;
-  lItemValue: TJSONValue;
-  lKind: string;
-  lValue: string;
-begin
-  if (aContentsValue = nil) or (aContentsValue is TJSONNull) then
-    Exit;
-
-  if aContentsValue is TJSONString then
-  begin
-    AppendHoverSegment(aTextBuilder, aContentsValue.Value);
-    Exit;
-  end;
-
-  if aContentsValue is TJSONArray then
-  begin
-    lContentsArray := aContentsValue as TJSONArray;
-    for lItemValue in lContentsArray do
-      ExtractHoverContent(lItemValue, aTextBuilder, aMarkdownBuilder);
-    Exit;
-  end;
-
-  if not (aContentsValue is TJSONObject) then
-    Exit;
-
-  lContentsObject := aContentsValue as TJSONObject;
-  lValue := lContentsObject.GetValue<string>('value', '');
-  if lValue = '' then
-    Exit;
-
-  AppendHoverSegment(aTextBuilder, lValue);
-  lKind := lContentsObject.GetValue<string>('kind', '');
-  if SameText(lKind, 'markdown') then
-    AppendHoverSegment(aMarkdownBuilder, lValue);
-end;
-
-function BuildNormalizedHoverResult(aResultValue: TJSONValue): string;
-var
-  lContentsValue: TJSONValue;
-  lHoverObject: TJSONObject;
-  lMarkdownBuilder: TStringBuilder;
-  lRangeObject: TJSONObject;
-  lRangeValue: TJSONValue;
-  lResultObject: TJSONObject;
-  lTextBuilder: TStringBuilder;
-begin
-  lTextBuilder := TStringBuilder.Create;
-  lMarkdownBuilder := TStringBuilder.Create;
-  lResultObject := TJSONObject.Create;
-  try
-    lContentsValue := aResultValue;
-    lRangeValue := nil;
-    if aResultValue is TJSONObject then
-    begin
-      lHoverObject := aResultValue as TJSONObject;
-      if Assigned(lHoverObject.Values['contents']) then
-        lContentsValue := lHoverObject.Values['contents'];
-      lRangeValue := lHoverObject.Values['range'];
-    end;
-
-    ExtractHoverContent(lContentsValue, lTextBuilder, lMarkdownBuilder);
-    lResultObject.AddPair('contentsText', lTextBuilder.ToString);
-    if lMarkdownBuilder.Length > 0 then
-      lResultObject.AddPair('contentsMarkdown', lMarkdownBuilder.ToString);
-
-    lRangeObject := BuildNormalizedRangeObject(lRangeValue);
-    if lRangeObject <> nil then
-      lResultObject.AddPair('range', lRangeObject);
-
-    if lTextBuilder.Length = 0 then
-      lResultObject.AddPair('isEmpty', TJSONBool.Create(True));
-
-    Result := lResultObject.ToJSON;
-  finally
-    lResultObject.Free;
-    lMarkdownBuilder.Free;
-    lTextBuilder.Free;
-  end;
-end;
-
-function BuildHoverText(const aResultJson: string): string;
-var
-  lBuilder: TStringBuilder;
-  lJsonValue: TJSONValue;
-  lRangeObject: TJSONObject;
-  lResultObject: TJSONObject;
-begin
-  lJsonValue := TJSONObject.ParseJSONValue(aResultJson);
-  if not (lJsonValue is TJSONObject) then
-  begin
-    lJsonValue.Free;
-    Exit('Hover: ' + aResultJson);
-  end;
-
-  lBuilder := TStringBuilder.Create;
-  try
-    lResultObject := lJsonValue as TJSONObject;
-    if lResultObject.GetValue<Boolean>('isEmpty', False) then
-      lBuilder.Append('Hover: empty')
-    else
-    begin
-      lBuilder.AppendLine('Hover:');
-      lBuilder.Append(lResultObject.GetValue<string>('contentsText', ''));
-      if lResultObject.Values['range'] is TJSONObject then
-      begin
-        lRangeObject := lResultObject.Values['range'] as TJSONObject;
-        lBuilder.AppendLine;
-        lBuilder.Append(Format('Range: %d:%d-%d:%d',
-          [lRangeObject.GetValue<Integer>('line', 0), lRangeObject.GetValue<Integer>('col', 0),
-           lRangeObject.GetValue<Integer>('endLine', 0), lRangeObject.GetValue<Integer>('endCol', 0)]));
-      end;
-    end;
-    Result := lBuilder.ToString;
-  finally
-    lBuilder.Free;
-    lJsonValue.Free;
-  end;
-end;
-
-function BuildNormalizedSymbolInformationObject(aSymbolValue: TJSONValue): TJSONObject;
-var
-  lLocationObject: TJSONObject;
-  lLocationValue: TJSONValue;
-  lResult: TJSONObject;
-  lSymbolObject: TJSONObject;
-begin
-  Result := nil;
-  if not (aSymbolValue is TJSONObject) then
-    Exit(nil);
-
-  lSymbolObject := aSymbolValue as TJSONObject;
-  lLocationValue := lSymbolObject.Values['location'];
-  if lLocationValue = nil then
-    lLocationValue := aSymbolValue;
-
-  lLocationObject := BuildNormalizedLocationObject(lLocationValue);
-  if lLocationObject = nil then
-    Exit(nil);
-  try
-    lResult := TJSONObject.Create;
-    AddJsonStringPair(lResult, 'name', lSymbolObject.GetValue<string>('name', ''));
-    lResult.AddPair('kind', TJSONNumber.Create(lSymbolObject.GetValue<Integer>('kind', 0)));
-    AddJsonStringPair(lResult, 'containerName', lSymbolObject.GetValue<string>('containerName', ''));
-    AddJsonStringPair(lResult, 'file', lLocationObject.GetValue<string>('file', ''));
-    lResult.AddPair('line', TJSONNumber.Create(lLocationObject.GetValue<Integer>('line', 0)));
-    lResult.AddPair('col', TJSONNumber.Create(lLocationObject.GetValue<Integer>('col', 0)));
-    Result := lResult;
-  finally
-    lLocationObject.Free;
-  end;
-end;
-
-function BuildNormalizedDocumentSymbolObject(const aFilePath, aContainerName: string;
-  aSymbolObject: TJSONObject): TJSONObject;
-var
-  lRangeObject: TJSONObject;
-  lRangeValue: TJSONValue;
-  lResult: TJSONObject;
-begin
-  Result := nil;
-  if aSymbolObject = nil then
-    Exit(nil);
-
-  lRangeValue := aSymbolObject.Values['selectionRange'];
-  if lRangeValue = nil then
-    lRangeValue := aSymbolObject.Values['range'];
-
-  lRangeObject := BuildNormalizedRangeObject(lRangeValue);
-  if lRangeObject = nil then
-    Exit(nil);
-  try
-    lResult := TJSONObject.Create;
-    AddJsonStringPair(lResult, 'name', aSymbolObject.GetValue<string>('name', ''));
-    lResult.AddPair('kind', TJSONNumber.Create(aSymbolObject.GetValue<Integer>('kind', 0)));
-    AddJsonStringPair(lResult, 'containerName', aContainerName);
-    AddJsonStringPair(lResult, 'file', aFilePath);
-    lResult.AddPair('line', TJSONNumber.Create(lRangeObject.GetValue<Integer>('line', 0)));
-    lResult.AddPair('col', TJSONNumber.Create(lRangeObject.GetValue<Integer>('col', 0)));
-    Result := lResult;
-  finally
-    lRangeObject.Free;
-  end;
-end;
-
-procedure CollectNormalizedSymbols(aTarget: TObjectList<TJSONObject>; aResultValue: TJSONValue;
-  const aFilePath, aContainerName: string);
-var
-  lChildrenValue: TJSONValue;
-  lItemValue: TJSONValue;
-  lNextContainerName: string;
-  lSymbolObject: TJSONObject;
-  lValueObject: TJSONObject;
-begin
-  if (aResultValue = nil) or (aResultValue is TJSONNull) then
-    Exit;
-
-  if aResultValue is TJSONArray then
-  begin
-    for lItemValue in aResultValue as TJSONArray do
-      CollectNormalizedSymbols(aTarget, lItemValue, aFilePath, aContainerName);
-    Exit;
-  end;
-
-  if not (aResultValue is TJSONObject) then
-    Exit;
-  lValueObject := aResultValue as TJSONObject;
-
-  if lValueObject.Values['location'] <> nil then
-    lSymbolObject := BuildNormalizedSymbolInformationObject(aResultValue)
-  else
-    lSymbolObject := BuildNormalizedDocumentSymbolObject(aFilePath, aContainerName, lValueObject);
-  if lSymbolObject <> nil then
-    aTarget.Add(lSymbolObject);
-
-  lChildrenValue := lValueObject.Values['children'];
-  if lChildrenValue <> nil then
-  begin
-    lNextContainerName := lValueObject.GetValue<string>('name', aContainerName);
-    CollectNormalizedSymbols(aTarget, lChildrenValue, aFilePath, lNextContainerName);
-  end;
-end;
-
-function SymbolMatchesQuery(aSymbolObject: TJSONObject; const aQuery: string): Boolean;
-var
-  lQuery: string;
-begin
-  lQuery := Trim(aQuery);
-  if lQuery = '' then
-    Exit(True);
-  Result := Pos(LowerCase(lQuery), LowerCase(aSymbolObject.GetValue<string>('name', ''))) > 0;
-end;
-
-function CompareIntegerValues(aLeft, aRight: Integer): Integer;
-begin
-  if aLeft < aRight then
-    Exit(-1);
-  if aLeft > aRight then
-    Exit(1);
-  Result := 0;
-end;
-
-function CompareOrdinalStrings(const aLeft, aRight: string): Integer;
-var
-  lIndex: Integer;
-  lLimit: Integer;
-  lLeftLength: Integer;
-  lRightLength: Integer;
-begin
-  lLeftLength := Length(aLeft);
-  lRightLength := Length(aRight);
-  if lLeftLength < lRightLength then
-    lLimit := lLeftLength
-  else
-    lLimit := lRightLength;
-
-  for lIndex := 1 to lLimit do
-  begin
-    if aLeft[lIndex] < aRight[lIndex] then
-      Exit(-1);
-    if aLeft[lIndex] > aRight[lIndex] then
-      Exit(1);
-  end;
-
-  Result := CompareIntegerValues(lLeftLength, lRightLength);
-end;
-
-function CompareNormalizedSymbols(const aLeft, aRight: TJSONObject): Integer;
-begin
-  Result := CompareOrdinalStrings(aLeft.GetValue<string>('file', ''), aRight.GetValue<string>('file', ''));
-  if Result <> 0 then
-    Exit(Result);
-
-  Result := CompareIntegerValues(aLeft.GetValue<Integer>('line', 0), aRight.GetValue<Integer>('line', 0));
-  if Result <> 0 then
-    Exit(Result);
-
-  Result := CompareIntegerValues(aLeft.GetValue<Integer>('col', 0), aRight.GetValue<Integer>('col', 0));
-  if Result <> 0 then
-    Exit(Result);
-
-  Result := CompareOrdinalStrings(aLeft.GetValue<string>('name', ''), aRight.GetValue<string>('name', ''));
-  if Result <> 0 then
-    Exit(Result);
-
-  Result := CompareIntegerValues(aLeft.GetValue<Integer>('kind', 0), aRight.GetValue<Integer>('kind', 0));
-  if Result <> 0 then
-    Exit(Result);
-
-  Result := CompareOrdinalStrings(aLeft.GetValue<string>('containerName', ''), aRight.GetValue<string>('containerName', ''));
-end;
-
-function BuildNormalizedSymbolsResult(const aFilePath, aQuery: string; aLimit: Integer;
-  aResultValue: TJSONValue): string;
-var
-  lResultObject: TJSONObject;
-  lSymbolList: TObjectList<TJSONObject>;
-  lSymbolObject: TJSONObject;
-  lSymbolsArray: TJSONArray;
-begin
-  lResultObject := TJSONObject.Create;
-  lSymbolList := TObjectList<TJSONObject>.Create(True);
-  try
-    lSymbolsArray := TJSONArray.Create;
-    lResultObject.AddPair('symbols', lSymbolsArray);
-    CollectNormalizedSymbols(lSymbolList, aResultValue, aFilePath, '');
-    lSymbolList.Sort(TComparer<TJSONObject>.Construct(CompareNormalizedSymbols));
-    while lSymbolList.Count > 0 do
-    begin
-      lSymbolObject := lSymbolList.Extract(lSymbolList[0]);
-      if not SymbolMatchesQuery(lSymbolObject, aQuery) then
-      begin
-        lSymbolObject.Free;
-        Continue;
-      end;
-      lSymbolsArray.AddElement(lSymbolObject);
-      if (aLimit > 0) and (lSymbolsArray.Count >= aLimit) then
-        Break;
-    end;
-    Result := lResultObject.ToJSON;
-  finally
-    lSymbolList.Free;
-    lResultObject.Free;
-  end;
-end;
-
-function BuildOperationResultText(const aOptions: TAppOptions; const aRequestFilePath: string;
-  aResponse: TJSONObject): string;
-var
-  lResultValue: TJSONValue;
-begin
-  lResultValue := aResponse.Values['result'];
-  case aOptions.fLspOperation of
-    TLspOperation.loDefinition:
-      Result := BuildNormalizedLocationsResult('locations', lResultValue);
-    TLspOperation.loHover:
-      Result := BuildNormalizedHoverResult(lResultValue);
-    TLspOperation.loSymbols:
-      Result := BuildNormalizedSymbolsResult(aRequestFilePath, aOptions.fLspQuery, aOptions.fLspLimit, lResultValue);
-  else
-    Result := ExtractRawResultText(aResponse);
-  end;
 end;
 
 function TryFindLspExeInRoot(const aRootPath: string; out aExePath: string): Boolean;
@@ -956,9 +197,12 @@ begin
     Result.AddPair('configurationNotification', CloneJsonObject(aConfigurationParams));
 end;
 
-function BuildProbeEnvelope(const aContext: TLspContext; const aLspPath: string; aModes: TJSONArray): string;
+function BuildProbeEnvelope(const aContext: TLspContext; const aLspPath: string; aModes: TJSONArray;
+  const aExtraWarnings: TArray<string>): string;
 var
+  lExtraWarning: string;
   lLspObject: TJSONObject;
+  lWarnings: TJSONArray;
   lProjectObject: TJSONObject;
   lRoot: TJSONObject;
 begin
@@ -974,9 +218,14 @@ begin
 
     lLspObject := TJSONObject.Create;
     AddJsonStringPair(lLspObject, 'path', aLspPath);
+    AddJsonStringPair(lLspObject, 'cleanup', 'controlled-termination');
+    AddJsonStringPair(lLspObject, 'settingsAcceptance', 'unverified');
     lRoot.AddPair('lsp', lLspObject);
     lRoot.AddPair('result', TJSONObject.Create.AddPair('modes', TJSONObject.ParseJSONValue(aModes.ToJSON) as TJSONArray));
-    lRoot.AddPair('warnings', TJSONArray.Create);
+    lWarnings := TJSONArray.Create(cLspCleanupWarning, cLspSettingsWarning);
+    for lExtraWarning in aExtraWarnings do
+      lWarnings.Add(lExtraWarning);
+    lRoot.AddPair('warnings', lWarnings);
     Result := lRoot.ToJSON;
   finally
     lRoot.Free;
@@ -999,14 +248,20 @@ begin
   end;
 end;
 
-function BuildProbeText(const aModes: TJSONArray; aShowInitOptions: Boolean): string;
+function BuildProbeText(const aModes: TJSONArray; aShowInitOptions: Boolean;
+  const aExtraWarnings: TArray<string>): string;
 var
   lBuilder: TStringBuilder;
+  lExtraWarning: string;
   lModeObject: TJSONObject;
   i: Integer;
 begin
   lBuilder := TStringBuilder.Create;
   try
+    lBuilder.AppendLine(cLspCleanupWarning);
+    lBuilder.AppendLine(cLspSettingsWarning);
+    for lExtraWarning in aExtraWarnings do
+      lBuilder.AppendLine(lExtraWarning);
     for i := 0 to aModes.Count - 1 do
     begin
       lModeObject := aModes.Items[i] as TJSONObject;
@@ -1049,11 +304,12 @@ begin
   end;
 end;
 
-function TryRunLspProbe(const aOptions: TAppOptions; const aContext: TLspContext; const aLspPath: string;
-  out aResult: TLspRunnerResult; out aError: string): Boolean;
+function TryRunLspProbe(const aOptions: TAppOptions; const aContext: TLspContext; const aLspPath,
+  aCompilerDllName, aCompilerDllWarning: string; out aResult: TLspRunnerResult; out aError: string): Boolean;
 var
   lClient: TLspJsonRpcClient;
   lConfigObject: TJSONObject;
+  lExtraWarnings: TArray<string>;
   lConfigParams: string;
   lError: string;
   lInitOptions: TJSONObject;
@@ -1066,6 +322,7 @@ begin
   Result := False;
   aResult := Default(TLspRunnerResult);
   aError := '';
+  lExtraWarnings := [];
   lModes := TJSONArray.Create;
   try
     for lMode in ProbeModesFromOptions(aOptions) do
@@ -1078,14 +335,16 @@ begin
       try
         if lMode = TLspProbeMode.lpmSettingsFile then
         begin
-          if not TryWriteOfficialLspSettingsFile(aContext, lSettingsFilePath, lError) then
+          if not TryWriteOfficialLspSettingsFile(aContext, aCompilerDllName, lSettingsFilePath, lError) then
           begin
             aError := lError;
             Exit(False);
           end;
+          // Only the settings handshake carries "dllname"; contextFile mode never uses it.
+          if aCompilerDllWarning <> '' then
+            lExtraWarnings := [aCompilerDllWarning];
           lInitOptions := BuildSettingsFileInitializeOptions(aContext, lSettingsFilePath);
-        end else
-        begin
+        end else begin
           if not TryWriteLspContextFile(aContext, lError) then
           begin
             aError := lError;
@@ -1098,24 +357,20 @@ begin
           TPath.Combine(aContext.fLogsDir, 'DelphiLSP.' + ProbeModeName(lMode) + '.stderr.log'),
           aContext.fEnvironmentBlock, lError) then
         begin
-          aError := lError;
+          aError := lClient.StopAfterFailure(lError);
           Exit(False);
         end;
 
-        if not lClient.SendRequest(1, 'initialize', BuildInitializeParamsWithOptions(aContext, CloneJsonObject(lInitOptions)), lInitResponse, lError) then
+        if not lClient.SendRequest(1, 'initialize', BuildInitializeParamsWithOptions(aContext,
+          CloneJsonObject(lInitOptions)), lInitResponse, lError) then
         begin
-          aError := lError;
-          Exit(False);
-        end;
-        if Assigned(lInitResponse.Values['error']) then
-        begin
-          aError := BuildResponseError('probe initialize ' + ProbeModeName(lMode), lInitResponse);
+          aError := lClient.StopAfterFailure(BuildLspStageError('probe initialize ' + ProbeModeName(lMode), lError));
           Exit(False);
         end;
 
         if not lClient.SendNotification('initialized', '{}', lError) then
         begin
-          aError := 'DelphiLSP initialized notification failed: ' + lError;
+          aError := lClient.StopAfterFailure(BuildLspStageError('initialized notification', lError));
           Exit(False);
         end;
 
@@ -1125,12 +380,13 @@ begin
           lConfigObject := TJSONObject.ParseJSONValue(lConfigParams) as TJSONObject;
           if not lClient.SendNotification('workspace/didChangeConfiguration', lConfigParams, lError) then
           begin
-            aError := 'DelphiLSP didChangeConfiguration failed: ' + lError;
+            aError := lClient.StopAfterFailure(BuildLspStageError('workspace/didChangeConfiguration notification',
+              lError));
             Exit(False);
           end;
         end;
 
-        if not lClient.ShutdownAndExit(lError) then
+        if not lClient.StopProcessTree(lError) then
         begin
           aError := lError;
           Exit(False);
@@ -1148,8 +404,8 @@ begin
     end;
 
     aResult.fLspPath := aLspPath;
-    aResult.fResponseText := BuildProbeEnvelope(aContext, aLspPath, lModes);
-    aResult.fTextResponse := BuildProbeText(lModes, aOptions.fLspShowInitOptions);
+    aResult.fResponseText := BuildProbeEnvelope(aContext, aLspPath, lModes, lExtraWarnings);
+    aResult.fTextResponse := BuildProbeText(lModes, aOptions.fLspShowInitOptions, lExtraWarnings);
     Result := True;
   finally
     lModes.Free;
@@ -1296,13 +552,27 @@ begin
   end;
 end;
 
+function TryPrepareLspRequestFiles(const aContext: TLspContext; const aCompilerDllName: string;
+  out aSettingsFilePath: string; out aError: string): Boolean;
+begin
+  aSettingsFilePath := '';
+  // Normal requests use only the canonical settings file; a stale context file
+  // left by probe mode must not be mistaken for current input.
+  Result := TryDeleteLspContextFile(aContext, aError) and
+    TryWriteCanonicalLspSettingsFile(aContext, aCompilerDllName, aSettingsFilePath, aError);
+end;
+
 function TryRunLspRequest(const aOptions: TAppOptions; const aContext: TLspContext;
   out aResult: TLspRunnerResult; out aError: string): Boolean;
 var
   lClient: TLspJsonRpcClient;
+  lCompilerDllName: string;
+  lCompilerDllWarning: string;
   lError: string;
+  lExtraWarnings: TArray<string>;
   lInitResponse: TJSONObject;
   lLspPath: string;
+  lNotification: TLspWireMessage;
   lOperationName: string;
   lSettingsFilePath: string;
   lRequestFilePath: string;
@@ -1319,9 +589,12 @@ begin
 
   if not TryResolveDelphiLspExe(aOptions, aContext, lLspPath, aError) then
     Exit(False);
+  // An unresolved compiler DLL never refuses the query: the settings omit
+  // "dllname" as before, and the result names the reason as a warning.
+  lCompilerDllWarning := ResolveLspCompilerDllForRequest(lLspPath, aContext.fParams.fPlatform, lCompilerDllName);
   if aOptions.fLspOperation = TLspOperation.loProbe then
   begin
-    if not TryRunLspProbe(aOptions, aContext, lLspPath, aResult, aError) then
+    if not TryRunLspProbe(aOptions, aContext, lLspPath, lCompilerDllName, lCompilerDllWarning, aResult, aError) then
       Exit(False);
     Exit(True);
   end;
@@ -1337,17 +610,8 @@ begin
     Exit(False);
   end;
 
-  if not TryDeleteLspContextFile(aContext, lError) then
-  begin
-    aError := lError;
+  if not TryPrepareLspRequestFiles(aContext, lCompilerDllName, lSettingsFilePath, aError) then
     Exit(False);
-  end;
-
-  if not TryWriteCanonicalLspSettingsFile(aContext, lSettingsFilePath, lError) then
-  begin
-    aError := lError;
-    Exit(False);
-  end;
 
   lClient := TLspJsonRpcClient.Create;
   try
@@ -1355,72 +619,54 @@ begin
     if not lClient.Start(lLspPath, '', aContext.fDakLspRoot,
       TPath.Combine(aContext.fLogsDir, 'DelphiLSP.stderr.log'), aContext.fEnvironmentBlock, lError) then
     begin
-      aError := lError;
+      aError := lClient.StopAfterFailure(lError);
       Exit(False);
     end;
 
-    if not lClient.SendRequest(1, 'initialize',
-      BuildInitializeParamsWithOptions(aContext, BuildSettingsFileInitializeOptions(aContext, lSettingsFilePath)),
+    if not lClient.SendRequest(1, 'initialize', BuildRequestInitializeParams(aContext, lSettingsFilePath),
       lInitResponse, lError) then
     begin
-      aError := lError;
-      Exit(False);
-    end;
-    if Assigned(lInitResponse.Values['error']) then
-    begin
-      aError := BuildResponseError('initialize', lInitResponse);
+      aError := lClient.StopAfterFailure(BuildLspStageError('initialize', lError));
       Exit(False);
     end;
 
     if not TryEnsureOperationSupported(lInitResponse, aContext, lLspPath, aOptions.fLspOperation, lError) then
     begin
-      aError := lError;
+      aError := lClient.StopAfterFailure(lError);
       Exit(False);
     end;
 
-    if not lClient.SendNotification('initialized', '{}', lError) then
-    begin
-      aError := 'DelphiLSP initialized notification failed: ' + lError;
-      Exit(False);
-    end;
-
-    if not lClient.SendNotification('workspace/didChangeConfiguration',
-      BuildSettingsConfigurationParams(lSettingsFilePath), lError) then
-    begin
-      aError := 'DelphiLSP didChangeConfiguration failed: ' + lError;
-      Exit(False);
-    end;
-
-    if not lClient.SendNotification('textDocument/didOpen', BuildDidOpenParams(lRequestFilePath), lError) then
-    begin
-      aError := 'DelphiLSP didOpen failed: ' + lError;
-      Exit(False);
-    end;
+    for lNotification in BuildRequestNotifications(lSettingsFilePath, lRequestFilePath) do
+      if not lClient.SendNotification(lNotification.fMethod, lNotification.fParams, lError) then
+      begin
+        aError := lClient.StopAfterFailure(BuildLspStageError(lNotification.fMethod + ' notification', lError));
+        Exit(False);
+      end;
     lRequestParams := BuildRequestParams(aOptions, FilePathToURL(lRequestFilePath));
 
     if not lClient.SendRequest(2, lRequestMethod, lRequestParams, lRequestResponse, lError) then
     begin
-      aError := lError;
-      Exit(False);
-    end;
-    if Assigned(lRequestResponse.Values['error']) then
-    begin
-      aError := BuildResponseError(lOperationName + ' request', lRequestResponse);
+      aError := lClient.StopAfterFailure(BuildLspStageError(lOperationName + ' request', lError));
       Exit(False);
     end;
 
-    if not lClient.ShutdownAndExit(lError) then
+    if not lClient.StopProcessTree(lError) then
     begin
       aError := lError;
       Exit(False);
     end;
 
-    lResponseText := BuildOperationResultText(aOptions, lRequestFilePath, lRequestResponse);
+    if not TryBuildOperationResultText(aOptions, lRequestFilePath, lRequestResponse, lResponseText, aError) then
+      Exit(False);
     aResult.fLspPath := lLspPath;
+    if lCompilerDllWarning <> '' then
+      lExtraWarnings := [lCompilerDllWarning]
+    else
+      lExtraWarnings := [];
     aResult.fResponseText := BuildOperationEnvelope(aOptions, aContext, lLspPath, lOperationName, lRequestFilePath,
-      lResponseText);
+      lResponseText, lExtraWarnings);
     aResult.fTextResponse := BuildOperationText(aOptions, aContext, lLspPath, lOperationName, lRequestFilePath,
-      lResponseText);
+      lResponseText, lExtraWarnings);
     Result := True;
   finally
     lRequestResponse.Free;

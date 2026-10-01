@@ -412,7 +412,8 @@ begin
 
     FillChar(lSi, SizeOf(lSi), 0);
     lSi.cb := SizeOf(lSi);
-    lSi.dwFlags := STARTF_USESTDHANDLES;
+    lSi.dwFlags := STARTF_USESTDHANDLES or STARTF_USESHOWWINDOW;
+    lSi.wShowWindow := SW_HIDE;
     lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
     lSi.hStdOutput := lWrite;
     lSi.hStdError := lWrite;
@@ -423,7 +424,7 @@ begin
       lCmdLine := lCmdLine + ' ' + aArgs;
     UniqueString(lCmdLine);
 
-    if not CreateProcess(PChar(aExe), PChar(lCmdLine), nil, nil, True, 0, nil, nil, lSi, lPi) then
+    if not CreateProcess(PChar(aExe), PChar(lCmdLine), nil, nil, True, CREATE_NO_WINDOW, nil, nil, lSi, lPi) then
     begin
       lLastError := GetLastError;
       aError := 'PALCMD help failed to start: ' + SysErrorMessage(lLastError);
