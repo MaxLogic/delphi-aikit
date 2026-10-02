@@ -56,6 +56,9 @@ function IndexSymbolMapRtlSources(const aContext: TSymbolMapContext; const aStat
   const aSourceRoot: string; var aProfile: TSymbolMapCompilerProfileResult; out aResult: TSymbolMapRtlIndexResult;
   out aError: string): Boolean;
 function BuildSymbolMapProjectKey(const aContext: TSymbolMapContext): string;
+// Unit cache key of a file's projection built from DelphiSemantics facts of aModelParserVersion.
+function BuildSymbolMapUnitCacheKey(const aContext: TSymbolMapContext; const aFilePath,
+  aModelParserVersion: string): string;
 function StoreSymbolMapProjectProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModels: TArray<TSymbolMapUnitModel>; out aResults: TArray<TSymbolMapCacheStoreResult>;
   out aError: string): Boolean; overload;
@@ -129,12 +132,21 @@ begin
   Result := lResult.IncludeGraphHash;
 end;
 
-function SemanticIdentityContext(const aContext: TSymbolMapContext; const aIncludeGraphHash: string):
-  TDelphiSemanticCacheIdentityContext;
+// The projection stores DelphiSemantics unit-model facts, so their version is part of ours.
+function SymbolMapParserVersion(const aModelParserVersion: string = ''): string;
+begin
+  if aModelParserVersion = '' then
+    Result := cSymbolMapParserVersion + '|' + TDelphiSemanticCacheIdentityBuilder.ModelParserVersion
+  else
+    Result := cSymbolMapParserVersion + '|' + aModelParserVersion;
+end;
+
+function SemanticIdentityContext(const aContext: TSymbolMapContext; const aIncludeGraphHash: string;
+  const aModelParserVersion: string = ''): TDelphiSemanticCacheIdentityContext;
 begin
   Result := Default(TDelphiSemanticCacheIdentityContext);
   Result.SchemaVersion := cSymbolMapSchemaVersion.ToString;
-  Result.ParserVersion := cSymbolMapParserVersion;
+  Result.ParserVersion := SymbolMapParserVersion(aModelParserVersion);
   Result.IncludeGraphHash := aIncludeGraphHash;
   Result.DelphiVersion := aContext.fDelphiVersion;
   Result.Platform := aContext.fPlatform;
@@ -495,6 +507,14 @@ begin
   aFileHash := lIdentity.FileHash;
   aContextHash := lIdentity.ContextHash;
   aUnitCacheKey := lIdentity.UnitCacheKey;
+end;
+
+function BuildSymbolMapUnitCacheKey(const aContext: TSymbolMapContext; const aFilePath,
+  aModelParserVersion: string): string;
+begin
+  Result := TDelphiSemanticCacheIdentityBuilder.BuildUnitIdentity(aFilePath,
+    SemanticIdentityContext(aContext, BuildSymbolMapIncludeGraphHash(aContext, aFilePath),
+    aModelParserVersion)).UnitCacheKey;
 end;
 
 procedure BuildUnitCacheIdentity(const aContext: TSymbolMapContext; const aModel: TSymbolMapUnitModel;
@@ -1514,7 +1534,7 @@ begin
               'unit_cache_key, unit_name, file_hash, file_path_sample, context_hash, parser_version, ' +
               'schema_version, diagnostics_json, parsed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
               [lUnitCacheKey, aModel.fUnitName, aResult.fFileHash, aModel.fFilePath, aResult.fContextHash,
-              cSymbolMapParserVersion, cSymbolMapSchemaVersion, '', DateTimeToStr(Now)]);
+              SymbolMapParserVersion, cSymbolMapSchemaVersion, '', DateTimeToStr(Now)]);
             lConnection.Commit;
           except
             lConnection.Rollback;

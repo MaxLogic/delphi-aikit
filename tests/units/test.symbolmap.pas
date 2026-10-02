@@ -160,6 +160,8 @@ type
     procedure CacheHitPreservesUsesProjection;
     [Test]
     procedure IncludedFileChangeProducesDifferentUnitCacheKey;
+    [Test]
+    procedure StoredProjectionCarriesSemanticModelParserVersion;
   end;
 
   [TestFixture]
@@ -305,7 +307,7 @@ uses
   Winapi.Windows,
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLite,
-  AutoFree;
+  AutoFree, DelphiSemantics.Cache;
 
 function SymbolMapMemberKey(const aOwnerName, aName, aKind: string): string;
 begin
@@ -1304,6 +1306,54 @@ begin
   Assert.IsTrue(lSecond.fCacheHit, 'Expected second store to hit.');
   Assert.AreEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
   Assert.AreEqual(1, UnitModelCount(lStatus.fCentralDbPath, lFirst.fUnitCacheKey));
+end;
+
+// DS-653: the projection stores DelphiSemantics references, so a fact change in the semantic
+// model (its parser version) must yield a new unit cache key instead of reusing stale rows.
+procedure TSymbolMapCentralCacheReuseTests.StoredProjectionCarriesSemanticModelParserVersion;
+var
+  lCacheRoot: string;
+  lConnection: TFDConnection;
+  lContext: TSymbolMapContext;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lError: string;
+  lModel: TSymbolMapUnitModel;
+  lOtherKey: string;
+  lStatus: TSymbolMapCacheStatus;
+  lStored: TSymbolMapCacheStoreResult;
+  lVersion: string;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-parser-version');
+  BuildContext('SymbolMapParserVersion', lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected member unit extraction. Error: ' + lError);
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContext, lStatus, lModel, lStored, lError),
+    'Expected store. Error: ' + lError);
+
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := lStatus.fCentralDbPath;
+    lConnection.Connected := True;
+    lVersion := lConnection.ExecSQLScalar(
+      'select parser_version from symbol_map_units where unit_cache_key = ?', [lStored.fUnitCacheKey]);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+  Assert.IsTrue(EndsText('|' + TDelphiSemanticCacheIdentityBuilder.ModelParserVersion, lVersion),
+    'Stored parser version: ' + lVersion);
+  // The stored key is the one for the current model version; another version misses it.
+  Assert.AreEqual(lStored.fUnitCacheKey, BuildSymbolMapUnitCacheKey(lContext, FixtureUnitPath,
+    TDelphiSemanticCacheIdentityBuilder.ModelParserVersion));
+  lOtherKey := BuildSymbolMapUnitCacheKey(lContext, FixtureUnitPath,
+    TDelphiSemanticCacheIdentityBuilder.ModelParserVersion + '.next');
+  Assert.AreNotEqual(lStored.fUnitCacheKey, lOtherKey);
+  Assert.AreEqual(0, UnitModelCount(lStatus.fCentralDbPath, lOtherKey),
+    'A model parser version change must miss the cached projection.');
 end;
 
 procedure TSymbolMapCentralCacheReuseTests.SharedSourceAcrossEquivalentProjectsReusesUnitCacheKey;

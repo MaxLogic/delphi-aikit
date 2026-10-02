@@ -23,6 +23,8 @@ type
     procedure ReportsTextWithConservativeDefaultWithoutMutatingSources;
     [Test]
     procedure RejectsUnknownSafetyProfile;
+    [Test]
+    procedure InitializerAndInactiveUsesAreNeverUnused;
   end;
 
 implementation
@@ -221,6 +223,71 @@ begin
     'Expected candidate name in text output. See: ' + lLogPath);
   Assert.AreEqual(lBeforeText, TFile.ReadAllText(lUnitTwoPath, TEncoding.UTF8),
     'Text dead-code report must not mutate source files.');
+end;
+
+// DS-653 review: UMain.GLimit is used only by `PLimit: PInteger = @GLimit`, CLimit only by a
+// later constant, GHidden only in inactive code. Removing GLimit still compiles (UOther.GLimit
+// takes over) and changes the output from 10 to 99, so none of them may be definitely-unused.
+procedure TDeadCodeCliTests.InitializerAndInactiveUsesAreNeverUnused;
+var
+  lCandidate: TJSONObject;
+  lCandidates: TJSONArray;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lLogPath: string;
+  lRoot: string;
+  lStatuses: string;
+  i: Integer;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'dead-code-cli-initializers');
+  ForceDirectories(lRoot);
+  lDprojPath := TPath.Combine(lRoot, 'P.dproj');
+  TFile.WriteAllText(TPath.Combine(lRoot, 'UOther.pas'), 'unit UOther;'#13#10'interface'#13#10 +
+    'var'#13#10'  GLimit: Integer = 99;'#13#10'implementation'#13#10'end.'#13#10, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'UMain.pas'), 'unit UMain;'#13#10'interface'#13#10 +
+    'function Value: Integer;'#13#10'function Hidden: Integer;'#13#10'implementation'#13#10 +
+    'uses'#13#10'  UOther;'#13#10'procedure Show;'#13#10'begin'#13#10'  WriteLn(Value);'#13#10 +
+    'end;'#13#10'var'#13#10'  GLimit: Integer = 10;'#13#10'  GOther: Integer = 0;'#13#10 +
+    '  PLimit: PInteger = @GLimit;'#13#10'  GHidden: Integer = 5;'#13#10'const'#13#10 +
+    '  CLimit = 7;'#13#10'  CDouble = CLimit * 2;'#13#10'function Value: Integer;'#13#10 +
+    'begin'#13#10'  Result := PLimit^ + GOther + CDouble;'#13#10'end;'#13#10 +
+    'function Hidden: Integer;'#13#10'begin'#13#10'  Result := 0;'#13#10 +
+    '  {$IFDEF DS653_NEVER_DEFINED}'#13#10'  Result := GHidden;'#13#10'  {$ENDIF}'#13#10 +
+    'end;'#13#10'initialization'#13#10'  if Hidden <> 0 then'#13#10'    Show;'#13#10'end.'#13#10,
+    TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'P.dpr'), 'program P;'#13#10'{$APPTYPE CONSOLE}'#13#10 +
+    'uses'#13#10'  UOther in ''UOther.pas'','#13#10'  UMain in ''UMain.pas'';'#13#10 +
+    'begin'#13#10'  WriteLn(Value, '' '', Hidden);'#13#10'end.'#13#10, TEncoding.ASCII);
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup>' +
+    '<MainSource>P.dpr</MainSource></PropertyGroup><ItemGroup>' +
+    '<DCCReference Include="UOther.pas"/><DCCReference Include="UMain.pas"/></ItemGroup>' +
+    '</Project>', TEncoding.ASCII);
+  lLogPath := TPath.Combine(TempRoot, 'dead-code-cli-initializers.json');
+
+  Assert.IsTrue(RunResolverProcess('dead-code --project ' + QuoteArg(lDprojPath) +
+    ' --profile legacy-static --format json', RepoRoot, lLogPath, lExitCode),
+    'Failed to start dead-code command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected dead-code report to succeed. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    lCandidates := lJson.Values['candidates'] as TJSONArray;
+    lStatuses := '';
+    for i := 0 to lCandidates.Count - 1 do
+    begin
+      lCandidate := lCandidates.Items[i] as TJSONObject;
+      if SameText(lCandidate.GetValue<string>('file', ''), TPath.Combine(lRoot, 'UMain.pas')) then
+        lStatuses := lStatuses + lCandidate.GetValue<string>('name', '') + '=' +
+          lCandidate.GetValue<string>('status', '') + ' ';
+    end;
+    Assert.IsFalse(Pos('GLimit=definitely-unused', lStatuses) > 0, lStatuses);
+    Assert.IsFalse(Pos('CLimit=definitely-unused', lStatuses) > 0, lStatuses);
+    Assert.IsTrue(Pos('GHidden=blocked', lStatuses) > 0, lStatuses);
+  finally
+    lJson.Free;
+  end;
 end;
 
 initialization

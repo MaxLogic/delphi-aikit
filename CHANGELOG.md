@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- The symbol-map cache key includes the DelphiSemantics unit-model parser version, so a change to extracted references no longer reuses stale symbol-map rows.
 - `lsp hover` now returns DelphiLSP's hover text instead of an empty result, and `lsp definition` resolves positions that previously returned no location. The generated DelphiLSP settings name the platform compiler DLL (`dllname`, for example `dcc64290.dll`), found beside the resolved `DelphiLSP.exe`. When the DLL cannot be resolved (a platform other than Win32 or Win64, or no single matching DLL), the query still runs without `dllname`, as before, and reports a "DelphiLSP compiler DLL not resolved (...)" warning; hover may then return no content.
 - Read-only LSP queries isolate the vendor server in an owned Windows process job and explicitly report controlled cleanup, avoiding reproduced DelphiLSP shutdown crashes and hangs. Responses are checked for matching JSON-RPC IDs; project-settings acceptance remains explicitly unverified. See [the vendor defect record](issues/active/2026-09-29-delphilsp-shutdown.md).
 - An LSP query no longer hangs when DelphiLSP stops reading its input. Sending a request or notification is bounded by the same deadline as the response (`DAK_LSP_REQUEST_TIMEOUT_MS`, default 30 s); on timeout the query fails with a "timed out ... while writing" error and the owned server process tree is stopped.
