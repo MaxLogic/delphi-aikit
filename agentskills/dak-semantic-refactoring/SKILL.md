@@ -42,11 +42,18 @@ Pass `--platform` and `--config` when the target project requires a non-default 
 
 1. Run `find-usages` first when identity is unclear.
 2. Run `rename` without `--apply` and review the plan.
-3. Check ambiguous names, DFM handlers, RTTI-visible members, package boundaries, generated code, and external callers.
-4. Use `--apply` after reviewing an acceptable plan when the user authorized
+3. Status `incomplete` (non-zero exit) means `unresolved` lists same-name
+   occurrences DAK can prove neither way; each has a `reason`
+   (`unresolved-reference`, `unverified-unit`, `unclassified-occurrence`,
+   `conflicting-facts`, `possible-override`). `--apply` refuses such a plan
+   and has no override.
+   Report the list; do not apply the edits by hand as if the plan were complete.
+4. Check ambiguous names, DFM handlers, RTTI-visible members, package boundaries, generated code, and external callers.
+5. Use `--apply` after reviewing an acceptable plan when the user authorized
    the rename. Reuse that authorization; a usages or plan-only request does
-   not authorize edits.
-5. Verify the changed project with `dak-build`.
+   not authorize edits. Apply builds the owning project and rolls back on
+   failure; confirm `verification.status` is `passed`.
+6. Verify the changed project with `dak-build`.
 
 ## Dead-Code Workflow
 

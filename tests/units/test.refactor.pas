@@ -39,6 +39,18 @@ type
     [Test]
     procedure RenamePlanKeepsOverloadAndRangeBoundIdentity;
     [Test]
+    procedure RenamePlansQualifiedMemberReferencesAndAppliesWithBuild;
+    [Test]
+    procedure RenameListsUnresolvedOverloadCallsAndRefusesApply;
+    [Test]
+    procedure RenameListsAstFailedConsumerReferences;
+    [Test]
+    procedure RenameRefusesUnprovenMemberAndPositionBindings;
+    [Test]
+    procedure RenameRefusesWithBodyNameFromIncludedMember;
+    [Test]
+    procedure RenameRefusesWithBodyNameOfClassReferenceSelector;
+    [Test]
     procedure RenameCommandReportsSemanticPhaseMetricsAsJson;
     [Test]
     procedure ScopedIdentifierAdapterMatchesForcedFullRename;
@@ -75,7 +87,7 @@ type
 implementation
 
 uses
-  System.Hash,
+  System.Generics.Collections, System.Hash,
   DelphiSemantics.Refactor,
   DelphiSemantics.ProjectContext,
   Dak.Refactor.RenameGuards,
@@ -493,6 +505,9 @@ begin
   Assert.IsTrue(Pos('"status":"applied"', lLogText) > 0, 'Expected applied status. See: ' + lLogPath);
   Assert.IsTrue(Pos('"verification":{"status":"passed"', lLogText) > 0,
     'Expected post-apply build verification to pass. See: ' + lLogPath);
+  // DS-652: the plan itself names the project build that apply runs.
+  Assert.IsTrue(Pos('"kind":"project-build"', lLogText) > 0,
+    'Expected project-build in requiredVerification. See: ' + lLogPath);
   Assert.IsTrue(Pos('"referenceReconciliationFallbackCount":', lLogText) > 0,
     'Expected reference reconciliation fallback metric in JSON. See: ' + lLogPath);
   Assert.IsTrue(Pos('RenamedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
@@ -635,8 +650,9 @@ begin
     TEncoding.UTF8);
 end;
 
+// DAK-392: a plan with unprovable same-name calls is 'incomplete' and exits non-zero.
 function PlanFixtureRename(const aDprojPath, aUnitPath: string; const aLine,
-  aColumn: Integer; const aNewName: string): string;
+  aColumn: Integer; const aNewName, aExpectedStatus: string): string;
 var
   lExitCode: Cardinal;
   lLogPath: string;
@@ -646,9 +662,14 @@ begin
     ' --platform Win64 --file ' + QuoteArg(aUnitPath) +
     Format(' --line %d --col %d', [aLine, aColumn]) + ' --new-name ' + aNewName +
     ' --format json', RepoRoot, lLogPath, lExitCode), 'Failed to start rename command.');
-  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected rename dry-run to succeed. See: ' + lLogPath);
   Result := ReadUtf8TextFile(lLogPath);
-  Assert.IsTrue(Pos('"status":"planned"', Result) > 0, 'Expected planned status. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"status":"' + aExpectedStatus + '"', Result) > 0,
+    'Expected ' + aExpectedStatus + ' status. See: ' + lLogPath);
+  if SameText(aExpectedStatus, 'planned') then
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected rename dry-run to succeed. See: ' + lLogPath)
+  else
+    Assert.AreNotEqual(Cardinal(0), lExitCode, 'An incomplete plan must not exit 0. See: ' +
+      lLogPath);
 end;
 
 function PlanHasEditAt(const aPlan: string; const aLine, aColumn: Integer): Boolean;
@@ -666,24 +687,507 @@ begin
     lDprojPath, lUnitPath);
 
   // Without argument types a call may stay unresolved, but never belongs to the other overload.
-  lPlan := PlanFixtureRename(lDprojPath, lUnitPath, 12, 11, 'AddInts');
+  // DAK-392: the unresolved calls make both plans incomplete.
+  lPlan := PlanFixtureRename(lDprojPath, lUnitPath, 12, 11, 'AddInts', 'incomplete');
   Assert.IsTrue(PlanHasEditAt(lPlan, 12, 11) and PlanHasEditAt(lPlan, 20, 11),
     'Integer overload declarations: ' + lPlan);
   Assert.IsFalse(PlanHasEditAt(lPlan, 13, 11) or PlanHasEditAt(lPlan, 25, 11) or
     PlanHasEditAt(lPlan, 43, 3), 'Integer rename must not touch the string overload: ' + lPlan);
-  lPlan := PlanFixtureRename(lDprojPath, lUnitPath, 13, 11, 'AddStrs');
+  lPlan := PlanFixtureRename(lDprojPath, lUnitPath, 13, 11, 'AddStrs', 'incomplete');
   Assert.IsTrue(PlanHasEditAt(lPlan, 13, 11) and PlanHasEditAt(lPlan, 25, 11),
     'String overload declarations: ' + lPlan);
   Assert.IsFalse(PlanHasEditAt(lPlan, 12, 11) or PlanHasEditAt(lPlan, 20, 11) or
     PlanHasEditAt(lPlan, 42, 3), 'String rename must not touch the Integer overload: ' + lPlan);
 
   // Range separators are not member access: every bound use of cMax is renamed.
-  lPlan := PlanFixtureRename(lDprojPath, lUnitPath, 7, 3, 'cTop');
+  lPlan := PlanFixtureRename(lDprojPath, lUnitPath, 7, 3, 'cTop', 'planned');
   Assert.IsTrue(PlanHasEditAt(lPlan, 7, 3) and PlanHasEditAt(lPlan, 10, 14) and
     PlanHasEditAt(lPlan, 47, 11) and PlanHasEditAt(lPlan, 47, 25),
     'Every cMax use must be planned: ' + lPlan);
   Assert.IsTrue(Pos('cMax', TFile.ReadAllText(lUnitPath, TEncoding.UTF8)) > 0,
     'Dry-run rename must not edit the fixture.');
+end;
+
+const
+  // Line 8 col 5 declares FCounter.
+  cMemberProviderSource =
+    'unit UProv;'#13#10#13#10'interface'#13#10#13#10'type'#13#10'  TA = class'#13#10 +
+    '  public'#13#10'    FCounter: Integer;'#13#10'    procedure Bump;'#13#10'  end;'#13#10#13#10 +
+    'implementation'#13#10#13#10'procedure TA.Bump;'#13#10'begin'#13#10 +
+    '  Self.FCounter := Self.FCounter + 1;'#13#10'  FCounter := FCounter + 1;'#13#10'end;'#13#10 +
+    #13#10'end.'#13#10;
+
+function WriteMemberRenameProject(const aRoot, aProgramText: string;
+  const aUnitNames, aUnitTexts: array of string): string;
+var
+  i: Integer;
+  lReferences: string;
+begin
+  ForceDirectories(aRoot);
+  TFile.WriteAllText(TPath.Combine(aRoot, 'Ren.dpr'), aProgramText, TEncoding.ASCII);
+  lReferences := '';
+  for i := 0 to High(aUnitNames) do
+  begin
+    TFile.WriteAllText(TPath.Combine(aRoot, aUnitNames[i]), aUnitTexts[i], TEncoding.ASCII);
+    lReferences := lReferences + '    <DCCReference Include="' + aUnitNames[i] + '"/>'#13#10;
+  end;
+  Result := TPath.Combine(aRoot, 'Ren.dproj');
+  TFile.WriteAllText(Result,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">'#13#10 +
+    '  <PropertyGroup>'#13#10 +
+    '    <ProjectGuid>{5D1B7C40-2E7A-4C1B-9B21-1E6F3B0A7C11}</ProjectGuid>'#13#10 +
+    '    <MainSource>Ren.dpr</MainSource>'#13#10'    <Base>True</Base>'#13#10 +
+    '    <Config Condition="''$(Config)''==''''">Debug</Config>'#13#10 +
+    '    <ProjectName Condition="''$(ProjectName)''==''''">Ren</ProjectName>'#13#10 +
+    '    <TargetedPlatforms>3</TargetedPlatforms>'#13#10'    <AppType>Console</AppType>'#13#10 +
+    '    <FrameworkType>None</FrameworkType>'#13#10'    <ProjectVersion>20.2</ProjectVersion>'#13#10 +
+    '    <Platform Condition="''$(Platform)''==''''">Win64</Platform>'#13#10 +
+    '  </PropertyGroup>'#13#10'  <PropertyGroup Condition="''$(Base)''!=''''">'#13#10 +
+    '    <DCC_ExeOutput>.\bin</DCC_ExeOutput>'#13#10 +
+    '    <DCC_DcuOutput>$(DCC_ExeOutput)</DCC_DcuOutput>'#13#10 +
+    '    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>'#13#10 +
+    '    <DCC_Namespace>System;System.Win;$(DCC_Namespace)</DCC_Namespace>'#13#10 +
+    '  </PropertyGroup>'#13#10'  <ItemGroup>'#13#10 +
+    '    <DelphiCompile Include="$(MainSource)">'#13#10 +
+    '      <MainSource>MainSource</MainSource>'#13#10'    </DelphiCompile>'#13#10 + lReferences +
+    '  </ItemGroup>'#13#10 +
+    '  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" ' +
+    'Condition="Exists(''$(BDS)\Bin\CodeGear.Delphi.Targets'')"/>'#13#10 + '</Project>'#13#10,
+    TEncoding.ASCII);
+end;
+
+function IsWordCharAt(const aText: string; const aIndex: Integer): Boolean;
+begin
+  Result := (aIndex >= 1) and (aIndex <= Length(aText)) and
+    CharInSet(aText[aIndex], ['A'..'Z', 'a'..'z', '0'..'9', '_']);
+end;
+
+// Every whole-word occurrence of aName in the fixture files, as file:line:column. The fixtures
+// keep aName out of comments and string literals.
+function WordOccurrenceKeys(const aRoot: string; const aFileNames: array of string;
+  const aName: string): string;
+var
+  lColumn: Integer;
+  lFileName: string;
+  lKeys: TArray<string>;
+  lLine: Integer;
+  lText: string;
+  i: Integer;
+begin
+  lKeys := [];
+  for lFileName in aFileNames do
+  begin
+    lText := TFile.ReadAllText(TPath.Combine(aRoot, lFileName));
+    lLine := 1;
+    lColumn := 1;
+    for i := 1 to Length(lText) do
+    begin
+      if SameText(Copy(lText, i, Length(aName)), aName) and not IsWordCharAt(lText, i - 1) and
+        not IsWordCharAt(lText, i + Length(aName)) then
+        lKeys := lKeys + [Format('%s:%d:%d', [LowerCase(lFileName), lLine, lColumn])];
+      if lText[i] = #10 then
+      begin
+        Inc(lLine);
+        lColumn := 1;
+      end else if lText[i] <> #13 then
+        Inc(lColumn);
+    end;
+  end;
+  TArray.Sort<string>(lKeys);
+  Result := string.Join(' ', lKeys);
+end;
+
+function JsonPositionKeys(const aRoot: TJSONObject; const aArrayName, aFileKey, aLineKey,
+  aColumnKey: string): string;
+var
+  lArray: TJSONArray;
+  lItem: TJSONObject;
+  lKeys: TArray<string>;
+  i: Integer;
+begin
+  RequireJsonArrayKey(aRoot, aArrayName, lArray);
+  lKeys := [];
+  for i := 0 to lArray.Count - 1 do
+  begin
+    lItem := lArray.Items[i] as TJSONObject;
+    lKeys := lKeys + [Format('%s:%d:%d', [LowerCase(ExtractFileName(
+      lItem.GetValue<string>(aFileKey, ''))), lItem.GetValue<Integer>(aLineKey, 0),
+      lItem.GetValue<Integer>(aColumnKey, 0)])];
+  end;
+  TArray.Sort<string>(lKeys);
+  Result := string.Join(' ', lKeys);
+end;
+
+// DS-652: a.Member, Self.Member, an inherited member, with a do Member and a program main-block
+// reference are all planned; apply then builds the Win64 project.
+procedure TRefactorCommandTests.RenamePlansQualifiedMemberReferencesAndAppliesWithBuild;
+const
+  cFiles: array[0..2] of string = ('UProv.pas', 'UCons.pas', 'Ren.dpr');
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lExpected: string;
+  lFileName: string;
+  lJson: TJSONObject;
+  lLogPath: string;
+  lRoot: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-qualified-members');
+  lDprojPath := WriteMemberRenameProject(lRoot,
+    'program Ren;'#13#10#13#10'{$APPTYPE CONSOLE}'#13#10#13#10'uses'#13#10 +
+    '  UProv in ''UProv.pas'','#13#10'  UCons in ''UCons.pas'';'#13#10#13#10'var'#13#10 +
+    '  GObj: TA;'#13#10#13#10'begin'#13#10'  GObj := TA.Create;'#13#10'  try'#13#10 +
+    '    GObj.FCounter := 7;'#13#10'    Run;'#13#10'    WriteLn(GObj.FCounter);'#13#10 +
+    '  finally'#13#10'    GObj.Free;'#13#10'  end;'#13#10'end.'#13#10,
+    ['UProv.pas', 'UCons.pas'], [cMemberProviderSource,
+    'unit UCons;'#13#10#13#10'interface'#13#10#13#10'uses'#13#10'  UProv;'#13#10#13#10 +
+    'type'#13#10'  TB = class(TA)'#13#10'  public'#13#10'    procedure Touch;'#13#10 +
+    '  end;'#13#10#13#10'procedure Run;'#13#10#13#10'implementation'#13#10#13#10 +
+    'procedure TB.Touch;'#13#10'begin'#13#10'  Self.FCounter := Self.FCounter + 3;'#13#10 +
+    '  FCounter := FCounter + 1;'#13#10'end;'#13#10#13#10'procedure Run;'#13#10'var'#13#10 +
+    '  a: TA;'#13#10'  b: TB;'#13#10'begin'#13#10'  a := TA.Create;'#13#10 +
+    '  b := TB.Create;'#13#10'  try'#13#10'    a.FCounter := 5;'#13#10'    a.Bump;'#13#10 +
+    '    with a do'#13#10'      FCounter := FCounter + 10;'#13#10'    b.Touch;'#13#10 +
+    '    WriteLn(a.FCounter, '' '', b.FCounter);'#13#10'  finally'#13#10'    b.Free;'#13#10 +
+    '    a.Free;'#13#10'  end;'#13#10'end;'#13#10#13#10'end.'#13#10]);
+  lExpected := WordOccurrenceKeys(lRoot, cFiles, 'FCounter');
+  Assert.AreEqual(16, Integer(Length(lExpected.Split([' ']))),
+    'Fixture occurrence count: ' + lExpected);
+
+  lLogPath := TPath.Combine(TempRoot, 'refactor-rename-qualified-members-dry-run.log');
+  Assert.IsTrue(RunResolverProcess('rename --project ' + QuoteArg(lDprojPath) +
+    ' --platform Win64 --file ' + QuoteArg(TPath.Combine(lRoot, 'UProv.pas')) +
+    ' --line 8 --col 5 --new-name FTally --format json --no-semantic-cache', RepoRoot,
+    lLogPath, lExitCode), 'Failed to start rename command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected a complete plan. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    Assert.AreEqual('planned', lJson.GetValue<string>('status', ''), lLogPath);
+    Assert.AreEqual(lExpected, JsonPositionKeys(lJson, 'edits', 'file', 'startLine',
+      'startColumn'), lLogPath);
+    Assert.AreEqual(0, lJson.GetValue<Integer>('unresolvedCount', -1), lLogPath);
+  finally
+    lJson.Free;
+  end;
+
+  lLogPath := TPath.Combine(TempRoot, 'refactor-rename-qualified-members-apply.log');
+  Assert.IsTrue(RunResolverProcess('rename --project ' + QuoteArg(lDprojPath) +
+    ' --file ' + QuoteArg(TPath.Combine(lRoot, 'UProv.pas')) +
+    ' --line 8 --col 5 --new-name FTally --apply --format json --no-semantic-cache' +
+    ' --delphi 23.0 --platform Win64 --config Debug', RepoRoot, lLogPath, lExitCode),
+    'Failed to start rename apply command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected apply with build to pass. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    Assert.AreEqual('applied', lJson.GetValue<string>('status', ''), lLogPath);
+    Assert.AreEqual('passed', lJson.GetValue<string>('verification.status', ''), lLogPath);
+  finally
+    lJson.Free;
+  end;
+  for lFileName in cFiles do
+    Assert.AreEqual('', WordOccurrenceKeys(lRoot, [lFileName], 'FCounter'),
+      'Apply must leave no old name in ' + lFileName);
+  Assert.AreEqual(16, Integer(Length(WordOccurrenceKeys(lRoot, cFiles, 'FTally').Split([' ']))),
+    'Every planned site carries the new name.');
+end;
+
+// DAK-392: the open-array calls on lines 42 and 43 cannot be bound to an Add overload, so the
+// dry-run lists them and apply refuses without touching the source.
+procedure TRefactorCommandTests.RenameListsUnresolvedOverloadCallsAndRefusesApply;
+var
+  lApplied: TJSONArray;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lLogPath: string;
+  lSourceHash: string;
+  lUnitPath: string;
+  lUnresolved: TJSONArray;
+  i: Integer;
+begin
+  EnsureResolverBuilt;
+  CreateOverloadRangeFixtureProject(TPath.Combine(TempRoot, 'refactor-rename-unresolved-overload'),
+    lDprojPath, lUnitPath);
+  lSourceHash := THashSHA2.GetHashStringFromFile(lUnitPath);
+
+  lLogPath := TPath.Combine(TempRoot, 'refactor-rename-unresolved-overload-dry-run.log');
+  Assert.IsTrue(RunResolverProcess('rename --project ' + QuoteArg(lDprojPath) +
+    ' --platform Win64 --file ' + QuoteArg(lUnitPath) + ' --line 12 --col 11' +
+    ' --new-name AddInts --format json --no-semantic-cache', RepoRoot, lLogPath, lExitCode),
+    'Failed to start rename command.');
+  Assert.AreNotEqual(Cardinal(0), lExitCode, 'An incomplete plan must not exit 0. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lLogPath);
+    Assert.AreEqual(2, lJson.GetValue<Integer>('unresolvedCount', -1), lLogPath);
+    Assert.AreEqual('overloadrange.pas:42:3 overloadrange.pas:43:3',
+      JsonPositionKeys(lJson, 'unresolved', 'file', 'line', 'column'), lLogPath);
+    RequireJsonArrayKey(lJson, 'unresolved', lUnresolved);
+    for i := 0 to lUnresolved.Count - 1 do
+    begin
+      Assert.AreEqual('unresolved-reference',
+        (lUnresolved.Items[i] as TJSONObject).GetValue<string>('reason', ''), lLogPath);
+      Assert.AreEqual('unresolved',
+        (lUnresolved.Items[i] as TJSONObject).GetValue<string>('role', ''), lLogPath);
+    end;
+    Assert.AreEqual('overloadrange.pas:12:11 overloadrange.pas:20:11',
+      JsonPositionKeys(lJson, 'edits', 'file', 'startLine', 'startColumn'), lLogPath);
+  finally
+    lJson.Free;
+  end;
+
+  lLogPath := TPath.Combine(TempRoot, 'refactor-rename-unresolved-overload-apply.log');
+  Assert.IsTrue(RunResolverProcess('rename --project ' + QuoteArg(lDprojPath) +
+    ' --platform Win64 --file ' + QuoteArg(lUnitPath) + ' --line 12 --col 11' +
+    ' --new-name AddInts --apply --format json --no-semantic-cache', RepoRoot, lLogPath,
+    lExitCode), 'Failed to start rename apply command.');
+  Assert.AreNotEqual(Cardinal(0), lExitCode, 'Apply must refuse. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lLogPath);
+    Assert.IsTrue(StartsText('Rename apply refused:', lJson.GetValue<string>('diagnostic', '')),
+      lLogPath);
+    Assert.AreEqual('not-run', lJson.GetValue<string>('verification.status', ''), lLogPath);
+    RequireJsonArrayKey(lJson, 'appliedFiles', lApplied);
+    Assert.AreEqual(0, lApplied.Count, 'A refused apply writes no backup. See: ' + lLogPath);
+  finally
+    lJson.Free;
+  end;
+  Assert.AreEqual(lSourceHash, THashSHA2.GetHashStringFromFile(lUnitPath),
+    'A refused apply must not change the source.');
+end;
+
+function RunMemberRenameJson(const aDprojPath, aFilePath: string; const aLine, aColumn: Integer;
+  const aNewName, aExtraArgs, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lLogPath: string;
+begin
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  Assert.IsTrue(RunResolverProcess('rename --project ' + QuoteArg(aDprojPath) +
+    ' --platform Win64 --file ' + QuoteArg(aFilePath) + Format(' --line %d --col %d',
+    [aLine, aColumn]) + ' --new-name ' + aNewName + ' --format json --no-semantic-cache' +
+    aExtraArgs, RepoRoot, lLogPath, aExitCode), 'Failed to start rename command.');
+  Result := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+end;
+
+// DS-652 review shapes. TA.Limit is a class constant the model does not record, so the with-body
+// Limit (UC2 21:14) may be TA.Limit; TComponent may declare Name, so WriteLn(Name) in TK.Go
+// (UA2 28:11) may be TComponent.Name; whitespace in Run (UC2 22:1) names no symbol.
+procedure TRefactorCommandTests.RenameRefusesUnprovenMemberAndPositionBindings;
+var
+  lConsPath: string;
+  lConsHash: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lProvPath: string;
+  lProvHash: string;
+  lRoot: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-unproven-members');
+  lDprojPath := WriteMemberRenameProject(lRoot,
+    'program Ren;'#13#10'{$APPTYPE CONSOLE}'#13#10'uses'#13#10'  UA2 in ''UA2.pas'','#13#10 +
+    '  UC2 in ''UC2.pas'';'#13#10'begin'#13#10'  Run;'#13#10'end.'#13#10, ['UA2.pas', 'UC2.pas'],
+    ['unit UA2;'#13#10#13#10'interface'#13#10#13#10'uses'#13#10'  System.Classes;'#13#10#13#10 +
+    'type'#13#10'  TA = class'#13#10'  public const'#13#10'    Limit = 5;'#13#10'  public'#13#10 +
+    '    Count: Integer;'#13#10'  end;'#13#10#13#10'  TK = class(TComponent)'#13#10 +
+    '  public'#13#10'    procedure Go;'#13#10'  end;'#13#10#13#10'var'#13#10 +
+    '  Name: string = ''global'';'#13#10#13#10'implementation'#13#10#13#10'procedure TK.Go;'#13#10 +
+    'begin'#13#10'  WriteLn(Name);'#13#10'end;'#13#10#13#10'end.'#13#10,
+    'unit UC2;'#13#10#13#10'interface'#13#10#13#10'procedure Run;'#13#10#13#10 +
+    'implementation'#13#10#13#10'uses'#13#10'  System.Classes, UA2;'#13#10#13#10 +
+    'procedure Run;'#13#10'var'#13#10'  a: TA;'#13#10'  Limit: Integer;'#13#10'  k: TK;'#13#10 +
+    'begin'#13#10'  Limit := 100;'#13#10'  a := TA.Create;'#13#10'  with a do'#13#10 +
+    '    Count := Limit;'#13#10'  WriteLn(a.Count);'#13#10'  k := TK.Create(nil);'#13#10 +
+    '  k.Name := ''comp'';'#13#10'  k.Go;'#13#10'  with k do'#13#10'    WriteLn(Name);'#13#10 +
+    'end;'#13#10#13#10'end.'#13#10]);
+  lProvPath := TPath.Combine(lRoot, 'UA2.pas');
+  lConsPath := TPath.Combine(lRoot, 'UC2.pas');
+  lProvHash := THashSHA2.GetHashStringFromFile(lProvPath);
+  lConsHash := THashSHA2.GetHashStringFromFile(lConsPath);
+
+  lJson := RunMemberRenameJson(lDprojPath, lConsPath, 15, 3, 'LimX', ' --apply --delphi 23.0' +
+    ' --config Debug', 'refactor-rename-unproven-limit.log', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, lJson.ToJSON);
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lJson.ToJSON);
+    Assert.AreEqual('uc2.pas:15:3 uc2.pas:18:3', JsonPositionKeys(lJson, 'edits', 'file',
+      'startLine', 'startColumn'), lJson.ToJSON);
+    Assert.AreEqual('uc2.pas:21:14', JsonPositionKeys(lJson, 'unresolved', 'file', 'line',
+      'column'), lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+
+  lJson := RunMemberRenameJson(lDprojPath, lProvPath, 22, 3, 'GName', ' --apply --delphi 23.0' +
+    ' --config Debug', 'refactor-rename-unproven-name.log', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, lJson.ToJSON);
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lJson.ToJSON);
+    Assert.AreEqual('ua2.pas:22:3', JsonPositionKeys(lJson, 'edits', 'file', 'startLine',
+      'startColumn'), lJson.ToJSON);
+    Assert.IsTrue(ContainsText(JsonPositionKeys(lJson, 'unresolved', 'file', 'line', 'column'),
+      'ua2.pas:28:11'), lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+
+  lJson := RunMemberRenameJson(lDprojPath, lConsPath, 22, 1, 'Zz', '',
+    'refactor-rename-unproven-whitespace.log', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, lJson.ToJSON);
+    Assert.AreEqual('blocked', lJson.GetValue<string>('status', ''), lJson.ToJSON);
+    Assert.AreEqual(0, lJson.GetValue<Integer>('editCount', -1), lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+
+  Assert.AreEqual(lProvHash, THashSHA2.GetHashStringFromFile(lProvPath), 'Refused apply edited UA2.');
+  Assert.AreEqual(lConsHash, THashSHA2.GetHashStringFromFile(lConsPath), 'Refused apply edited UC2.');
+end;
+
+// DS-652 review round 2: ti.inc adds "public const ILimit = 7;" to TI. dcc64 binds the with-body
+// ILimit (UC3 20:14) to TI.ILimit, so renaming the local must be refused, not applied.
+procedure TRefactorCommandTests.RenameRefusesWithBodyNameFromIncludedMember;
+var
+  lConsHash: string;
+  lConsPath: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lRoot: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-included-member');
+  lDprojPath := WriteMemberRenameProject(lRoot,
+    'program Ren;'#13#10'{$APPTYPE CONSOLE}'#13#10'uses'#13#10'  UA3 in ''UA3.pas'','#13#10 +
+    '  UC3 in ''UC3.pas'';'#13#10'begin'#13#10'  Run;'#13#10'end.'#13#10, ['UA3.pas', 'UC3.pas'],
+    ['unit UA3;'#13#10#13#10'interface'#13#10#13#10'type'#13#10'  TI = class'#13#10 +
+    '  public'#13#10'    Count: Integer;'#13#10'{$I ti.inc}'#13#10'  end;'#13#10#13#10 +
+    'implementation'#13#10#13#10'end.'#13#10,
+    'unit UC3;'#13#10#13#10'interface'#13#10#13#10'procedure Run;'#13#10#13#10 +
+    'implementation'#13#10#13#10'uses'#13#10'  UA3;'#13#10#13#10'procedure Run;'#13#10 +
+    'var'#13#10'  i: TI;'#13#10'  ILimit: Integer;'#13#10'begin'#13#10'  ILimit := 200;'#13#10 +
+    '  i := TI.Create;'#13#10'  with i do'#13#10'    Count := ILimit;'#13#10 +
+    '  WriteLn(i.Count);'#13#10'end;'#13#10#13#10'end.'#13#10]);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'ti.inc'), '  public const'#13#10'    ILimit = 7;'#13#10,
+    TEncoding.ASCII);
+  lConsPath := TPath.Combine(lRoot, 'UC3.pas');
+  lConsHash := THashSHA2.GetHashStringFromFile(lConsPath);
+
+  lJson := RunMemberRenameJson(lDprojPath, lConsPath, 15, 3, 'LimX', ' --apply --delphi 23.0' +
+    ' --config Debug', 'refactor-rename-included-member.log', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, lJson.ToJSON);
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lJson.ToJSON);
+    Assert.AreEqual('uc3.pas:15:3 uc3.pas:17:3', JsonPositionKeys(lJson, 'edits', 'file',
+      'startLine', 'startColumn'), lJson.ToJSON);
+    Assert.AreEqual('uc3.pas:20:14', JsonPositionKeys(lJson, 'unresolved', 'file', 'line',
+      'column'), lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+  Assert.AreEqual(lConsHash, THashSHA2.GetHashStringFromFile(lConsPath), 'Refused apply edited UC3.');
+end;
+
+// DS-652 review round 4 (rn652k shape): "with c do X := CVar" over c: TAClass (class of TA) binds
+// CVar (UC4 38:10) to TA.CVar, so renaming the local CVar (declared 23:19, targeted at its use
+// 27:3) must be refused.
+procedure TRefactorCommandTests.RenameRefusesWithBodyNameOfClassReferenceSelector;
+var
+  lConsHash: string;
+  lConsPath: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lRoot: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-class-reference');
+  lDprojPath := WriteMemberRenameProject(lRoot,
+    'program Ren;'#13#10'{$APPTYPE CONSOLE}'#13#10'uses'#13#10'  UA4 in ''UA4.pas'','#13#10 +
+    '  UC4 in ''UC4.pas'';'#13#10'begin'#13#10'  Run;'#13#10'end.'#13#10, ['UA4.pas', 'UC4.pas'],
+    ['unit UA4;'#13#10#13#10'interface'#13#10#13#10'type'#13#10'  TBase = class'#13#10 +
+    '  public'#13#10'{$I base.inc}'#13#10'  end;'#13#10#13#10'  TR = record'#13#10 +
+    '    A: Integer;'#13#10'{$I rec.inc}'#13#10'    B: Integer;'#13#10'  end;'#13#10#13#10 +
+    '  TA = class'#13#10'  public'#13#10'    class var CVar: Integer;'#13#10'  end;'#13#10#13#10 +
+    '  TAClass = class of TA;'#13#10#13#10'implementation'#13#10#13#10'end.'#13#10,
+    'unit UC4;'#13#10#13#10'interface'#13#10#13#10'uses'#13#10'  UA4;'#13#10#13#10'type'#13#10 +
+    '  TDer = class(TBase)'#13#10'  public'#13#10'    Count: Integer;'#13#10'  end;'#13#10#13#10 +
+    'procedure Run;'#13#10#13#10'implementation'#13#10#13#10'procedure Run;'#13#10'var'#13#10 +
+    '  d: TDer;'#13#10'  r: TR;'#13#10'  c: TAClass;'#13#10 +
+    '  BLimit, RLimit, CVar, X: Integer;'#13#10'begin'#13#10'  BLimit := 100;'#13#10 +
+    '  RLimit := 200;'#13#10'  CVar := 300;'#13#10'  TA.CVar := 3;'#13#10 +
+    '  d := TDer.Create;'#13#10'  d.BLimit := 1;'#13#10'  r.RLimit := 2;'#13#10'  c := TA;'#13#10 +
+    '  with d do'#13#10'    Count := BLimit;'#13#10'  with r do'#13#10'    A := RLimit;'#13#10 +
+    '  with c do'#13#10'    X := CVar;'#13#10'  WriteLn(d.Count, '' '', r.A, '' '', X);'#13#10 +
+    'end;'#13#10#13#10'end.'#13#10]);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'base.inc'), '    BLimit: Integer;'#13#10,
+    TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'rec.inc'), '    RLimit: Integer;'#13#10,
+    TEncoding.ASCII);
+  lConsPath := TPath.Combine(lRoot, 'UC4.pas');
+  lConsHash := THashSHA2.GetHashStringFromFile(lConsPath);
+
+  lJson := RunMemberRenameJson(lDprojPath, lConsPath, 27, 3, 'CTally', ' --apply --delphi 23.0' +
+    ' --config Debug', 'refactor-rename-class-reference.log', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, lJson.ToJSON);
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lJson.ToJSON);
+    Assert.AreEqual('uc4.pas:23:19 uc4.pas:27:3', JsonPositionKeys(lJson, 'edits', 'file',
+      'startLine', 'startColumn'), lJson.ToJSON);
+    Assert.AreEqual('uc4.pas:38:10', JsonPositionKeys(lJson, 'unresolved', 'file', 'line',
+      'column'), lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+  Assert.AreEqual(lConsHash, THashSHA2.GetHashStringFromFile(lConsPath), 'Refused apply edited UC4.');
+end;
+
+// DS-652: UBad compiles, but its syntax tree fails (one-character deprecation message), so its
+// a.FCounter cannot be proven either way.
+procedure TRefactorCommandTests.RenameListsAstFailedConsumerReferences;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lLogPath: string;
+  lRoot: string;
+  lUnresolved: TJSONArray;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-ast-failed-consumer');
+  lDprojPath := WriteMemberRenameProject(lRoot,
+    'program Ren;'#13#10'uses'#13#10'  UProv in ''UProv.pas'','#13#10 +
+    '  UBad in ''UBad.pas'';'#13#10'begin'#13#10'end.'#13#10, ['UProv.pas', 'UBad.pas'],
+    [cMemberProviderSource,
+    'unit UBad;'#13#10'interface'#13#10'uses'#13#10'  UProv;'#13#10'type'#13#10 +
+    '  TBad = class'#13#10'  public'#13#10'    procedure Y; deprecated ''z'';'#13#10 +
+    '  end;'#13#10'procedure UseIt(a: TA);'#13#10'implementation'#13#10 +
+    'procedure TBad.Y;'#13#10'begin'#13#10'end;'#13#10'procedure UseIt(a: TA);'#13#10 +
+    'begin'#13#10'  a.FCounter := 9;'#13#10'end;'#13#10'end.'#13#10]);
+
+  lLogPath := TPath.Combine(TempRoot, 'refactor-rename-ast-failed-consumer.log');
+  Assert.IsTrue(RunResolverProcess('rename --project ' + QuoteArg(lDprojPath) +
+    ' --platform Win64 --file ' + QuoteArg(TPath.Combine(lRoot, 'UProv.pas')) +
+    ' --line 8 --col 5 --new-name FTally --format json --no-semantic-cache', RepoRoot,
+    lLogPath, lExitCode), 'Failed to start rename command.');
+  Assert.AreNotEqual(Cardinal(0), lExitCode, 'An incomplete plan must not exit 0. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lLogPath);
+    Assert.AreEqual('ubad.pas:17:5', JsonPositionKeys(lJson, 'unresolved', 'file', 'line',
+      'column'), lLogPath);
+    RequireJsonArrayKey(lJson, 'unresolved', lUnresolved);
+    Assert.AreEqual('unverified-unit',
+      (lUnresolved.Items[0] as TJSONObject).GetValue<string>('reason', ''), lLogPath);
+    Assert.AreEqual(WordOccurrenceKeys(lRoot, ['UProv.pas'], 'FCounter'),
+      JsonPositionKeys(lJson, 'edits', 'file', 'startLine', 'startColumn'), lLogPath);
+  finally
+    lJson.Free;
+  end;
 end;
 
 procedure TRefactorCommandTests.RenameCommandReportsSemanticPhaseMetricsAsJson;

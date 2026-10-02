@@ -268,7 +268,18 @@ bin\DelphiAIKit.exe dead-code --project "C:\path\Project.dproj" --profile conser
 bin\DelphiAIKit.exe dead-code --project "C:\path\Project.dproj" --profile conservative --apply --format json
 ```
 
-`rename` is non-mutating by default. `--apply` creates per-file `.bak` backups and restores original bytes if edit application fails.
+`rename` is non-mutating by default. `--apply` creates per-file `.bak` backups, builds the owning project after the edits (`requiredVerification` kind `project-build`), and restores the original bytes if edit application or the build fails.
+
+A rename plan holds every reference DelphiSemantics can prove: qualified member access in other units (`a.Member`, `Self.Member`, `TA.ClassMember`), inherited members of project ancestors, `with a do Member` when the selector type is provable, and program main blocks. A same-name occurrence it can prove neither way is listed in `unresolved` (`unresolvedCount` counts them), each with `file`, `unit`, `line`, `column`, `routine` and a `reason`:
+- `unresolved-reference`: a reference with no proven target, such as a call into an overload set without argument types or a name inside a `with` whose selector type is not provable;
+- `unverified-unit`: any occurrence in a unit whose syntax tree failed (scope status other than `ast`);
+- `unclassified-occurrence`: an occurrence no semantic fact describes, such as code in an inactive `{$IFDEF}` branch;
+- `conflicting-facts`: a reference and a declaration of different symbols at one position;
+- `possible-override`: a same-named method of another type when either declaration is virtual or belongs to an interface, since overrides are not linked to their base method.
+
+A `--file/--line/--col` target whose identifier is not the name of the symbol it resolves to is refused (`blocked`).
+
+Such a plan has status `incomplete` and exits non-zero. Its `edits` are a review aid only; `--apply` refuses it (`Rename apply refused: ...`) without touching a file, and there is no override flag. `find-usages` reports the same `unresolved` list and status `incomplete` (non-zero exit) for such a symbol.
 `dead-code` is report-only by default; use `audit`, `conservative`, or `legacy-static` profiles to control how aggressively candidates are classified. Guarded `--apply` requires an explicit profile, writes project-scoped backups/manifests, verifies the build, and rolls back on verification failure.
 
 The central cache stores reusable unit models by content and compiler context. By default it is created under `%LOCALAPPDATA%\DelphiAIKit\symbol-map\v1\symbol-map.sqlite3`, with `%USERPROFILE%\.dak\symbol-map\v1\symbol-map.sqlite3` as the fallback. Override it with `--cache-root "<path>"` or the `DAK_SYMBOL_MAP_CACHE_ROOT` environment variable; JSON output reports the resolved cache paths so WSL/Windows path confusion is visible.

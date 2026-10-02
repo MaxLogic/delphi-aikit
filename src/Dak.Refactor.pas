@@ -261,25 +261,51 @@ begin
   Result.AddPair('column', TJSONNumber.Create(aUsage.Column));
   Result.AddPair('endLine', TJSONNumber.Create(aUsage.EndLine));
   Result.AddPair('endColumn', TJSONNumber.Create(aUsage.EndColumn));
+  if aUsage.Reason <> '' then
+    Result.AddPair('reason', aUsage.Reason);
+end;
+
+function BuildUsageArray(const aUsages: TArray<TDelphiSemanticUsage>): TJSONArray;
+var
+  i: Integer;
+begin
+  Result := TJSONArray.Create;
+  for i := 0 to High(aUsages) do
+    Result.AddElement(BuildUsageObject(aUsages[i]));
+end;
+
+procedure AppendUnresolvedText(const aBuilder: TStringBuilder;
+  const aUnresolved: TArray<TDelphiSemanticUsage>);
+var
+  lUsage: TDelphiSemanticUsage;
+begin
+  aBuilder.AppendLine('unresolved: ' + Length(aUnresolved).ToString);
+  for lUsage in aUnresolved do
+    aBuilder.AppendLine(Format('unresolved %s %s:%d:%d %s', [lUsage.Reason, lUsage.FileName,
+      lUsage.Line, lUsage.Column, lUsage.Name]));
+end;
+
+// DAK-392: a resolved symbol with same-name occurrences DelphiSemantics cannot classify is not
+// a complete answer.
+function UsageResultStatus(const aResult: TDelphiSemanticUsageResult): string;
+begin
+  Result := aResult.Status;
+  if SameText(Result, 'resolved') and (Length(aResult.Unresolved) > 0) then
+    Result := 'incomplete';
 end;
 
 function UsageResultJson(const aSymbol: string; const aResult: TDelphiSemanticUsageResult;
   const aReferenceFallbackCount: Integer; const aCacheMetrics: TDakSemanticCacheMetrics;
   const aPhaseMetrics: TRefactorSemanticPhaseMetrics): string;
 var
-  i: Integer;
   lRoot: TJSONObject;
-  lUsages: TJSONArray;
 begin
   lRoot := TJSONObject.Create;
-  lUsages := TJSONArray.Create;
-  for i := 0 to High(aResult.Usages) do
-    lUsages.AddElement(BuildUsageObject(aResult.Usages[i]));
-
-  lRoot.AddPair('status', aResult.Status);
+  lRoot.AddPair('status', UsageResultStatus(aResult));
   lRoot.AddPair('symbol', aSymbol);
   lRoot.AddPair('diagnostic', aResult.Diagnostic);
   lRoot.AddPair('count', TJSONNumber.Create(Length(aResult.Usages)));
+  lRoot.AddPair('unresolvedCount', TJSONNumber.Create(Length(aResult.Unresolved)));
   lRoot.AddPair('referenceReconciliationFallbackCount',
     TJSONNumber.Create(aReferenceFallbackCount));
   lRoot.AddPair('semanticCacheHits', TJSONNumber.Create(aCacheMetrics.CacheHits));
@@ -287,7 +313,8 @@ begin
   lRoot.AddPair('semanticCacheInvalidations', TJSONNumber.Create(aCacheMetrics.Invalidations));
   lRoot.AddPair('semanticPhaseMetrics', BuildSemanticPhaseMetricsObject(aPhaseMetrics,
     aCacheMetrics));
-  lRoot.AddPair('usages', lUsages);
+  lRoot.AddPair('usages', BuildUsageArray(aResult.Usages));
+  lRoot.AddPair('unresolved', BuildUsageArray(aResult.Unresolved));
   Result := JsonValueText(lRoot);
 end;
 
@@ -299,7 +326,7 @@ var
 begin
   lBuilder := TStringBuilder.Create;
   try
-    lBuilder.AppendLine('find-usages: ' + aResult.Status);
+    lBuilder.AppendLine('find-usages: ' + UsageResultStatus(aResult));
     lBuilder.AppendLine('symbol: ' + aSymbol);
     lBuilder.AppendLine('count: ' + Length(aResult.Usages).ToString);
     if aResult.Diagnostic <> '' then
@@ -307,6 +334,8 @@ begin
     for lUsage in aResult.Usages do
       lBuilder.AppendLine(Format('%s %s %s:%d:%d', [lUsage.Role, lUsage.UnitName,
         lUsage.FileName, lUsage.Line, lUsage.Column]));
+    if Length(aResult.Unresolved) > 0 then
+      AppendUnresolvedText(lBuilder, aResult.Unresolved);
     Result := TrimRight(lBuilder.ToString);
   finally
     lBuilder.Free;
@@ -401,6 +430,7 @@ begin
   lRoot.AddPair('apply', TJSONBool.Create(aApply));
   lRoot.AddPair('diagnostic', aPlan.Diagnostic);
   lRoot.AddPair('editCount', TJSONNumber.Create(Length(aPlan.Edits)));
+  lRoot.AddPair('unresolvedCount', TJSONNumber.Create(Length(aPlan.UnresolvedReferences)));
   lRoot.AddPair('contextFingerprint', aPlan.ContextFingerprint);
   lRoot.AddPair('baselineSemanticModelVersion', aPlan.BaselineSemanticModelVersion);
   lRoot.AddPair('requiredVerification',
@@ -414,6 +444,7 @@ begin
   lRoot.AddPair('semanticPhaseMetrics', BuildSemanticPhaseMetricsObject(aPhaseMetrics,
     aCacheMetrics));
   lRoot.AddPair('edits', lEdits);
+  lRoot.AddPair('unresolved', BuildUsageArray(aPlan.UnresolvedReferences));
   lRoot.AddPair('appliedFiles', BuildAppliedFilesArray(aAppliedFiles));
   Result := JsonValueText(lRoot);
 end;
@@ -446,6 +477,8 @@ begin
     for lEdit in aPlan.Edits do
       lBuilder.AppendLine(Format('%s:%d:%d %s', [lEdit.FileName, lEdit.StartLine,
         lEdit.StartColumn, lEdit.NewText]));
+    if Length(aPlan.UnresolvedReferences) > 0 then
+      AppendUnresolvedText(lBuilder, aPlan.UnresolvedReferences);
     for lAppliedFile in aAppliedFiles do
       lBuilder.AppendLine('backup: ' + lAppliedFile.BackupFileName);
     Result := TrimRight(lBuilder.ToString);
@@ -1146,7 +1179,7 @@ begin
   else
     lOutput := UsageResultText(lSymbol, lResult);
   WriteLn(lOutput);
-  if lResult.Status = 'resolved' then
+  if UsageResultStatus(lResult) = 'resolved' then
     Result := cExitSuccess
   else
     Result := cExitToolFailure;
@@ -1204,6 +1237,13 @@ begin
   end;
   lPhaseMetrics.CommandPlanningCount := 1;
   lPhaseMetrics.TotalMs := lPhaseMetrics.TotalMs + lPhaseMetrics.CommandPlanningMs;
+  // DAK-392: apply never runs while any same-name occurrence is unclassified; there is no
+  // override flag.
+  if aOptions.fRefactorApply and (Length(lPlan.UnresolvedReferences) > 0) then
+  begin
+    lPlan.Status := 'incomplete';
+    lPlan.Diagnostic := 'Rename apply refused: ' + lPlan.Diagnostic;
+  end;
   if SameText(lPlan.Status, 'planned') and aOptions.fRefactorApply then
   begin
     try
