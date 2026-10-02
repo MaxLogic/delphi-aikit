@@ -48,6 +48,13 @@ type
     procedure RenameRefusesUnprovenMemberAndPositionBindings;
     [Test]
     procedure RenameRefusesWithBodyNameFromIncludedMember;
+    // DS-659: include occurrences are listed at their own files; the unit is never edited in
+    // their place and a refused apply changes no file.
+    [Test]
+    procedure RenameListsIncludeOccurrencesAndRefusesApply;
+    // DS-659 review: an include expanded inside a line is listed at its directive.
+    [Test]
+    procedure RenameListsMidLineIncludeAndRefusesApply;
     [Test]
     procedure RenameRefusesWithBodyNameOfClassReferenceSelector;
     [Test]
@@ -1046,6 +1053,128 @@ begin
 
   Assert.AreEqual(lProvHash, THashSHA2.GetHashStringFromFile(lProvPath), 'Refused apply edited UA2.');
   Assert.AreEqual(lConsHash, THashSHA2.GetHashStringFromFile(lConsPath), 'Refused apply edited UC2.');
+end;
+
+const
+  // Line 4 declares GA (col 3) and GB (col 7). Line 13 is inactive; line 15 includes body.inc,
+  // which includes inner.inc. Line 9 includes decl.inc, which declares Helper.
+  cIncludeRenameUnit =
+    'unit UInc;'#13#10'interface'#13#10'var'#13#10'  GA, GB: Integer;'#13#10 + // 1-4
+    'procedure Foo;'#13#10'procedure Bar;'#13#10'function Twice: Integer;'#13#10 + // 5-7
+    'implementation'#13#10'{$I decl.inc}'#13#10'procedure Foo;'#13#10 + // 8-10
+    'begin'#13#10'{$IFDEF NEVER_DEFINED}'#13#10'  GA := 99;'#13#10 + // 11-13
+    '{$ELSE}'#13#10'{$I body.inc}'#13#10'{$ENDIF}'#13#10 + // 14-16
+    '  WriteLn(GA);'#13#10'end;'#13#10'procedure Bar;'#13#10'begin'#13#10 + // 17-20
+    '  GB := 5;'#13#10'end;'#13#10'function Twice: Integer;'#13#10 + // 21-23
+    'begin'#13#10'  Result := Helper(GA) * 2;'#13#10'end;'#13#10'end.'#13#10; // 24-27
+
+procedure TRefactorCommandTests.RenameListsIncludeOccurrencesAndRefusesApply;
+const
+  cFiles: array[0..4] of string = ('UInc.pas', 'decl.inc', 'body.inc', 'inner.inc', 'Ren.dpr');
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFileName: string;
+  lHashes: array[0..4] of string;
+  lJson: TJSONObject;
+  lRoot: string;
+  lUnitPath: string;
+  i: Integer;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-include-occurrences');
+  lDprojPath := WriteMemberRenameProject(lRoot,
+    'program Ren;'#13#10'{$APPTYPE CONSOLE}'#13#10'uses'#13#10'  UInc in ''UInc.pas'';'#13#10 +
+    'begin'#13#10'  Foo;'#13#10'  Bar;'#13#10'  WriteLn(Twice);'#13#10'end.'#13#10, ['UInc.pas'],
+    [cIncludeRenameUnit]);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'decl.inc'),
+    'function Helper(aValue: Integer): Integer;'#13#10'begin'#13#10 +
+    '  Result := aValue + GB;'#13#10'end;'#13#10, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'body.inc'),
+    '  GA := GB + 1;'#13#10'{$I inner.inc}'#13#10, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'inner.inc'), '  GA := GA + GB;'#13#10,
+    TEncoding.ASCII);
+  lUnitPath := TPath.Combine(lRoot, 'UInc.pas');
+  for i := Low(cFiles) to High(cFiles) do
+    lHashes[i] := THashSHA2.GetHashStringFromFile(TPath.Combine(lRoot, cFiles[i]));
+
+  lJson := RunMemberRenameJson(lDprojPath, lUnitPath, 4, 3, 'GAlpha', ' --apply --delphi 23.0' +
+    ' --config Debug', 'refactor-rename-include-ga.log', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, lJson.ToJSON);
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lJson.ToJSON);
+    Assert.AreEqual('uinc.pas:17:11 uinc.pas:25:20 uinc.pas:4:3', JsonPositionKeys(lJson,
+      'edits', 'file', 'startLine', 'startColumn'), lJson.ToJSON);
+    Assert.AreEqual('body.inc:1:3 inner.inc:1:3 inner.inc:1:9 uinc.pas:13:3',
+      JsonPositionKeys(lJson, 'unresolved', 'file', 'line', 'column'), lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+
+  // Helper is declared in decl.inc; the include directive on line 9 must never be an edit.
+  lJson := RunMemberRenameJson(lDprojPath, lUnitPath, 25, 13, 'Assist', '',
+    'refactor-rename-include-helper.log', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, lJson.ToJSON);
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lJson.ToJSON);
+    Assert.AreEqual('uinc.pas:25:13', JsonPositionKeys(lJson, 'edits', 'file', 'startLine',
+      'startColumn'), lJson.ToJSON);
+    Assert.AreEqual('decl.inc:1:10', JsonPositionKeys(lJson, 'unresolved', 'file', 'line',
+      'column'), lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+
+  for i := Low(cFiles) to High(cFiles) do
+  begin
+    lFileName := TPath.Combine(lRoot, cFiles[i]);
+    Assert.AreEqual(lHashes[i], THashSHA2.GetHashStringFromFile(lFileName),
+      'A refused rename changed ' + cFiles[i]);
+  end;
+end;
+
+procedure TRefactorCommandTests.RenameListsMidLineIncludeAndRefusesApply;
+const
+  cFiles: array[0..2] of string = ('UMid.pas', 'midf.inc', 'Ren.dpr');
+var
+  lDprojPath: string;
+  lHashes: array[0..2] of string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lRoot: string;
+  lUnitPath: string;
+  i: Integer;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-include-mid-line');
+  // UMid line 4 declares GF at column 3; line 9 is "  WriteLn(1); {$I midf.inc}" with the
+  // directive at column 15.
+  lDprojPath := WriteMemberRenameProject(lRoot,
+    'program Ren;'#13#10'{$APPTYPE CONSOLE}'#13#10'uses'#13#10'  UMid in ''UMid.pas'';'#13#10 +
+    'begin'#13#10'  Foo;'#13#10'end.'#13#10, ['UMid.pas'],
+    ['unit UMid;'#13#10'interface'#13#10'var'#13#10'  GF: Integer;'#13#10'procedure Foo;'#13#10 +
+    'implementation'#13#10'procedure Foo;'#13#10'begin'#13#10'  WriteLn(1); {$I midf.inc}'#13#10 +
+    '  GF := 3;'#13#10'end;'#13#10'end.'#13#10]);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'midf.inc'), 'GF := GF + 1;'#13#10, TEncoding.ASCII);
+  lUnitPath := TPath.Combine(lRoot, 'UMid.pas');
+  for i := Low(cFiles) to High(cFiles) do
+    lHashes[i] := THashSHA2.GetHashStringFromFile(TPath.Combine(lRoot, cFiles[i]));
+
+  lJson := RunMemberRenameJson(lDprojPath, lUnitPath, 4, 3, 'GPhi', ' --apply --delphi 23.0' +
+    ' --config Debug', 'refactor-rename-include-mid-line.log', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, lJson.ToJSON);
+    Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lJson.ToJSON);
+    Assert.AreEqual('umid.pas:10:3 umid.pas:4:3', JsonPositionKeys(lJson, 'edits', 'file',
+      'startLine', 'startColumn'), lJson.ToJSON);
+    Assert.AreEqual('umid.pas:9:15', JsonPositionKeys(lJson, 'unresolved', 'file', 'line',
+      'column'), lJson.ToJSON);
+  finally
+    lJson.Free;
+  end;
+  for i := Low(cFiles) to High(cFiles) do
+    Assert.AreEqual(lHashes[i], THashSHA2.GetHashStringFromFile(TPath.Combine(lRoot, cFiles[i])),
+      'A refused rename changed ' + cFiles[i]);
 end;
 
 // DS-652 review round 2: ti.inc adds "public const ILimit = 7;" to TI. dcc64 binds the with-body

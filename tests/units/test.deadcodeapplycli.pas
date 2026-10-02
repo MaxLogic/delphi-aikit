@@ -22,6 +22,14 @@ type
     procedure ApplyAuditProfileProducesNoOpTransaction;
     [Test]
     procedure ApplyRollsBackWhenBuildVerificationFails;
+    // DS-660: routines called only from the program main block or from another unit's
+    // initialization or finalization block are kept; the unused routine is still removed.
+    [Test]
+    procedure ApplyKeepsRoutinesUsedOnlyFromEntryBlocks;
+    // DS-660 review: overloads called without provable binding from the main block or another
+    // unit, and a short-form body beside a nested namesake, are kept.
+    [Test]
+    procedure ApplyKeepsOverloadsAndShortFormBodiesUsedElsewhere;
   end;
 
 implementation
@@ -315,6 +323,203 @@ begin
   end;
   Assert.AreEqual(lUnitTwoBefore, TFile.ReadAllText(lUnitTwoPath, TEncoding.UTF8),
     'Rollback must restore original source text.');
+end;
+
+procedure TDeadCodeApplyCliTests.ApplyKeepsRoutinesUsedOnlyFromEntryBlocks;
+var
+  lDprojPath: string;
+  lEntryPath: string;
+  lEntryText: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lLogPath: string;
+  lRoot: string;
+  lVerification: TJSONObject;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'dead-code-apply-entry-blocks');
+  ForceDirectories(lRoot);
+  lDprojPath := TPath.Combine(lRoot, 'EntryBlocks.dproj');
+  lEntryPath := TPath.Combine(lRoot, 'UEntry.pas');
+  TFile.WriteAllText(TPath.Combine(lRoot, 'EntryBlocks.dpr'),
+    'program EntryBlocks;' + sLineBreak + sLineBreak + 'uses' + sLineBreak +
+    '  UEntry in ''UEntry.pas'',' + sLineBreak + '  UInit in ''UInit.pas'';' + sLineBreak +
+    sLineBreak + 'begin' + sLineBreak + '  MainTouch;' + sLineBreak + 'end.' + sLineBreak,
+    TEncoding.UTF8);
+  TFile.WriteAllText(lEntryPath,
+    'unit UEntry;' + sLineBreak + sLineBreak + 'interface' + sLineBreak + sLineBreak +
+    'procedure MainTouch;' + sLineBreak + 'procedure InitTouch;' + sLineBreak +
+    'procedure FinalTouch;' + sLineBreak + sLineBreak + 'implementation' + sLineBreak +
+    sLineBreak + 'procedure MainTouch;' + sLineBreak + 'begin' + sLineBreak + 'end;' +
+    sLineBreak + sLineBreak + 'procedure InitTouch;' + sLineBreak + 'begin' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak + 'procedure FinalTouch;' + sLineBreak + 'begin' +
+    sLineBreak + 'end;' + sLineBreak + sLineBreak + 'procedure UnusedLocalRoutine;' +
+    sLineBreak + 'begin' + sLineBreak + 'end;' + sLineBreak + sLineBreak + 'end.' + sLineBreak,
+    TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'UInit.pas'),
+    'unit UInit;' + sLineBreak + sLineBreak + 'interface' + sLineBreak + sLineBreak +
+    'implementation' + sLineBreak + sLineBreak + 'uses' + sLineBreak + '  UEntry;' +
+    sLineBreak + sLineBreak + 'initialization' + sLineBreak + '  InitTouch;' + sLineBreak +
+    sLineBreak + 'finalization' + sLineBreak + '  FinalTouch;' + sLineBreak + sLineBreak +
+    'end.' + sLineBreak, TEncoding.UTF8);
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <ProjectGuid>{5B0C3F6E-2D1A-4E57-9A64-660000000660}</ProjectGuid>' + sLineBreak +
+    '    <MainSource>EntryBlocks.dpr</MainSource>' + sLineBreak +
+    '    <Base>True</Base>' + sLineBreak +
+    '    <Config Condition="''$(Config)''==''''">Debug</Config>' + sLineBreak +
+    '    <ProjectName Condition="''$(ProjectName)''==''''">EntryBlocks</ProjectName>' + sLineBreak +
+    '    <TargetedPlatforms>1</TargetedPlatforms>' + sLineBreak +
+    '    <AppType>Console</AppType>' + sLineBreak +
+    '    <FrameworkType>None</FrameworkType>' + sLineBreak +
+    '    <ProjectVersion>20.2</ProjectVersion>' + sLineBreak +
+    '    <Platform Condition="''$(Platform)''==''''">Win32</Platform>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <PropertyGroup Condition="''$(Base)''!=''''">' + sLineBreak +
+    '    <DCC_ExeOutput>.\bin</DCC_ExeOutput>' + sLineBreak +
+    '    <DCC_DcuOutput>$(DCC_ExeOutput)</DCC_DcuOutput>' + sLineBreak +
+    '    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + sLineBreak +
+    '    <DCC_Namespace>System;System.Win;$(DCC_Namespace)</DCC_Namespace>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <ItemGroup>' + sLineBreak +
+    '    <DelphiCompile Include="$(MainSource)">' + sLineBreak +
+    '      <MainSource>MainSource</MainSource>' + sLineBreak +
+    '    </DelphiCompile>' + sLineBreak +
+    '    <DCCReference Include="UEntry.pas"/>' + sLineBreak +
+    '    <DCCReference Include="UInit.pas"/>' + sLineBreak +
+    '  </ItemGroup>' + sLineBreak +
+    '  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" ' +
+    'Condition="Exists(''$(BDS)\Bin\CodeGear.Delphi.Targets'')"/>' + sLineBreak +
+    '</Project>' + sLineBreak, TEncoding.UTF8);
+  lLogPath := TPath.Combine(TempRoot, 'dead-code-apply-entry-blocks.json');
+
+  Assert.IsTrue(RunResolverProcess(
+    'dead-code --project ' + QuoteArg(lDprojPath) +
+    ' --profile legacy-static --apply --format json --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lLogPath, lExitCode), 'Failed to start dead-code apply command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected apply to succeed. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    Assert.AreEqual('applied', lJson.GetValue<string>('status', ''), lLogPath);
+    Assert.AreEqual(1, lJson.GetValue<Integer>('editCount', -1),
+      'Only UnusedLocalRoutine may be removed. See: ' + lLogPath);
+    RequireJsonObjectKey(lJson, 'verification', lVerification);
+    Assert.AreEqual('passed', lVerification.GetValue<string>('status', ''), lLogPath);
+  finally
+    lJson.Free;
+  end;
+  lEntryText := TFile.ReadAllText(lEntryPath, TEncoding.UTF8);
+  Assert.AreEqual(0, Pos('procedure UnusedLocalRoutine;', lEntryText),
+    'The unused routine must be removed.');
+  Assert.IsTrue(Pos('procedure MainTouch;' + sLineBreak + 'begin', lEntryText) > 0,
+    'The routine used by the main block must be kept.');
+  Assert.IsTrue(Pos('procedure InitTouch;' + sLineBreak + 'begin', lEntryText) > 0,
+    'The routine used by an initialization block must be kept.');
+  Assert.IsTrue(Pos('procedure FinalTouch;' + sLineBreak + 'begin', lEntryText) > 0,
+    'The routine used by a finalization block must be kept.');
+end;
+
+procedure TDeadCodeApplyCliTests.ApplyKeepsOverloadsAndShortFormBodiesUsedElsewhere;
+const
+  cKept: array[0..4] of string = ('procedure Ov(a: Integer);' + sLineBreak + 'begin',
+    'procedure Ov(const s: string);' + sLineBreak + 'begin',
+    'procedure Helper;' + sLineBreak + 'begin',
+    'procedure Ov2(a: Integer; b: Integer);' + sLineBreak + 'begin',
+    'procedure Ov2(const s: string);' + sLineBreak + 'begin');
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lKept: string;
+  lLogPath: string;
+  lRoot: string;
+  lUnitPath: string;
+  lUnitText: string;
+  lVerification: TJSONObject;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'dead-code-apply-overloads');
+  ForceDirectories(lRoot);
+  lDprojPath := TPath.Combine(lRoot, 'Overloads.dproj');
+  lUnitPath := TPath.Combine(lRoot, 'UD.pas');
+  TFile.WriteAllText(TPath.Combine(lRoot, 'Overloads.dpr'),
+    'program Overloads;' + sLineBreak + sLineBreak + 'uses' + sLineBreak +
+    '  UD in ''UD.pas'',' + sLineBreak + '  UE in ''UE.pas'';' + sLineBreak + sLineBreak +
+    'begin' + sLineBreak + '  Run;' + sLineBreak + '  Ov(1);' + sLineBreak + '  Helper(2);' +
+    sLineBreak + 'end.' + sLineBreak, TEncoding.UTF8);
+  TFile.WriteAllText(lUnitPath,
+    'unit UD;' + sLineBreak + sLineBreak + 'interface' + sLineBreak + sLineBreak +
+    'procedure Ov(a: Integer); overload;' + sLineBreak +
+    'procedure Ov(const s: string); overload;' + sLineBreak +
+    'procedure Helper(a: Integer);' + sLineBreak +
+    'procedure Ov2(a: Integer; b: Integer = 0); overload;' + sLineBreak +
+    'procedure Ov2(const s: string); overload;' + sLineBreak + sLineBreak +
+    'implementation' + sLineBreak + sLineBreak +
+    'procedure Ov(a: Integer);' + sLineBreak + 'begin' + sLineBreak + 'end;' + sLineBreak +
+    sLineBreak + 'procedure Ov(const s: string);' + sLineBreak + 'begin' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak + 'procedure Helper;' + sLineBreak + 'begin' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak + 'procedure Other;' + sLineBreak + sLineBreak +
+    '  procedure Helper;' + sLineBreak + '  begin' + sLineBreak + '  end;' + sLineBreak +
+    sLineBreak + 'begin' + sLineBreak + 'end;' + sLineBreak + sLineBreak +
+    'procedure Ov2(a: Integer; b: Integer);' + sLineBreak + 'begin' + sLineBreak + 'end;' +
+    sLineBreak + sLineBreak + 'procedure Ov2(const s: string);' + sLineBreak + 'begin' +
+    sLineBreak + 'end;' + sLineBreak + sLineBreak + 'end.' + sLineBreak, TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'UE.pas'),
+    'unit UE;' + sLineBreak + sLineBreak + 'interface' + sLineBreak + sLineBreak +
+    'procedure Run;' + sLineBreak + sLineBreak + 'implementation' + sLineBreak + sLineBreak +
+    'uses' + sLineBreak + '  UD;' + sLineBreak + sLineBreak + 'procedure Run;' + sLineBreak +
+    'begin' + sLineBreak + '  Ov2(5);' + sLineBreak + 'end;' + sLineBreak + sLineBreak + 'end.' +
+    sLineBreak, TEncoding.UTF8);
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <ProjectGuid>{5B0C3F6E-2D1A-4E57-9A64-660000000662}</ProjectGuid>' + sLineBreak +
+    '    <MainSource>Overloads.dpr</MainSource>' + sLineBreak +
+    '    <Base>True</Base>' + sLineBreak +
+    '    <Config Condition="''$(Config)''==''''">Debug</Config>' + sLineBreak +
+    '    <ProjectName Condition="''$(ProjectName)''==''''">Overloads</ProjectName>' + sLineBreak +
+    '    <TargetedPlatforms>1</TargetedPlatforms>' + sLineBreak +
+    '    <AppType>Console</AppType>' + sLineBreak +
+    '    <FrameworkType>None</FrameworkType>' + sLineBreak +
+    '    <ProjectVersion>20.2</ProjectVersion>' + sLineBreak +
+    '    <Platform Condition="''$(Platform)''==''''">Win32</Platform>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <PropertyGroup Condition="''$(Base)''!=''''">' + sLineBreak +
+    '    <DCC_ExeOutput>.\bin</DCC_ExeOutput>' + sLineBreak +
+    '    <DCC_DcuOutput>$(DCC_ExeOutput)</DCC_DcuOutput>' + sLineBreak +
+    '    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + sLineBreak +
+    '    <DCC_Namespace>System;System.Win;$(DCC_Namespace)</DCC_Namespace>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <ItemGroup>' + sLineBreak +
+    '    <DelphiCompile Include="$(MainSource)">' + sLineBreak +
+    '      <MainSource>MainSource</MainSource>' + sLineBreak +
+    '    </DelphiCompile>' + sLineBreak +
+    '    <DCCReference Include="UD.pas"/>' + sLineBreak +
+    '    <DCCReference Include="UE.pas"/>' + sLineBreak +
+    '  </ItemGroup>' + sLineBreak +
+    '  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" ' +
+    'Condition="Exists(''$(BDS)\Bin\CodeGear.Delphi.Targets'')"/>' + sLineBreak +
+    '</Project>' + sLineBreak, TEncoding.UTF8);
+  lLogPath := TPath.Combine(TempRoot, 'dead-code-apply-overloads.json');
+
+  Assert.IsTrue(RunResolverProcess(
+    'dead-code --project ' + QuoteArg(lDprojPath) +
+    ' --profile legacy-static --apply --format json --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lLogPath, lExitCode), 'Failed to start dead-code apply command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected apply to succeed. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    // Only the unused nested Helper in Other is removable.
+    Assert.AreEqual('applied', lJson.GetValue<string>('status', ''), lLogPath);
+    RequireJsonObjectKey(lJson, 'verification', lVerification);
+    Assert.AreEqual('passed', lVerification.GetValue<string>('status', ''), lLogPath);
+  finally
+    lJson.Free;
+  end;
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  for lKept in cKept do
+    Assert.IsTrue(Pos(lKept, lUnitText) > 0, 'Called routine body was removed: ' + lKept);
 end;
 
 initialization
