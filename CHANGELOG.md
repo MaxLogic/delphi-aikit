@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- `remove-with` now refuses plans and apply for a `with` in an unverified unit or include-expanded source, with a named reason instead of an unsafe edit or range error. A project-wide plan still includes verified units and reports the include refusal as a warning.
 - `rename` no longer plans edits at unrelated positions for names used or declared in an `{$I}` include file (for example inside an inactive `{$IFDEF}` branch, in another routine, or on the `{$I}` directive). Include occurrences are listed under `unresolved` with the include file, line and column (an include expanded in the middle of a line at its directive, reason `include-position-unknown`), the plan is `incomplete`, and `--apply` changes no file. `find-usages` reports include positions, and a rename plan whose edit position does not hold the old name is `blocked`.
 - `dead-code` no longer reports a routine used only from a program main block or from another unit's `initialization` or `finalization` block as `definitely-unused`, so `--apply` keeps it. Overloads called without provable binding and short-form implementation bodies are kept as well. A routine declared in an include file is reported at that file and blocked (`declared-in-include`).
 - The symbol-map cache key includes the DelphiSemantics unit-model parser version, so a change to extracted references no longer reuses stale symbol-map rows.

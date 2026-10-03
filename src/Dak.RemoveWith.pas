@@ -129,6 +129,7 @@ end;
 function RunRemoveWithCommand(const aOptions: TAppOptions): Integer;
 var
   lDirPath: string;
+  lDiagnostic: string;
   lApplySucceeded: Boolean;
   lError: string;
   lFactOptions: TAppOptions;
@@ -152,6 +153,7 @@ var
   lTransactionResult: TRemoveWithTransactionResult;
   lTotalStopwatch: TStopwatch;
   lUnitPath: string;
+  lWarning: TRemoveWithWarningInfo;
   lWorkspaceRoot: string;
 begin
   lApplySucceeded := True;
@@ -236,6 +238,29 @@ begin
       begin
         WriteLn(ErrOutput, lError);
         Exit(cExitToolFailure);
+      end;
+      if SameText(lSymbolInventory.fDelphiSemanticRemoveWithPlan.Status, 'blocked') then
+      begin
+        WriteLn(ErrOutput, lSymbolInventory.fDelphiSemanticRemoveWithPlan.Diagnostic);
+        Exit(cExitToolFailure);
+      end;
+      lDiagnostic := lSymbolInventory.fDelphiSemanticRemoveWithPlan.Diagnostic;
+      if (lUnitPath <> '') and SameText(
+        lDiagnostic,
+        'WITH_IN_INCLUDE_UNVERIFIED: ' + lUnitPath) then
+      begin
+        WriteLn(ErrOutput, lDiagnostic);
+        Exit(cExitToolFailure);
+      end;
+      if lDiagnostic.StartsWith('WITH_IN_INCLUDE_UNVERIFIED: ', True) then
+      begin
+        lWarning := Default(TRemoveWithWarningInfo);
+        lWarning.fCode := 'WITH_IN_INCLUDE_UNVERIFIED';
+        lWarning.fFilePath := Copy(lDiagnostic,
+          Length('WITH_IN_INCLUDE_UNVERIFIED: ') + 1, MaxInt);
+        lWarning.fMessage := 'With statements in this include-expanded unit were not planned.';
+        SetLength(lScanResult.fWarnings, Length(lScanResult.fWarnings) + 1);
+        lScanResult.fWarnings[High(lScanResult.fWarnings)] := lWarning;
       end;
       lStopwatch.Stop;
       lMetrics.fSymbolInventoryMs := lStopwatch.ElapsedMilliseconds;

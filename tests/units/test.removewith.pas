@@ -40,6 +40,14 @@ type
       out aExitCode: Cardinal): string;
   public
     [Test]
+    procedure BrokenRoutinePlanAndApplyRefuseBeforeEditing;
+    [Test]
+    procedure InheritedIncompleteMemberPlanAndApplyRefuse;
+    [Test]
+    procedure ParseableUnitStillPlansSafeWith;
+    [Test]
+    procedure IncludeWithPlanRefusesByNameWithoutCrash;
+    [Test]
     procedure ScanModeWritesJsonShellWithoutEditingSource;
     [Test]
     procedure PlanQualifiesMemberAfterRangeSeparator;
@@ -2205,6 +2213,189 @@ begin
   Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start remove-with semantic process.');
   Result := ReadUtf8TextFile(lLogPath);
+end;
+
+function WriteRemoveWithSafetyProject(const aRoot: string;
+  const aBrokenRoutine, aIncludeWith: Boolean): string;
+var
+  lUnitText: string;
+begin
+  TDirectory.CreateDirectory(aRoot);
+  Result := TPath.Combine(aRoot, 'WithProj.dproj');
+  TFile.WriteAllText(Result,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup>' +
+    '<MainSource>WithProj.dpr</MainSource></PropertyGroup><ItemGroup>' +
+    '<DCCReference Include="WithUnit.pas"/></ItemGroup></Project>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(aRoot, 'WithProj.dpr'),
+    'program WithProj;'#13#10'uses WithUnit in ''WithUnit.pas'';'#13#10'begin UsePoint; end.'#13#10,
+    TEncoding.ASCII);
+  lUnitText := 'unit WithUnit;'#13#10'interface'#13#10 +
+    'type'#13#10'  TPoint2 = record'#13#10'    X, Y: Integer;'#13#10 +
+    '  end;'#13#10'procedure UsePoint;'#13#10 +
+    'implementation'#13#10;
+  if aBrokenRoutine then
+    lUnitText := lUnitText + 'procedure Broken;'#13#10'begin if ( end;'#13#10;
+  lUnitText := lUnitText + 'procedure UsePoint;'#13#10'var lPoint: TPoint2;'#13#10 +
+    'begin'#13#10;
+  if aIncludeWith then
+  begin
+    lUnitText := lUnitText + '  {$I Body.inc}'#13#10;
+    TFile.WriteAllText(TPath.Combine(aRoot, 'Body.inc'),
+      'with lPoint do'#13#10'begin'#13#10'  X := 1;'#13#10'  Y := 2;'#13#10'end;'#13#10,
+      TEncoding.ASCII);
+  end else
+    lUnitText := lUnitText + 'with lPoint do begin X := 1; Y := 2; end;'#13#10;
+  TFile.WriteAllText(TPath.Combine(aRoot, 'WithUnit.pas'), lUnitText +
+    'end;'#13#10'end.'#13#10, TEncoding.ASCII);
+end;
+
+procedure TRemoveWithCommandTests.BrokenRoutinePlanAndApplyRefuseBeforeEditing;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lProjectPath: string;
+  lRoot: string;
+  lSourceAfter: TBytes;
+  lSourceBefore: TBytes;
+  lSourcePath: string;
+  lText: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'remove-with-broken-routine-safety');
+  lProjectPath := WriteRemoveWithSafetyProject(lRoot, True, False);
+  lSourcePath := TPath.Combine(lRoot, 'WithUnit.pas');
+  lSourceBefore := TFile.ReadAllBytes(lSourcePath);
+  for lText in ['plan', 'apply'] do
+  begin
+    lLogPath := TPath.Combine(TempRoot, 'remove-with-broken-' + lText + '.log');
+    lArgs := 'remove-with --project ' + QuoteArg(lProjectPath) + ' --unit ' +
+      QuoteArg(lSourcePath) + ' --mode ' + lText + ' --format json';
+    Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode));
+    Assert.AreNotEqual(Cardinal(0), lExitCode, lText + ' must refuse the unverified unit.');
+    Assert.IsTrue(ContainsText(ReadUtf8TextFile(lLogPath), 'SCOPE_UNVERIFIED'),
+      'Expected named syntax safety refusal in ' + lText + '.');
+    lSourceAfter := TFile.ReadAllBytes(lSourcePath);
+    Assert.AreEqual(Integer(Length(lSourceBefore)), Integer(Length(lSourceAfter)));
+    Assert.IsTrue(CompareMem(@lSourceBefore[0], @lSourceAfter[0], Length(lSourceBefore)),
+      'Refusal must preserve source bytes.');
+  end;
+end;
+
+procedure TRemoveWithCommandTests.InheritedIncompleteMemberPlanAndApplyRefuse;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lProjectPath: string;
+  lRoot: string;
+  lSourceAfter: TBytes;
+  lSourceBefore: TBytes;
+  lSourcePath: string;
+  lText: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'remove-with-inherited-incomplete');
+  lProjectPath := WriteRemoveWithSafetyProject(lRoot, False, False);
+  lSourcePath := TPath.Combine(lRoot, 'WithUnit.pas');
+  TFile.WriteAllText(lSourcePath,
+    'unit WithUnit;'#13#10'interface'#13#10'procedure UsePoint;'#13#10 +
+    'implementation'#13#10'type'#13#10 +
+    '  TBase = class'#13#10'  public'#13#10 +
+    '    FOnX: procedure(a: Integer) of object;'#13#10'  end;'#13#10 +
+    '  TChild = class(TBase) end;'#13#10 +
+    '  TAlias = TChild;'#13#10 +
+    '  TAlias2 = TAlias;'#13#10 +
+    'procedure UsePoint;'#13#10'var'#13#10 +
+    '  lChild: TAlias2;'#13#10 +
+    '  FOnX: procedure(a: Integer) of object;'#13#10 +
+    'begin'#13#10'  lChild := TChild.Create;'#13#10 +
+    '  with lChild do FOnX := nil;'#13#10 +
+    '  lChild.Free;'#13#10'end;'#13#10'end.'#13#10, TEncoding.ASCII);
+  lSourceBefore := TFile.ReadAllBytes(lSourcePath);
+  for lText in ['plan', 'apply'] do
+  begin
+    lLogPath := TPath.Combine(TempRoot, 'remove-with-inherited-' + lText + '.log');
+    lArgs := 'remove-with --project ' + QuoteArg(lProjectPath) + ' --unit ' +
+      QuoteArg(lSourcePath) + ' --mode ' + lText + ' --format json';
+    Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode));
+    Assert.AreNotEqual(Cardinal(0), lExitCode,
+      lText + ' must refuse inherited incomplete member facts.');
+    Assert.IsTrue(ContainsText(ReadUtf8TextFile(lLogPath), 'MEMBERS_INCOMPLETE'),
+      'Expected named inherited member refusal in ' + lText + '.');
+    lSourceAfter := TFile.ReadAllBytes(lSourcePath);
+    Assert.AreEqual(Integer(Length(lSourceBefore)), Integer(Length(lSourceAfter)));
+    Assert.IsTrue(CompareMem(@lSourceBefore[0], @lSourceAfter[0], Length(lSourceBefore)),
+      'Refusal must preserve source bytes.');
+  end;
+end;
+
+procedure TRemoveWithCommandTests.ParseableUnitStillPlansSafeWith;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lLogPath: string;
+  lProjectPath: string;
+  lText: string;
+begin
+  CopyFixtureToTemp('RemoveWithPlannerFixture', 'remove-with-safe-control',
+    lProjectPath, lFixtureDir);
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-safe-control.log');
+  lArgs := 'remove-with --project ' + QuoteArg(lProjectPath) +
+    ' --all --mode plan --format json';
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode));
+  lText := ReadUtf8TextFile(lLogPath);
+  Assert.AreEqual(Cardinal(0), lExitCode, lText);
+  Assert.IsTrue(ContainsText(lText, '"status":"ok"'), lText);
+  Assert.IsTrue(ContainsText(lText, '"plannedEdits":[{'),
+    Copy(lText, Pos('"plannedEdits"', lText), 350));
+end;
+
+procedure TRemoveWithCommandTests.IncludeWithPlanRefusesByNameWithoutCrash;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lProjectPath: string;
+  lRoot: string;
+  lText: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'remove-with-include-safety');
+  lProjectPath := WriteRemoveWithSafetyProject(lRoot, False, True);
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-include-safety.log');
+  lArgs := 'remove-with --project ' + QuoteArg(lProjectPath) + ' --unit ' +
+    QuoteArg(TPath.Combine(lRoot, 'WithUnit.pas')) + ' --mode plan --format json';
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode));
+  lText := ReadUtf8TextFile(lLogPath);
+  Assert.AreNotEqual(Cardinal(0), lExitCode, 'Include with must refuse before unsafe planning.');
+  Assert.IsTrue(ContainsText(lText, 'WITH_IN_INCLUDE_UNVERIFIED'), lText);
+  Assert.IsFalse(ContainsText(lText, 'Range check error'), lText);
+  TFile.Copy(TPath.Combine(TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithPlannerFixture'), 'PlannerUnit.pas'),
+    TPath.Combine(lRoot, 'PlannerUnit.pas'), True);
+  TFile.WriteAllText(lProjectPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup>' +
+    '<MainSource>WithProj.dpr</MainSource></PropertyGroup><ItemGroup>' +
+    '<DCCReference Include="WithUnit.pas"/>' +
+    '<DCCReference Include="PlannerUnit.pas"/></ItemGroup></Project>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'WithProj.dpr'),
+    'program WithProj;'#13#10'uses WithUnit in ''WithUnit.pas'', ' +
+    'PlannerUnit in ''PlannerUnit.pas'';'#13#10 +
+    'begin UsePoint; TPlannerScope.Run; end.'#13#10, TEncoding.ASCII);
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode));
+  lText := ReadUtf8TextFile(lLogPath);
+  Assert.AreNotEqual(Cardinal(0), lExitCode,
+    'Scoped include must still refuse when another unit can plan.');
+  Assert.IsTrue(ContainsText(lText, 'WITH_IN_INCLUDE_UNVERIFIED'), lText);
+  lArgs := 'remove-with --project ' + QuoteArg(lProjectPath) +
+    ' --all --mode plan --format json';
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode));
+  lText := ReadUtf8TextFile(lLogPath);
+  Assert.AreEqual(Cardinal(0), lExitCode, lText);
+  Assert.IsTrue(ContainsText(lText, '"plannedEdits":[{'),
+    'Other verified unit must retain a plan: ' +
+    Copy(lText, Pos('"plannedEdits"', lText), 350));
+  Assert.IsTrue(ContainsText(lText, '"code":"WITH_IN_INCLUDE_UNVERIFIED"'),
+    'Whole-project plan must name the omitted include unit: ' + lText);
 end;
 
 procedure TRemoveWithCommandTests.SemanticCacheOptionReusesAndInvalidatesUnitModels;
