@@ -23,7 +23,7 @@ uses
   DelphiSemantics.DeadCode, DelphiSemantics.Model.Text, DelphiSemantics.ProjectContext,
   DelphiSemantics.Refactor, DelphiSemantics.Usage,
   Dak.Build, Dak.DeadCodeProfile, Dak.ExitCodes, Dak.Paths, Dak.Refactor.RenameGuards,
-  Dak.Semantics.Session, Dak.SourceText;
+  Dak.Semantics.Session, Dak.SourceText, Dak.Utils;
 
 type
   TRefactorSemanticPhaseMetrics = record
@@ -1141,6 +1141,7 @@ var
   lContext: IDakSemanticSymbolQueryContext;
   lCacheMetrics: TDakSemanticCacheMetrics;
   lError: string;
+  lFilePath: string;
   lOutput: string;
   lPhaseMetrics: TRefactorSemanticPhaseMetrics;
   lPlanningStopwatch: TStopwatch;
@@ -1148,6 +1149,13 @@ var
   lResult: TDelphiSemanticUsageResult;
   lSymbol: string;
 begin
+  if (aOptions.fRefactorSymbol = '') and
+    not TryResolvePositionFilePath(aOptions.fRefactorFilePath, lFilePath,
+      lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitInvalidProjectInput);
+  end;
   if not BuildSemanticContext(aOptions, lContext, lCacheMetrics, lPhaseMetrics, lError) then
   begin
     WriteLn(ErrOutput, lError);
@@ -1162,7 +1170,7 @@ begin
   end else begin
     lPhaseMetrics.IdentifierScopeFailOpenReason := 'position-target';
     lPlanningStopwatch := TStopwatch.StartNew;
-    lResult := lContext.FindUsagesAtPosition(aOptions.fRefactorFilePath,
+    lResult := lContext.FindUsagesAtPosition(lFilePath,
       aOptions.fRefactorLine, aOptions.fRefactorCol);
     lSymbol := lResult.Symbol.Name;
   end;
@@ -1191,6 +1199,7 @@ var
   lCacheMetrics: TDakSemanticCacheMetrics;
   lContext: IDakSemanticSymbolQueryContext;
   lError: string;
+  lFilePath: string;
   lOutput: string;
   lPhaseMetrics: TRefactorSemanticPhaseMetrics;
   lPlan: TDelphiSemanticRenamePlan;
@@ -1202,6 +1211,13 @@ var
 begin
   SetLength(lAppliedFiles, 0);
   lVerification := RenameVerification('not-run', -1, '', '');
+  if (aOptions.fRefactorSymbol = '') and
+    not TryResolvePositionFilePath(aOptions.fRefactorFilePath, lFilePath,
+      lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitInvalidProjectInput);
+  end;
   if not BuildSemanticContext(aOptions, lContext, lCacheMetrics, lPhaseMetrics, lError) then
   begin
     WriteLn(ErrOutput, lError);
@@ -1216,13 +1232,13 @@ begin
   end else begin
     lPhaseMetrics.IdentifierScopeFailOpenReason := 'position-target';
     lPlanningStopwatch := TStopwatch.StartNew;
-    lUsageResult := lContext.FindUsagesAtPosition(aOptions.fRefactorFilePath,
+    lUsageResult := lContext.FindUsagesAtPosition(lFilePath,
       aOptions.fRefactorLine, aOptions.fRefactorCol);
     if lUsageResult.Status = 'resolved' then
       lSymbol := lUsageResult.Symbol.Name
     else
       lSymbol := '';
-    lPlan := lContext.PlanRenameAtPosition(aOptions.fRefactorFilePath,
+    lPlan := lContext.PlanRenameAtPosition(lFilePath,
       aOptions.fRefactorLine, aOptions.fRefactorCol, aOptions.fRefactorNewName);
   end;
   lPhaseMetrics.CommandPlanningMs := lPlanningStopwatch.ElapsedMilliseconds;

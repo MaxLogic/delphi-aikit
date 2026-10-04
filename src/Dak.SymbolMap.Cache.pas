@@ -83,14 +83,12 @@ function TryLoadSymbolMapUnitProjection(const aContext: TSymbolMapContext; const
 implementation
 
 uses
-  System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.StrUtils, System.SysUtils,
+  System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
   System.Variants,
-  Data.DB,
   Winapi.Windows,
-  FireDAC.Comp.Client, FireDAC.Phys.SQLite,
-  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.Model,
-  DelphiSemantics.Preprocess,
-  Dak.RadStudio.Locator;
+  Data.DB, FireDAC.Comp.Client, FireDAC.Phys.SQLite,
+  Dak.RadStudio.Locator, Dak.Utils,
+  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.Model, DelphiSemantics.Preprocess;
 
 type
   TSymbolMapIntrinsicSeed = record
@@ -111,7 +109,20 @@ const
   cProjectDbFileName = 'project-index.sqlite3';
   cCentralCacheMutexPrefix = 'Local\DelphiAIKit.SymbolMap.Cache.';
   cProjectCacheMutexPrefix = 'Local\DelphiAIKit.SymbolMap.ProjectCache.';
-  cSymbolMapParserVersion = 'symbol-map-parser-v3';
+  cSymbolMapParserVersion = 'symbol-map-parser-v4';
+
+function ScopeStatusJson(const aScopeModelStatus: string): string;
+var
+  lJson: TJSONObject;
+begin
+  lJson := TJSONObject.Create;
+  try
+    lJson.AddPair('scope_model_status', aScopeModelStatus);
+    Result := lJson.ToJSON;
+  finally
+    lJson.Free;
+  end;
+end;
 
 function StoreSymbolMapUnitProjectionInternal(const aContext: TSymbolMapContext;
   const aStatus: TSymbolMapCacheStatus; const aModel: TSymbolMapUnitModel;
@@ -168,12 +179,13 @@ begin
   aDriverLink := nil;
   aConnection := nil;
   try
-    ForceDirectories(TPath.GetDirectoryName(aDbPath));
+    if not ForceDirectories(LongPathSafe(TPath.GetDirectoryName(aDbPath), 0)) then
+      raise Exception.Create('Cannot create Symbol Map cache directory: ' + TPath.GetDirectoryName(aDbPath));
     aDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
     aConnection := TFDConnection.Create(nil);
     aConnection.LoginPrompt := False;
     aConnection.Params.Values['DriverID'] := 'SQLite';
-    aConnection.Params.Values['Database'] := aDbPath;
+    aConnection.Params.Values['Database'] := LongPathSafe(aDbPath, 16);
     aConnection.Connected := True;
     Result := True;
   except
@@ -354,7 +366,7 @@ var
 begin
   Result := False;
   aError := '';
-  aCreated := not TFile.Exists(aDbPath);
+  aCreated := not TFile.Exists(LongPathSafe(aDbPath, 0));
   if not OpenCacheConnection(aDbPath, lDriverLink, lConnection, aError) then
     Exit(False);
   try
@@ -822,6 +834,8 @@ var
 begin
   lBuilder := TStringBuilder.Create;
   try
+    // Profile links must be rebuilt when the SymbolMap or DelphiSemantics projection changes.
+    lBuilder.AppendLine(SymbolMapParserVersion);
     lBuilder.AppendLine(TPath.GetFullPath(aSourceRoot));
     for lFile in aUnitFiles do
       lBuilder.AppendLine(TPath.GetFileName(lFile) + '=' + HashBytes(TFile.ReadAllBytes(lFile)));
@@ -1391,6 +1405,7 @@ end;
 function LoadCachedUnitProjection(const aConnection: TFDConnection; const aUnitCacheKey,
   aFilePath: string; out aModel: TSymbolMapUnitModel): Boolean;
 var
+  lMetadata: TJSONValue;
   lQuery: TFDQuery;
 begin
   Result := False;
@@ -1398,7 +1413,8 @@ begin
   lQuery := TFDQuery.Create(nil);
   try
     lQuery.Connection := aConnection;
-    lQuery.SQL.Text := 'select unit_name, file_path_sample from symbol_map_units where unit_cache_key = ?';
+    lQuery.SQL.Text := 'select unit_name, file_path_sample, diagnostics_json ' +
+      'from symbol_map_units where unit_cache_key = ?';
     lQuery.Params[0].AsString := aUnitCacheKey;
     lQuery.Open;
     if lQuery.Eof then
@@ -1407,6 +1423,14 @@ begin
     aModel.fUnitName := lQuery.FieldByName('unit_name').AsString;
     aModel.fFilePath := TPath.GetFullPath(aFilePath);
     aModel.fEncodingName := 'cache-hit';
+    lMetadata := TJSONObject.ParseJSONValue(lQuery.FieldByName('diagnostics_json').AsString);
+    try
+      if (lMetadata is TJSONObject) and
+        ((lMetadata as TJSONObject).GetValue('scope_model_status') is TJSONString) then
+        aModel.fScopeModelStatus := (lMetadata as TJSONObject).GetValue<string>('scope_model_status');
+    finally
+      lMetadata.Free;
+    end;
     LoadCachedUses(aConnection, aUnitCacheKey, aModel);
     LoadCachedSymbols(aConnection, aUnitCacheKey, aModel);
     LoadCachedMembers(aConnection, aUnitCacheKey, aModel);
@@ -1534,7 +1558,8 @@ begin
               'unit_cache_key, unit_name, file_hash, file_path_sample, context_hash, parser_version, ' +
               'schema_version, diagnostics_json, parsed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
               [lUnitCacheKey, aModel.fUnitName, aResult.fFileHash, aModel.fFilePath, aResult.fContextHash,
-              SymbolMapParserVersion, cSymbolMapSchemaVersion, '', DateTimeToStr(Now)]);
+              SymbolMapParserVersion, cSymbolMapSchemaVersion,
+              ScopeStatusJson(aModel.fScopeModelStatus), DateTimeToStr(Now)]);
             lConnection.Commit;
           except
             lConnection.Rollback;

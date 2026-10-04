@@ -433,6 +433,8 @@ begin
   for lRows in [lFi, lPal] do
     for lItem in lRows do
     begin
+      if not (lItem is TJSONObject) then
+        raise EConvertError.Create('normalized JSONL finding must be an object');
       if TJSONObject(lItem).GetValue('ownership') = nil then
         raise EConvertError.Create('normalized JSONL ownership is missing');
       if AnalysisRecordIsActionable(TJSONObject(lItem)) then

@@ -5,6 +5,12 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- Pascal Analyzer findings that use a project's dotted report name now resolve to its recorded main DPR when Modules.xml uniquely identifies that source under a different Pascal program name; conflicting metadata remains unresolved.
+- Analysis baseline comparison rejects non-object `top_warning_sections` rows with a controlled error, without changing the accepted baseline or history.
+- `analyze-report --verify` rejects non-object retained FixInsight and Pascal Analyzer finding rows with a controlled error while preserving the report files.
+- Symbol Map cache databases now open and reuse through extended-length Windows paths when the central or project cache lies beyond the classic path limit; reported paths and cache identity stay unchanged.
+- Symbol Map search and describe now mark declarations from unverified semantic scope as `scope-unverified`, including cached fallback members; AST-backed declarations retain their normal confidence.
+- `find-usages`, `rename`, and Symbol Map position queries resolve `--file` paths passed with forward or mixed separators, including paths relative to the caller's current directory.
 - `remove-with` now refuses plans and apply for a `with` in an unverified unit or include-expanded source, with a named reason instead of an unsafe edit or range error. A project-wide plan still includes verified units and reports the include refusal as a warning.
 - `rename` no longer plans edits at unrelated positions for names used or declared in an `{$I}` include file (for example inside an inactive `{$IFDEF}` branch, in another routine, or on the `{$I}` directive). Include occurrences are listed under `unresolved` with the include file, line and column (an include expanded in the middle of a line at its directive, reason `include-position-unknown`), the plan is `incomplete`, and `--apply` changes no file. `find-usages` reports include positions, and a rename plan whose edit position does not hold the old name is `blocked`.
 - `dead-code` no longer reports a routine used only from a program main block or from another unit's `initialization` or `finalization` block as `definitely-unused`, so `--apply` keeps it. Overloads called without provable binding and short-form implementation bodies are kept as well. A routine declared in an include file is reported at that file and blocked (`declared-in-include`).

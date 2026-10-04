@@ -62,12 +62,12 @@ implementation
 
 uses
   System.Generics.Collections,
-  System.IOUtils,
+  System.IOUtils, System.JSON,
   System.SysUtils,
   Data.DB,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite,
-  DelphiSemantics.ProjectContext,
-  Dak.Semantics.Session;
+  Dak.Semantics.Session, Dak.Utils,
+  DelphiSemantics.ProjectContext;
 
 type
   TSymbolMapUnitScope = record
@@ -103,10 +103,12 @@ type
     fOwnerName: TField;
     fSignature: TField;
     fSourceKind: TField;
+    fScopeFilePath: TField;
+    fScopeStatus: TField;
     fTypeName: TField;
     fUnitName: TField;
     procedure Bind(const aQuery: TFDQuery);
-    function ReadDefinition: TSymbolMapDefinition;
+    function ReadDefinition(const aVerifiedScopes: TDictionary<string, Boolean>): TSymbolMapDefinition;
   end;
 
   TSymbolMapReferenceProjectionReader = record
@@ -142,6 +144,39 @@ begin
   if SameText(aKind, 'intrinsic-unit') then
     Exit('unit');
   Result := aKind;
+end;
+
+function VerifiedProjectionScope(const aScopeFilePath, aDeclaringFilePath,
+  aScopeJson: string): Boolean;
+var
+  lJson: TJSONValue;
+  lStatus: TJSONValue;
+begin
+  Result := False;
+  if (aScopeFilePath = '') or not SameText(aScopeFilePath, aDeclaringFilePath) then
+    Exit;
+  lJson := TJSONObject.ParseJSONValue(aScopeJson);
+  try
+    if not (lJson is TJSONObject) then
+      Exit;
+    lStatus := TJSONObject(lJson).GetValue('scope_model_status');
+    Result := (lStatus is TJSONString) and SameText(TJSONString(lStatus).Value, 'ast');
+  finally
+    lJson.Free;
+  end;
+end;
+
+function VerifiedProjectionScopeCached(const aScopeFilePath, aDeclaringFilePath,
+  aScopeJson: string; const aVerifiedScopes: TDictionary<string, Boolean>): Boolean;
+var
+  lKey: string;
+begin
+  lKey := aScopeFilePath + #0 + aDeclaringFilePath + #0 + aScopeJson;
+  if not aVerifiedScopes.TryGetValue(lKey, Result) then
+  begin
+    Result := VerifiedProjectionScope(aScopeFilePath, aDeclaringFilePath, aScopeJson);
+    aVerifiedScopes.Add(lKey, Result);
+  end;
 end;
 
 procedure TSymbolMapUnitScopeReader.BindProject(const aQuery: TFDQuery);
@@ -181,6 +216,8 @@ begin
   fUnitName := aQuery.FieldByName('unit_name');
   fFilePath := aQuery.FieldByName('file_path');
   fSourceKind := aQuery.FieldByName('source_kind');
+  fScopeFilePath := aQuery.FieldByName('scope_file_path');
+  fScopeStatus := aQuery.FieldByName('scope_status');
   fSignature := aQuery.FieldByName('signature');
   fTypeName := aQuery.FieldByName('type_name');
   fLineNo := aQuery.FieldByName('line_no');
@@ -189,7 +226,8 @@ begin
   fEndColNo := aQuery.FieldByName('end_col_no');
 end;
 
-function TSymbolMapDefinitionProjectionReader.ReadDefinition: TSymbolMapDefinition;
+function TSymbolMapDefinitionProjectionReader.ReadDefinition(
+  const aVerifiedScopes: TDictionary<string, Boolean>): TSymbolMapDefinition;
 begin
   Result := Default(TSymbolMapDefinition);
   Result.fFound := True;
@@ -200,6 +238,10 @@ begin
   Result.fFilePath := fFilePath.AsWideString;
   Result.fSourceKind := fSourceKind.AsWideString;
   Result.fConfidence := 'exact';
+  if (Result.fSourceKind <> 'compiler-intrinsic') and
+    not VerifiedProjectionScopeCached(fScopeFilePath.AsWideString, Result.fFilePath,
+    fScopeStatus.AsWideString, aVerifiedScopes) then
+    Result.fConfidence := 'scope-unverified';
   Result.fSignature := fSignature.AsWideString;
   Result.fTypeName := fTypeName.AsWideString;
   Result.fLine := fLineNo.AsInteger;
@@ -353,7 +395,7 @@ begin
     aConnection := TFDConnection.Create(nil);
     aConnection.LoginPrompt := False;
     aConnection.Params.Values['DriverID'] := 'SQLite';
-    aConnection.Params.Values['Database'] := aDbPath;
+    aConnection.Params.Values['Database'] := LongPathSafe(aDbPath, 16);
     aConnection.Connected := True;
     Result := True;
   except
@@ -547,7 +589,8 @@ end;
 
 procedure AttachProjectCache(const aConnection: TFDConnection; const aStatus: TSymbolMapCacheStatus);
 begin
-  aConnection.ExecSQL('attach database ' + SqlStringLiteral(aStatus.fProjectDbPath) + ' as projectdb');
+  aConnection.ExecSQL('attach database ' + SqlStringLiteral(LongPathSafe(aStatus.fProjectDbPath, 16)) +
+    ' as projectdb');
 end;
 
 function DefinitionFromSymbolProjection(const aQuery: TFDQuery): TSymbolMapDefinition;
@@ -561,6 +604,9 @@ begin
   Result.fFilePath := aQuery.FieldByName('file_path').AsWideString;
   Result.fSourceKind := aQuery.FieldByName('source_kind').AsWideString;
   Result.fConfidence := 'exact';
+  if not VerifiedProjectionScope(aQuery.FieldByName('scope_file_path').AsWideString,
+    Result.fFilePath, aQuery.FieldByName('scope_status').AsWideString) then
+    Result.fConfidence := 'scope-unverified';
   Result.fSignature := aQuery.FieldByName('signature').AsWideString;
   Result.fTypeName := aQuery.FieldByName('type_name').AsWideString;
   Result.fLine := aQuery.FieldByName('line_no').AsInteger;
@@ -602,19 +648,25 @@ begin
       lQuery.SQL.Text :=
         'select m.member_name as name, m.kind, m.owner_name, u.unit_name, u.file_path, u.source_kind, ' +
         ''''' as signature, m.type_name, m.line_no, m.col_no, m.line_no as end_line_no, m.col_no as end_col_no, ' +
-        '0 as source_rank from members m join projectdb.project_units u on u.unit_cache_key = m.unit_cache_key ' +
+        '0 as source_rank, smu.file_path_sample as scope_file_path, smu.diagnostics_json as scope_status ' +
+        'from members m join projectdb.project_units u on u.unit_cache_key = m.unit_cache_key ' +
+        'left join symbol_map_units smu on smu.unit_cache_key = m.unit_cache_key ' +
         'where u.project_key = :project_key and m.normalized_member_name = lower(:name) ' + lMemberOwnerClause +
         'union all ' +
         'select s.name, s.kind, s.owner_name, u.unit_name, u.file_path, u.source_kind, s.signature, ' +
-        's.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, 1 as source_rank ' +
+        's.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, 1 as source_rank, ' +
+        'smu.file_path_sample as scope_file_path, smu.diagnostics_json as scope_status ' +
         'from symbols s join projectdb.project_units u on u.unit_cache_key = s.unit_cache_key ' +
+        'left join symbol_map_units smu on smu.unit_cache_key = s.unit_cache_key ' +
         'where u.project_key = :project_key and s.normalized_name = lower(:name) ' + lSymbolOwnerClause +
         'union all ' +
         'select s.name, s.kind, s.owner_name, cu.unit_name, cu.file_path_sample as file_path, ' +
         'cu.source_kind, s.signature, s.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, ' +
-        '2 as source_rank from symbols s join compiler_profile_units cu on cu.unit_cache_key = s.unit_cache_key ' +
+        '2 as source_rank, smu.file_path_sample as scope_file_path, smu.diagnostics_json as scope_status ' +
+        'from symbols s join compiler_profile_units cu on cu.unit_cache_key = s.unit_cache_key ' +
+        'left join symbol_map_units smu on smu.unit_cache_key = s.unit_cache_key ' +
         'where cu.profile_key = :profile_key and s.normalized_name = lower(:name) ' + lSymbolOwnerClause +
-        'order by source_rank, unit_name, line_no, col_no';
+        'order by 13, 4, 9, 10';
       lQuery.ParamByName('project_key').AsString := lProjectKey;
       lQuery.ParamByName('profile_key').AsString := aProfile.fProfileKey;
       lQuery.ParamByName('name').AsString := aName;
@@ -647,6 +699,7 @@ var
   lQuery: TFDQuery;
   lQueryPattern: string;
   lReader: TSymbolMapDefinitionProjectionReader;
+  lVerifiedScopes: TDictionary<string, Boolean>;
 begin
   Result := False;
   SetLength(aDefinitions, 0);
@@ -666,24 +719,31 @@ begin
       lQuery.SQL.Text :=
         'select m.member_name as name, m.kind, m.owner_name, u.unit_name, u.file_path, u.source_kind, ' +
         ''''' as signature, m.type_name, m.line_no, m.col_no, m.line_no as end_line_no, m.col_no as end_col_no, ' +
-        '0 as source_rank from members m join projectdb.project_units u on u.unit_cache_key = m.unit_cache_key ' +
+        '0 as source_rank, smu.file_path_sample as scope_file_path, smu.diagnostics_json as scope_status ' +
+        'from members m join projectdb.project_units u on u.unit_cache_key = m.unit_cache_key ' +
+        'left join symbol_map_units smu on smu.unit_cache_key = m.unit_cache_key ' +
         'where u.project_key = :project_key and lower(m.member_name) like lower(:query) ' +
         'union all ' +
         'select s.name, s.kind, s.owner_name, u.unit_name, u.file_path, u.source_kind, s.signature, ' +
-        's.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, 1 as source_rank ' +
+        's.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, 1 as source_rank, ' +
+        'smu.file_path_sample as scope_file_path, smu.diagnostics_json as scope_status ' +
         'from symbols s join projectdb.project_units u on u.unit_cache_key = s.unit_cache_key ' +
+        'left join symbol_map_units smu on smu.unit_cache_key = s.unit_cache_key ' +
         'where u.project_key = :project_key and lower(s.name) like lower(:query) ' +
         'union all ' +
         'select s.name, s.kind, s.owner_name, cu.unit_name, cu.file_path_sample as file_path, ' +
         'cu.source_kind, s.signature, s.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, ' +
-        '2 as source_rank from symbols s join compiler_profile_units cu on cu.unit_cache_key = s.unit_cache_key ' +
+        '2 as source_rank, smu.file_path_sample as scope_file_path, smu.diagnostics_json as scope_status ' +
+        'from symbols s join compiler_profile_units cu on cu.unit_cache_key = s.unit_cache_key ' +
+        'left join symbol_map_units smu on smu.unit_cache_key = s.unit_cache_key ' +
         'where cu.profile_key = :profile_key and lower(s.name) like lower(:query) ' +
         'union all ' +
         'select ci.name, ci.kind, ''compiler'' as owner_name, '''' as unit_name, '''' as file_path, ' +
         '''compiler-intrinsic'' as source_kind, ci.signature, '''' as type_name, 0 as line_no, 0 as col_no, ' +
-        '0 as end_line_no, 0 as end_col_no, 3 as source_rank from compiler_intrinsics ci ' +
+        '0 as end_line_no, 0 as end_col_no, 3 as source_rank, NULL as scope_file_path, ' +
+        'NULL as scope_status from compiler_intrinsics ci ' +
         'where ci.profile_key = :profile_key and lower(ci.name) like lower(:query) ' +
-        'order by source_rank, owner_name, name, unit_name, line_no, col_no' + lLimitSql;
+        'order by 13, 3, 1, 4, 9, 10' + lLimitSql;
       lQuery.ParamByName('project_key').AsString := lProjectKey;
       lQuery.ParamByName('profile_key').AsString := aProfile.fProfileKey;
       lQuery.ParamByName('query').AsString := lQueryPattern;
@@ -691,13 +751,19 @@ begin
       lQuery.FetchAll;
       SetLength(aDefinitions, lQuery.RecordCount);
       lReader.Bind(lQuery);
-      lIndex := 0;
-      while not lQuery.Eof do
-      begin
-        aDefinitions[lIndex] := lReader.ReadDefinition;
-        aDefinitions[lIndex].fConfidence := 'name-match';
-        Inc(lIndex);
-        lQuery.Next;
+      lVerifiedScopes := TDictionary<string, Boolean>.Create;
+      try
+        lIndex := 0;
+        while not lQuery.Eof do
+        begin
+          aDefinitions[lIndex] := lReader.ReadDefinition(lVerifiedScopes);
+          if aDefinitions[lIndex].fConfidence <> 'scope-unverified' then
+            aDefinitions[lIndex].fConfidence := 'name-match';
+          Inc(lIndex);
+          lQuery.Next;
+        end;
+      finally
+        lVerifiedScopes.Free;
       end;
       Result := True;
     finally
@@ -731,19 +797,25 @@ begin
       lQuery.SQL.Text :=
         'select u.unit_name as name, ''unit'' as kind, '''' as owner_name, u.unit_name, u.file_path, ' +
         'u.source_kind, '''' as signature, '''' as type_name, 1 as line_no, 1 as col_no, ' +
-        '1 as end_line_no, 1 as end_col_no, 0 as source_rank from projectdb.project_units u ' +
+        '1 as end_line_no, 1 as end_col_no, 0 as source_rank, ' +
+        'smu.file_path_sample as scope_file_path, smu.diagnostics_json as scope_status ' +
+        'from projectdb.project_units u left join symbol_map_units smu on smu.unit_cache_key = u.unit_cache_key ' +
         'where u.project_key = :project_key and u.file_path = :file_path and :line_no = 1 ' +
         'union all ' +
         'select s.name, s.kind, s.owner_name, u.unit_name, u.file_path, u.source_kind, s.signature, ' +
-        's.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, 1 as source_rank ' +
+        's.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, 1 as source_rank, ' +
+        'smu.file_path_sample as scope_file_path, smu.diagnostics_json as scope_status ' +
         'from symbols s join projectdb.project_units u on u.unit_cache_key = s.unit_cache_key ' +
+        'left join symbol_map_units smu on smu.unit_cache_key = s.unit_cache_key ' +
         'where u.project_key = :project_key and u.file_path = :file_path and s.line_no = :line_no ' +
         'and s.col_no <= :col_no and s.end_col_no >= :col_no ' +
         'union all ' +
         'select m.member_name as name, m.kind, m.owner_name, u.unit_name, u.file_path, u.source_kind, ' +
         ''''' as signature, m.type_name, m.line_no, m.col_no, m.line_no as end_line_no, ' +
-        'm.col_no as end_col_no, 2 as source_rank from members m ' +
+        'm.col_no as end_col_no, 2 as source_rank, smu.file_path_sample as scope_file_path, ' +
+        'smu.diagnostics_json as scope_status from members m ' +
         'join projectdb.project_units u on u.unit_cache_key = m.unit_cache_key ' +
+        'left join symbol_map_units smu on smu.unit_cache_key = m.unit_cache_key ' +
         'where u.project_key = :project_key and u.file_path = :file_path and m.line_no = :line_no ' +
         'and m.col_no <= :col_no order by source_rank, col_no desc limit 1';
       lQuery.ParamByName('project_key').AsString := lProjectKey;

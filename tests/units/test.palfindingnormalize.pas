@@ -24,6 +24,15 @@ type
     [Test]
     procedure ModulesXmlResolvesFindingPathsDeterministically;
     [Test]
+    [TestCase('unique', 'unique,resolved,C:\Repo\DelphiAIKit.Tests.dpr')]
+    [TestCase('no context', 'no-context,missing,')]
+    [TestCase('different main', 'different,missing,')]
+    [TestCase('conflicting main', 'conflicting,missing,')]
+    [TestCase('duplicate main', 'duplicate-main,missing,')]
+    [TestCase('conflicting alias', 'alias-conflict,ambiguous,')]
+    [TestCase('ambiguous alias', 'ambiguous-alias,ambiguous,')]
+    procedure ReportNameResolvesOnlyUniqueRecordedMain(const aCase, aExpectedStatus, aExpectedPath: string);
+    [Test]
     [TestCase('Plain include', 'Shared.inc,resolved,False')]
     [TestCase('Class-qualified include', 'shared.INC\TWorker\Run,resolved,False')]
     [TestCase('Slash-qualified include', 'Shared.inc/TWorker/Run,resolved,False')]
@@ -307,6 +316,70 @@ begin
   end;
 end;
 
+procedure TPalFindingNormalizeTests.ReportNameResolvesOnlyUniqueRecordedMain(
+  const aCase, aExpectedStatus, aExpectedPath: string);
+var
+  lCounts: TPalFindingCounts;
+  lError: string;
+  lJson: TJSONObject;
+  lLines: TArray<string>;
+  lMainPath: string;
+  lModules: string;
+  lOutRoot: string;
+  lReportRoot: string;
+  i: Integer;
+begin
+  lReportRoot := TPath.Combine(TempRoot, 'pal-report-name-' + aCase);
+  lOutRoot := TPath.Combine(TempRoot, 'pal-report-name-out-' + aCase);
+  TDirectory.CreateDirectory(lReportRoot);
+  TDirectory.CreateDirectory(lOutRoot);
+  lMainPath := 'C:\Repo\DelphiAIKit.Tests.dpr';
+  lModules := '<module><name>DelphiAIKit_Tests</name><path>' + lMainPath + '</path></module>';
+  if SameText(aCase, 'different') then
+    lMainPath := 'C:\Repo\Other.dpr'
+  else if SameText(aCase, 'conflicting') then
+    lModules := lModules + '<module><name>DelphiAIKit_Tests</name>' +
+      '<path>C:\Repo\Other.dpr</path></module>'
+  else if SameText(aCase, 'duplicate-main') then
+    lModules := lModules + '<module><name>AnotherProgram</name><path>' +
+      lMainPath + '</path></module>'
+  else if SameText(aCase, 'alias-conflict') then
+    lModules := lModules + '<module><name>DelphiAIKit.Tests</name>' +
+      '<path>C:\Repo\Other.dpr</path></module>'
+  else if SameText(aCase, 'ambiguous-alias') then
+    lModules := lModules + '<module><name>DelphiAIKit.Tests</name>' +
+      '<path>C:\Repo\Other.dpr</path></module>' +
+      '<module><name>DelphiAIKit.Tests</name><path>C:\Repo\Third.dpr</path></module>';
+  TFile.WriteAllText(TPath.Combine(lReportRoot, 'Modules.xml'),
+    '<report><section name="Modules">' + lModules + '</section></report>', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lReportRoot, 'Warnings.xml'),
+    '<report><section name="Warnings"><item><id>base</id>' +
+    '<locmod>DelphiAIKit.Tests (7)</locmod></item><item><id>qualified</id>' +
+    '<locmod>DelphiAIKit.Tests\TWorker\Run (8)</locmod></item></section></report>', TEncoding.UTF8);
+  if SameText(aCase, 'no-context') then
+    Assert.IsTrue(TryGeneratePalArtifactsWithCounts(lReportRoot, lOutRoot, lCounts, lError), lError)
+  else
+    Assert.IsTrue(TryGeneratePalArtifactsForProject(lReportRoot, lOutRoot,
+      'DelphiAIKit.Tests', lMainPath, lCounts, lError), lError);
+  Assert.AreEqual(2, lCounts.Total);
+  lLines := TFile.ReadAllLines(TPath.Combine(lOutRoot, 'pal-findings.jsonl'));
+  Assert.AreEqual(2, Integer(Length(lLines)));
+  for i := 0 to High(lLines) do
+  begin
+    lJson := ParseJsonObject(lLines[i]);
+    try
+      Assert.AreEqual(aExpectedStatus, lJson.GetValue<string>('path_status'));
+      Assert.AreEqual(aExpectedPath, lJson.GetValue<string>('path', ''));
+      if i = 0 then
+        Assert.AreEqual('DelphiAIKit.Tests', lJson.GetValue<string>('module'))
+      else
+        Assert.AreEqual('DelphiAIKit.Tests\TWorker\Run', lJson.GetValue<string>('module'));
+    finally
+      lJson.Free;
+    end;
+  end;
+end;
+
 procedure TPalFindingNormalizeTests.ModulesXmlResolvesIncludePaths(const aModule, aExpectedStatus: string;
   const aConflicting: Boolean);
 var
@@ -481,8 +554,8 @@ var
   lSource: string;
 begin
   lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.analyze.projectrunner.pas'), TEncoding.UTF8);
-  Assert.IsTrue(lSource.Contains('TryGeneratePalArtifactsWithCounts'),
-    'Project summary counts must come from the normalized artifact list.');
+  Assert.IsTrue(lSource.Contains('TryGeneratePalArtifactsForProject'),
+    'Project summary counts must come from the normalized artifact list with main-source context.');
   Assert.IsTrue(lSource.Contains('AddError(''PAL findings generation failed: '' + lPalPostError, 6)'),
     'Required project PAL normalization failures must fail the command.');
   Assert.IsTrue(lSource.Contains('AddError(''PAL report root not found: '' + lPalPostError, 6)'),

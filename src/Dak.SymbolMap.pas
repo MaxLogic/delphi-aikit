@@ -11,7 +11,8 @@ implementation
 
 uses
   System.IOUtils, System.JSON, System.SysUtils,
-  Dak.ExitCodes, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer, Dak.SymbolMap.Query;
+  Dak.ExitCodes, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer,
+  Dak.SymbolMap.Query, Dak.Utils;
 
 type
   TSymbolMapIndexedUnit = record
@@ -555,9 +556,12 @@ function RunSymbolMapFindDefinition(const aOptions: TAppOptions; var aState: TSy
   out aError: string): Boolean;
 var
   lDefinition: TSymbolMapDefinition;
+  lFilePath: string;
 begin
+  if not TryResolvePositionFilePath(aOptions.fSymbolMapFilePath, lFilePath, aError) then
+    Exit(False);
   Result := FindSymbolMapDefinitionByPosition(aState.fContext, aState.fCacheStatus,
-    aState.fCompilerProfile, aOptions.fSymbolMapFilePath, aOptions.fSymbolMapLine,
+    aState.fCompilerProfile, lFilePath, aOptions.fSymbolMapLine,
     aOptions.fSymbolMapCol, lDefinition, aError);
   if Result then
     aState.fResultJson := BuildDefinitionResultJson(lDefinition);
@@ -566,13 +570,16 @@ end;
 function RunSymbolMapFindReferences(const aOptions: TAppOptions; var aState: TSymbolMapCommandState;
   out aError: string): Boolean;
 var
+  lFilePath: string;
   lReferences: TArray<TSymbolMapReference>;
   lSymbol: string;
 begin
   lSymbol := aOptions.fSymbolMapSymbol;
   if aOptions.fSymbolMapFilePath <> '' then
   begin
-    Result := FindSymbolMapReferencesByPosition(aState.fContext, aOptions.fSymbolMapFilePath,
+    if not TryResolvePositionFilePath(aOptions.fSymbolMapFilePath, lFilePath, aError) then
+      Exit(False);
+    Result := FindSymbolMapReferencesByPosition(aState.fContext, lFilePath,
       aOptions.fSymbolMapLine, aOptions.fSymbolMapCol, aOptions.fSymbolMapLimit,
       lSymbol, lReferences, aError);
   end else

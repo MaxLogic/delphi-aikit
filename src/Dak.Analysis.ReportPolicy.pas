@@ -660,15 +660,22 @@ var
   lValue: Integer;
 begin
   Result := TStringCounts.Create;
-  if aSections = nil then
-    Exit;
-  for lItem in aSections do
-  begin
-    lRow := TJSONObject(lItem);
-    if (lRow.GetValue('section') = nil) or (lRow.GetValue('count') = nil) then
-      Continue;
-    if TryStrToInt(JsonText(lRow, 'count'), lValue) then
-      Result.AddOrSetValue(JsonText(lRow, 'section'), lValue);
+  try
+    if aSections = nil then
+      Exit;
+    for lItem in aSections do
+    begin
+      if not (lItem is TJSONObject) then
+        raise EConvertError.Create('Invalid analysis baseline: top_warning_sections row must be an object');
+      lRow := TJSONObject(lItem);
+      if (lRow.GetValue('section') = nil) or (lRow.GetValue('count') = nil) then
+        Continue;
+      if TryStrToInt(JsonText(lRow, 'count'), lValue) then
+        Result.AddOrSetValue(JsonText(lRow, 'section'), lValue);
+    end;
+  except
+    Result.Free;
+    raise;
   end;
 end;
 
@@ -951,6 +958,8 @@ begin
   end;
   Result := TJSONObject(lValue);
   try
+    // Reject malformed retained rows before comparison starts constructing its delta objects.
+    SectionCounts(JsonArrayMember(JsonObjectMember(Result, 'pascal_analyzer'), 'top_warning_sections')).Free;
     if not NullableInteger(Result, 'version', lVersion) then
       lVersion := 0;
     if lVersion < 2 then

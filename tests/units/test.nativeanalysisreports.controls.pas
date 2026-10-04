@@ -26,6 +26,8 @@ type
     [Test]
     procedure MalformedSeedFailsBeforeBaselineAndHistoryMutation;
     [Test]
+    procedure NonObjectBaselineSectionsFailWithoutMutation;
+    [Test]
     procedure PalNotRequestedDiscardsRetainedPalEvidence;
     [Test]
     procedure PalRuleIdentityKeepsExactReportAndSectionDistinctions;
@@ -338,6 +340,44 @@ begin
   AssertBytesUnchanged(lBaseline, lBaselineBytes);
   AssertBytesUnchanged(lMarkdown, lMarkdownBytes);
   AssertBytesUnchanged(lHistory, lHistoryBytes);
+end;
+
+procedure TNativeAnalysisReportControlTests.NonObjectBaselineSectionsFailWithoutMutation;
+var
+  lBaseline, lHistory, lMarkdown, lOut, lProject: string;
+  lBaselineBytes, lHistoryBytes, lMarkdownBytes: TBytes;
+  lRow: string;
+begin
+  lProject := TPath.Combine(fRoot, 'Sample.dproj');
+  WriteUtf8(lProject, '<Project />');
+  lOut := TPath.Combine(fRoot, '.dak\Sample\baseline-shapes');
+  WriteReportingRun(lOut, lProject);
+  FinalizeAnalysisReport(lOut, nil, -1).Free;
+  FinalizeAnalysisReport(lOut, nil, -1).Free; // A valid baseline remains accepted.
+  lBaseline := TPath.Combine(lOut, 'baseline.json');
+  lMarkdown := TPath.Combine(lOut, 'baseline.md');
+  lHistory := TPath.Combine(lOut, 'history.jsonl');
+  lMarkdownBytes := TFile.ReadAllBytes(lMarkdown);
+  lHistoryBytes := TFile.ReadAllBytes(lHistory);
+  SetEnvironmentVariable('DAK_UPDATE_BASELINE', PChar('1'));
+  for lRow in ['1', '[]', 'null'] do
+  begin
+    RewriteJson(lBaseline, ReadUtf8(lBaseline),
+      procedure(aBaseline: TJSONObject)
+      begin
+        JsonPut(Member(aBaseline, ['pascal_analyzer']) as TJSONObject, 'top_warning_sections',
+          ParseJsonValue('[' + lRow + ']'));
+      end);
+    lBaselineBytes := TFile.ReadAllBytes(lBaseline);
+    AssertRaisesContaining(
+      procedure
+      begin
+        FinalizeAnalysisReport(lOut, nil, -1).Free;
+      end, ['Invalid analysis baseline', 'top_warning_sections']);
+    AssertBytesUnchanged(lBaseline, lBaselineBytes);
+    AssertBytesUnchanged(lMarkdown, lMarkdownBytes);
+    AssertBytesUnchanged(lHistory, lHistoryBytes);
+  end;
 end;
 
 // A PAL report left from an earlier run is not evidence for a run that did not request PAL, so its

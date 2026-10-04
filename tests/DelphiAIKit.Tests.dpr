@@ -201,6 +201,7 @@ var
   lName: string;
   lOutputRoot: string;
   lReportRoot: string;
+  lSourcePath: string;
   lValue: string;
 begin
   lValue := GetEnvironmentVariable('DAK_TEST_PAL_EXIT');
@@ -236,6 +237,22 @@ begin
       '<compiler>Delphi 13 (Win64)</compiler></section></report>', TEncoding.UTF8);
     TFile.WriteAllText(TPath.Combine(lReportRoot, 'Warnings.xml'),
       '<report><section name="Warnings"/></report>', TEncoding.UTF8);
+    if GetEnvironmentVariable('DAK_TEST_PAL_IDENTITY') = '1' then
+    begin
+      lSourcePath := '';
+      for i := 1 to ParamCount do
+        if SameText(TPath.GetExtension(ParamStr(i)), '.dpr') then
+          lSourcePath := ParamStr(i);
+      if lSourcePath = '' then
+        raise Exception.Create('PAL identity fixture requires a DPR argument.');
+      TFile.WriteAllText(TPath.Combine(lReportRoot, 'Modules.xml'),
+        '<report><section name="Modules"><module><name>Sample_Program</name><path>' +
+        lSourcePath + '</path></module></section></report>', TEncoding.UTF8);
+      TFile.WriteAllText(TPath.Combine(lReportRoot, 'Warnings.xml'),
+        '<report><section name="Warnings"><item><id>base</id><locmod>' + lName +
+        ' (7)</locmod></item><item><id>qualified</id><locmod>' + lName +
+        '\TWorker\Run (8)</locmod></item></section></report>', TEncoding.UTF8);
+    end;
   end;
   Halt(lExitCode);
 end;

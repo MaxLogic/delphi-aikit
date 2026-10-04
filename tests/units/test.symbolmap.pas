@@ -66,6 +66,8 @@ type
     [Test]
     procedure ReusesExistingCachesIdempotently;
     [Test]
+    procedure NativeSqliteOpensAndJournalsExtendedPath;
+    [Test]
     procedure StatsCommandCreatesCachesAndReportsSchema;
     [Test]
     procedure RejectsUnsupportedSchemaWithoutApplyingV1Tables;
@@ -206,6 +208,8 @@ type
     procedure MissingRtlRootIsNonFatalDiagnostic;
     [Test]
     procedure RepeatedRtlIndexReusesCompilerProfileUnits;
+    [Test]
+    procedure LegacyRtlProfileRebuildsScopeProjection;
   end;
 
   [TestFixture]
@@ -221,6 +225,8 @@ type
     [Test]
     procedure FindsProjectDefinitionByPositionAndName;
     [Test]
+    procedure DeepCachePathsCreateReuseAndAttachForDefinition;
+    [Test]
     procedure FindsMemberDefinitionBySourcePosition;
     [Test]
     procedure ResolvesPositionLookupThroughSemanticShadowing;
@@ -233,9 +239,23 @@ type
     [Test]
     procedure DescribesOwnedMembersAndIntrinsics;
     [Test]
+    procedure MarksFallbackMemberScopeUnverifiedAcrossCachedQueries;
+    [Test]
+    procedure MarksMissingOrMismatchedDeclaringScopeUnverified;
+    [Test]
     procedure CliFindDefinitionReturnsJsonResult;
     [Test]
     procedure CliFindReferencesAcceptsSourcePositionAndUsesSemanticResolver;
+    [Test]
+    [TestCase('Definition absolute forward slashes', 'find-definition,absolute')]
+    [TestCase('Definition mixed separators', 'find-definition,mixed')]
+    [TestCase('Definition relative mixed separators', 'find-definition,relative')]
+    [TestCase('References absolute forward slashes', 'find-references,absolute')]
+    [TestCase('References mixed separators', 'find-references,mixed')]
+    [TestCase('References relative mixed separators', 'find-references,relative')]
+    procedure CliPositionFilePathMatchesBackslash(const aCommand, aPathKind: string);
+    [Test]
+    procedure CliMalformedPositionPathReturnsDiagnostic;
     [Test]
     procedure ProjectionNormalizesProjectSnapshotSourceKind;
   end;
@@ -307,7 +327,8 @@ uses
   Winapi.Windows,
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLite,
-  AutoFree, DelphiSemantics.Cache;
+  AutoFree, Dak.Semantics.Session, Dak.Utils, DelphiSemantics.Cache, DelphiSemantics.Preprocess,
+  DelphiSemantics.ProjectSession, DelphiSemantics.Query;
 
 function SymbolMapMemberKey(const aOwnerName, aName, aKind: string): string;
 begin
@@ -807,6 +828,82 @@ begin
   Assert.AreEqual(lFirstStatus.fCentralDbPath, lSecondStatus.fCentralDbPath);
   Assert.AreEqual(lFirstStatus.fProjectDbPath, lSecondStatus.fProjectDbPath);
   Assert.AreEqual(3, lSecondStatus.fSchemaVersion);
+end;
+
+procedure TSymbolMapCacheTests.NativeSqliteOpensAndJournalsExtendedPath;
+var
+  lConnection: TFDConnection;
+  lDbPath: string;
+  lDirectory: string;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lPhysicalPath: string;
+  lReader: TFDConnection;
+  lRoot: string;
+  i: Integer;
+begin
+  lRoot := UniqueTempPath('symbol-map-native-long-sqlite');
+  lDirectory := lRoot;
+  for i := 1 to 5 do
+  begin
+    lDirectory := TPath.Combine(lDirectory, StringOfChar(Char(Ord('a') + i), 55));
+    TDirectory.CreateDirectory(LongPathSafe(lDirectory, 0));
+  end;
+  lDbPath := TPath.Combine(lDirectory, 'native-probe.sqlite3');
+  lPhysicalPath := LongPathSafe(lDbPath, 0);
+  Assert.IsTrue(Length(lDbPath) > 300, 'Probe database path must exceed 300 characters.');
+  System.Writeln('Native SQLite probe logical path length: ', Length(lDbPath));
+  System.Writeln('Native SQLite probe physical path: ', lPhysicalPath);
+
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  lReader := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := lPhysicalPath;
+    lConnection.Params.Values['LockingMode'] := 'Normal';
+    lConnection.Connected := True;
+    Assert.AreEqual('normal', LowerCase(VarToStr(lConnection.ExecSQLScalar('pragma locking_mode'))));
+    lConnection.ExecSQL('create table probe (value_text text not null)');
+    Assert.AreEqual('delete', LowerCase(VarToStr(lConnection.ExecSQLScalar('pragma journal_mode=DELETE'))));
+    lConnection.StartTransaction;
+    try
+      lConnection.ExecSQL('insert into probe (value_text) values (''delete-mode'')');
+      Assert.IsTrue(TFile.Exists(lPhysicalPath + '-journal'), 'Expected live rollback journal.');
+      lConnection.Commit;
+    except
+      lConnection.Rollback;
+      raise;
+    end;
+    Assert.AreEqual('wal', LowerCase(VarToStr(lConnection.ExecSQLScalar('pragma journal_mode=WAL'))));
+    lReader.LoginPrompt := False;
+    lReader.Params.Values['DriverID'] := 'SQLite';
+    lReader.Params.Values['Database'] := lPhysicalPath;
+    lReader.Params.Values['LockingMode'] := 'Normal';
+    lReader.Params.Values['JournalMode'] := 'WAL';
+    lReader.Connected := True;
+    Assert.AreEqual('normal', LowerCase(VarToStr(lReader.ExecSQLScalar('pragma locking_mode'))));
+    Assert.AreEqual('wal', LowerCase(VarToStr(lReader.ExecSQLScalar('pragma journal_mode'))));
+    Assert.AreEqual(1, Integer(lReader.ExecSQLScalar('select count(*) from probe')));
+    lConnection.StartTransaction;
+    try
+      lConnection.ExecSQL('insert into probe (value_text) values (''wal-mode'')');
+      Assert.IsTrue(TFile.Exists(lPhysicalPath + '-wal'), 'Expected live WAL sidecar.');
+      Assert.IsTrue(TFile.Exists(lPhysicalPath + '-shm'), 'Expected live SHM sidecar.');
+      lConnection.Commit;
+    except
+      lConnection.Rollback;
+      raise;
+    end;
+    Assert.AreEqual(2, Integer(lConnection.ExecSQLScalar('select count(*) from probe')));
+    lConnection.Connected := False;
+    lConnection.Connected := True;
+    Assert.AreEqual(2, Integer(lConnection.ExecSQLScalar('select count(*) from probe')));
+  finally
+    lReader.Free;
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
 end;
 
 procedure TSymbolMapCacheTests.RejectsUnsupportedSchemaWithoutApplyingV1Tables;
@@ -1346,6 +1443,8 @@ begin
   end;
   Assert.IsTrue(EndsText('|' + TDelphiSemanticCacheIdentityBuilder.ModelParserVersion, lVersion),
     'Stored parser version: ' + lVersion);
+  Assert.IsTrue(StartsText('symbol-map-parser-v4|', lVersion),
+    'Scope metadata requires a new projection parser key: ' + lVersion);
   // The stored key is the one for the current model version; another version misses it.
   Assert.AreEqual(lStored.fUnitCacheKey, BuildSymbolMapUnitCacheKey(lContext, FixtureUnitPath,
     TDelphiSemanticCacheIdentityBuilder.ModelParserVersion));
@@ -2095,6 +2194,136 @@ begin
   Assert.AreEqual('type', lDefinition.fKind);
 end;
 
+procedure TSymbolMapDefinitionQueryTests.DeepCachePathsCreateReuseAndAttachForDefinition;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lError: string;
+  lFirstStatus: TSymbolMapCacheStatus;
+  lLegacyContext: TDelphiSemanticSymbolQueryContext;
+  lLegacyMetrics: TDelphiSemanticCacheMetrics;
+  lLegacySession: TDelphiSemanticProjectSessionResult;
+  lLegacyTime: Int64;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lProjectPath: string;
+  lSemanticDbPath: string;
+  lSemanticMetrics: TDakSemanticSymbolQueryMetrics;
+  lSemanticQueryContext: IDakSemanticSymbolQueryContext;
+  lSecondStatus: TSymbolMapCacheStatus;
+  lSqlConnection: TFDConnection;
+  lStoredCount: Integer;
+  i: Integer;
+begin
+  lProjectPath := BuildContext(UniqueTempPath('symbol-map-deep-context'), lContext);
+  Assert.AreEqual(lProjectPath, lContext.fProject.ProjectPath,
+    'Expected the deep-cache context to resolve the fixture project.');
+  lCacheRoot := UniqueTempPath('symbol-map-deep-cache');
+  for i := 1 to 5 do
+    lCacheRoot := TPath.Combine(lCacheRoot, StringOfChar(Char(Ord('a') + i), 55));
+  lContext.fCentralCacheRoot := TPath.Combine(lCacheRoot, 'central');
+  lContext.fProjectCacheRoot := TPath.Combine(lCacheRoot, 'project');
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lFirstStatus, lError), 'Expected deep caches. Error: ' + lError);
+  Assert.IsTrue(Length(lFirstStatus.fCentralDbPath) > 300, 'Central database path must exceed 300 characters.');
+  Assert.IsTrue(Length(lFirstStatus.fProjectDbPath) > 300, 'Project database path must exceed 300 characters.');
+  Assert.IsFalse(TPath.IsExtendedPrefixed(lFirstStatus.fCentralDbPath), 'Status must retain logical paths.');
+  Assert.IsFalse(TPath.IsExtendedPrefixed(lFirstStatus.fProjectDbPath), 'Status must retain logical paths.');
+  Assert.IsTrue(lFirstStatus.fCentralCreated, 'Expected new central database.');
+  Assert.IsTrue(lFirstStatus.fProjectCreated, 'Expected new project database.');
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lFirstStatus, lProfile, lError), lError);
+  IndexFixtureProject(lContext, lFirstStatus);
+
+  lSemanticDbPath := TPath.Combine(lContext.fProjectCacheRoot, 'semantic-unit-cache.sqlite3');
+  Assert.IsTrue(Length(lSemanticDbPath) > 300, 'Semantic database path must exceed 300 characters.');
+  Assert.IsFalse(TPath.IsExtendedPrefixed(lSemanticDbPath), 'Semantic cache identity must remain logical.');
+  Assert.IsTrue(OpenSemanticSymbolQueryContext(BuildSemanticSessionOptions(lContext.fProject.ProjectPath,
+    lContext.fConfig, lContext.fPlatform, lContext.fDelphiVersion, lContext.fRsVarsPath,
+    lContext.fEnvOptionsPath, lSemanticDbPath), lSemanticQueryContext, lSemanticMetrics, lError),
+    'Expected first DAK semantic session. Error: ' + lError);
+  if lSemanticQueryContext = nil then
+  begin
+    Assert.Fail('First DAK semantic session returned no context.');
+    Exit;
+  end;
+  Assert.IsTrue(lSemanticQueryContext.UnitModelCount > 0, 'Expected semantic project models.');
+  Assert.IsTrue(TFile.Exists(LongPathSafe(lSemanticDbPath, 0)),
+    'Expected a physical semantic SQLite database, not in-memory fallback.');
+
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lSqlConnection := TFDConnection.Create(nil);
+  try
+    lSqlConnection.LoginPrompt := False;
+    lSqlConnection.Params.Values['DriverID'] := 'SQLite';
+    lSqlConnection.Params.Values['Database'] := LongPathSafe(lSemanticDbPath, 16);
+    lSqlConnection.Params.Values['JournalMode'] := 'WAL';
+    lSqlConnection.Params.Values['LockingMode'] := 'Normal';
+    lSqlConnection.Connected := True;
+    lStoredCount := lSqlConnection.ExecSQLScalar('select count(*) from unit_models');
+    Assert.IsTrue(lStoredCount > 0, 'Expected persisted semantic unit rows.');
+  finally
+    lSqlConnection.Free;
+    lDriverLink.Free;
+  end;
+
+  lLegacySession := TDelphiSemanticProjectSession.Open(BuildSemanticSessionOptions(
+    lContext.fProject.ProjectPath, lContext.fConfig, lContext.fPlatform,
+    lContext.fDelphiVersion, lContext.fRsVarsPath, lContext.fEnvOptionsPath,
+    lSemanticDbPath));
+  Assert.IsTrue(lLegacySession.Success, 'Expected fresh legacy semantic project session.');
+  if lLegacySession.Session = nil then
+  begin
+    Assert.Fail('Fresh legacy semantic project session returned no session.');
+    Exit;
+  end;
+  try
+    lLegacyContext := lLegacySession.Session.BuildSymbolQueryContext(lLegacyMetrics,
+      lLegacyTime);
+    Assert.IsTrue(lLegacyContext.UnitModel.Success, 'Expected legacy semantic unit model.');
+    Assert.AreEqual('sqlite', lLegacyMetrics.CacheKind);
+    Assert.AreEqual(lSemanticDbPath, lLegacyMetrics.CacheFileName);
+    Assert.IsTrue(lLegacyMetrics.PersistentConnectionOpenCount > 0,
+      'Expected a persistent semantic unit-cache connection.');
+    Assert.IsTrue(lLegacyMetrics.CacheHits > 0,
+      'Fresh legacy session must reuse persisted semantic unit rows.');
+    System.Writeln('Deep Symbol Map legacy unit-cache hits: ', lLegacyMetrics.CacheHits);
+    System.Writeln('Deep Symbol Map legacy extraction milliseconds: ', lLegacyTime);
+  finally
+    lLegacySession.Session.Free;
+  end;
+
+  Assert.IsTrue(OpenSemanticSymbolQueryContext(BuildSemanticSessionOptions(lContext.fProject.ProjectPath,
+    lContext.fConfig, lContext.fPlatform, lContext.fDelphiVersion, lContext.fRsVarsPath,
+    lContext.fEnvOptionsPath, lSemanticDbPath), lSemanticQueryContext, lSemanticMetrics, lError),
+    'Expected fresh DAK semantic session. Error: ' + lError);
+  if lSemanticQueryContext = nil then
+  begin
+    Assert.Fail('Fresh DAK semantic session returned no context.');
+    Exit;
+  end;
+  Assert.IsTrue(lSemanticMetrics.CacheMetrics.CacheHits > 0,
+    'Fresh semantic query session must reuse persisted snapshot rows.');
+  Assert.IsTrue(lSemanticQueryContext.UnitModelCount > 0, 'Expected reusable semantic project models.');
+  lSemanticQueryContext := nil;
+  System.Writeln('Deep Symbol Map semantic SQLite path length: ', Length(lSemanticDbPath));
+  System.Writeln('Deep Symbol Map semantic persisted rows: ', lStoredCount);
+
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lSecondStatus, lError), 'Expected deep cache reuse. Error: ' + lError);
+  Assert.IsFalse(lSecondStatus.fCentralCreated, 'Expected central cache hit.');
+  Assert.IsFalse(lSecondStatus.fProjectCreated, 'Expected project cache hit.');
+  Assert.AreEqual(lFirstStatus.fCentralDbPath, lSecondStatus.fCentralDbPath);
+  Assert.AreEqual(lFirstStatus.fProjectDbPath, lSecondStatus.fProjectDbPath);
+  Assert.IsTrue(FindSymbolMapDefinitionByPosition(lContext, lSecondStatus, lProfile,
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas'),
+    10, 3, lDefinition, lError), 'Expected semantic position lookup. Error: ' + lError);
+  Assert.IsTrue(lDefinition.fFound, 'Expected semantic definition from deep cache.');
+  Assert.AreEqual('semantic-resolved', lDefinition.fConfidence);
+  Assert.IsTrue(FindSymbolMapDefinitionByName(lContext, lSecondStatus, lProfile, 'TDeclarationRecord', '',
+    lDefinition, lError), 'Expected attached deep project query. Error: ' + lError);
+  Assert.IsTrue(lDefinition.fFound, 'Expected definition from deep cache.');
+  Assert.AreEqual('TDeclarationRecord', lDefinition.fName);
+end;
+
 procedure TSymbolMapDefinitionQueryTests.FindsMemberDefinitionBySourcePosition;
 var
   lCacheRoot: string;
@@ -2274,6 +2503,8 @@ begin
   Assert.AreEqual('Enabled', lResults[0].fName);
   Assert.AreEqual('property', lResults[0].fKind);
   Assert.AreEqual('TMemberClass', lResults[0].fOwnerName);
+  Assert.AreEqual('name-match', lResults[0].fConfidence,
+    'An AST-backed declaring unit keeps ordinary search confidence.');
 
   Assert.IsTrue(SearchSymbolMapDefinitions(lContext, lStatus, lProfile, 'enabled', 1, lResults, lError),
     'Expected limited member search. Error: ' + lError);
@@ -2314,11 +2545,155 @@ begin
   Assert.AreEqual('Name', lDefinition.fName);
   Assert.AreEqual('property', lDefinition.fKind);
   Assert.AreEqual('TMemberClass', lDefinition.fOwnerName);
+  Assert.AreEqual('exact', lDefinition.fConfidence,
+    'An AST-backed declaring unit keeps exact describe confidence.');
 
   Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'SizeOf', '', lDefinition, lError),
     'Expected intrinsic describe. Error: ' + lError);
   Assert.AreEqual('SizeOf', lDefinition.fName);
   Assert.AreEqual('compiler-intrinsic', lDefinition.fSourceKind);
+end;
+
+procedure TSymbolMapDefinitionQueryTests.MarksFallbackMemberScopeUnverifiedAcrossCachedQueries;
+var
+  i: Integer;
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lError: string;
+  lModels: TArray<TSymbolMapUnitModel>;
+  lOptions: TAppOptions;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lProjectPath: string;
+  lResults: TArray<TSymbolMapDefinition>;
+  lRoot: string;
+  lStatus: TSymbolMapCacheStatus;
+  lStoreResults: TArray<TSymbolMapCacheStoreResult>;
+  lTargetCount: Integer;
+  lTargetIndex: Integer;
+  lUnitPath: string;
+begin
+  lRoot := UniqueTempPath('symbol-map-unverified-scope');
+  lCacheRoot := UniqueTempPath('symbol-map-unverified-cache');
+  TDirectory.CreateDirectory(lRoot);
+  lUnitPath := TPath.Combine(lRoot, 'UProv.pas');
+  lProjectPath := TPath.Combine(lRoot, 'Prov.dproj');
+  TFile.WriteAllText(lUnitPath, 'unit UProv;'#13#10'interface'#13#10'type'#13#10 +
+    '  TA = class'#13#10'  public'#13#10'    FCounter: Integer;'#13#10 +
+    '    procedure Y; deprecated ''z'';'#13#10'  end;'#13#10'implementation'#13#10 +
+    'procedure TA.Y;'#13#10'begin'#13#10'  FCounter := 1;'#13#10'end;'#13#10'end.'#13#10,
+    TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'Prov.dpr'),
+    'program Prov;'#13#10'uses UProv;'#13#10'begin'#13#10'end.', TEncoding.ASCII);
+  TFile.WriteAllText(lProjectPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup>' +
+    '<MainSource>Prov.dpr</MainSource></PropertyGroup><ItemGroup>' +
+    '<DCCReference Include="UProv.pas"/></ItemGroup></Project>', TEncoding.ASCII);
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23';
+  lOptions.fSymbolMapCacheRoot := lCacheRoot;
+  lOptions.fHasSymbolMapCacheRoot := True;
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, lContext, lError), lError);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError), lError);
+  Assert.IsTrue(TryBuildSymbolMapUnitModelsFromDelphiSemanticProjectIndex(lContext, False,
+    lModels, lError), lError);
+  lTargetCount := 0;
+  lTargetIndex := -1;
+  for i := 0 to High(lModels) do
+    if SameText(TPath.GetFullPath(lModels[i].fFilePath), TPath.GetFullPath(lUnitPath)) then
+    begin
+      Inc(lTargetCount);
+      lTargetIndex := i;
+    end;
+  Assert.AreEqual(1, lTargetCount, 'Expected exactly one model for the declaring file.');
+  Assert.AreEqual('ast-failed', lModels[lTargetIndex].fScopeModelStatus,
+    'The fallback fixture must fail AST construction for its declaring unit.');
+  Assert.IsTrue(StoreSymbolMapProjectProjection(lContext, lStatus, lModels, lStoreResults, lError), lError);
+  for i := 0 to 1 do
+  begin
+    Assert.IsTrue(SearchSymbolMapDefinitions(lContext, lStatus, lProfile, 'FCounter', 20,
+      lResults, lError), lError);
+    Assert.IsTrue(Length(lResults) > 0, 'Fallback member must remain visible.');
+    Assert.AreEqual('FCounter', lResults[0].fName);
+    Assert.AreEqual(lUnitPath, lResults[0].fFilePath);
+    Assert.AreEqual(6, lResults[0].fLine);
+    Assert.AreEqual(5, lResults[0].fCol);
+    Assert.AreEqual('scope-unverified', lResults[0].fConfidence);
+    Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'FCounter', 'TA',
+      lDefinition, lError), lError);
+    Assert.IsTrue(lDefinition.fFound, 'Fallback member must remain describable.');
+    Assert.AreEqual(lUnitPath, lDefinition.fFilePath);
+    Assert.AreEqual(6, lDefinition.fLine);
+    Assert.AreEqual(5, lDefinition.fCol);
+    Assert.AreEqual('scope-unverified', lDefinition.fConfidence);
+    if i = 0 then
+    begin
+      Assert.IsTrue(StoreSymbolMapProjectProjection(lContext, lStatus, lModels,
+        lStoreResults, lError), lError);
+      Assert.IsTrue(lStoreResults[lTargetIndex].fCacheHit,
+        'Second projection should reuse the declaring unit cache.');
+    end;
+  end;
+end;
+
+procedure TSymbolMapDefinitionQueryTests.MarksMissingOrMismatchedDeclaringScopeUnverified;
+var
+  lCacheRoot: string;
+  lConnection: TFDConnection;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lProjectPath: string;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-missing-scope-cache');
+  lProjectPath := BuildContext(lCacheRoot, lContext);
+  Assert.AreEqual(FixtureProjectPath, lProjectPath,
+    'Scope metadata test must use the intended fixture project.');
+  Assert.IsTrue(SameText(lProjectPath, lContext.fProject.ProjectPath),
+    'Context project identity must match the fixture before cache mutation.');
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError), lError);
+  IndexFixtureProject(lContext, lStatus);
+  Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'Name', 'TMemberClass',
+    lDefinition, lError), lError);
+  Assert.AreEqual('exact', lDefinition.fConfidence);
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := lStatus.fCentralDbPath;
+    lConnection.Connected := True;
+    lConnection.ExecSQL('update symbol_map_units set diagnostics_json = ? where file_path_sample = ?',
+      ['', lDefinition.fFilePath]);
+    Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'Name', 'TMemberClass',
+      lDefinition, lError), lError);
+    Assert.AreEqual('scope-unverified', lDefinition.fConfidence,
+      'Missing persisted status cannot prove the declaring scope.');
+    lConnection.ExecSQL('update symbol_map_units set diagnostics_json = ? where file_path_sample = ?',
+      ['{"scope_model_status":"ambiguous"}', lDefinition.fFilePath]);
+    Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'Name', 'TMemberClass',
+      lDefinition, lError), lError);
+    Assert.AreEqual('scope-unverified', lDefinition.fConfidence,
+      'Ambiguous status for the matching declaring file cannot prove scope.');
+    lConnection.ExecSQL('update symbol_map_units set diagnostics_json = ?, file_path_sample = ? ' +
+      'where file_path_sample = ?', ['{"scope_model_status":"ast"}',
+      TPath.Combine(lCacheRoot, 'Different.pas'), lDefinition.fFilePath]);
+    Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'Name', 'TMemberClass',
+      lDefinition, lError), lError);
+    Assert.AreEqual('scope-unverified', lDefinition.fConfidence,
+      'Metadata for a different declaring path cannot verify this result.');
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
 end;
 
 procedure TSymbolMapDefinitionQueryTests.CliFindDefinitionReturnsJsonResult;
@@ -2423,6 +2798,112 @@ begin
   finally
     lJsonValue.Free;
   end;
+end;
+
+procedure TSymbolMapDefinitionQueryTests.CliPositionFilePathMatchesBackslash(
+  const aCommand, aPathKind: string);
+var
+  lArgs: string;
+  lBaseline: TJSONObject;
+  lBaselineLogPath: string;
+  lBaselineResult: TJSONValue;
+  lCacheRoot: string;
+  lColumn: Integer;
+  lExitCode: Cardinal;
+  lFileArgument: string;
+  lLine: Integer;
+  lSourcePath: string;
+  lVariant: TJSONObject;
+  lVariantLogPath: string;
+  lVariantResult: TJSONValue;
+begin
+  lSourcePath := TPath.Combine(RepoRoot,
+    'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+  if aCommand = 'find-definition' then
+  begin
+    lLine := 1;
+    lColumn := 1;
+  end else begin
+    Assert.IsTrue(TryFindLineAndColumn(TFile.ReadAllText(lSourcePath, TEncoding.UTF8),
+      'if lShadowValue > 0 then', lLine, lColumn));
+    Inc(lColumn, Length('if '));
+  end;
+  if aPathKind = 'absolute' then
+    lFileArgument := StringReplace(lSourcePath, '\', '/', [rfReplaceAll])
+  else if aPathKind = 'mixed' then
+    lFileArgument := StringReplace(lSourcePath, 'SymbolMapFixture\SymbolMapUnit.pas',
+      'SymbolMapFixture/SymbolMapUnit.pas', [])
+  else
+    lFileArgument := '.\tests/fixtures/SymbolMapFixture/SymbolMapUnit.pas';
+  lCacheRoot := UniqueTempPath('symbol-map-file-path-cache');
+  lBaselineLogPath := UniqueTempPath('symbol-map-file-path-baseline') + '.log';
+  lVariantLogPath := UniqueTempPath('symbol-map-file-path-variant') + '.log';
+  lArgs := 'symbol-map ' + aCommand + ' --project ' + QuoteArg(FixtureProjectPath) +
+    ' --file ' + QuoteArg(lSourcePath) + ' --line ' + lLine.ToString +
+    ' --col ' + lColumn.ToString + ' --cache-root ' + QuoteArg(lCacheRoot) +
+    ' --format json';
+  Assert.IsTrue(RunProcess(BuildFreshResolverExe, lArgs, RepoRoot,
+    lBaselineLogPath, lExitCode), 'Failed to start backslash control.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Backslash control failed: ' + lBaselineLogPath);
+  lBaseline := ParseJsonObject(ReadUtf8TextFile(lBaselineLogPath), lBaselineLogPath);
+  if lBaseline = nil then
+  begin
+    Assert.Fail('Expected backslash-control JSON. See: ' + lBaselineLogPath);
+    Exit;
+  end;
+  try
+    if aCommand = 'find-definition' then
+      Assert.AreEqual('SymbolMapUnit', lBaseline.GetValue<string>('result.definition.name'))
+    else
+      Assert.AreEqual('lShadowValue', lBaseline.GetValue<string>('result.symbol'));
+
+    lArgs := 'symbol-map ' + aCommand + ' --project ' + QuoteArg(FixtureProjectPath) +
+      ' --file ' + QuoteArg(lFileArgument) + ' --line ' + lLine.ToString +
+      ' --col ' + lColumn.ToString + ' --cache-root ' + QuoteArg(lCacheRoot) +
+      ' --format json';
+    Assert.IsTrue(RunProcess(BuildFreshResolverExe, lArgs, RepoRoot,
+      lVariantLogPath, lExitCode), 'Failed to start slash-path variant.');
+    Assert.AreEqual(Cardinal(0), lExitCode,
+      'Slash-path variant failed for ' + lFileArgument + ': ' + lVariantLogPath);
+    lVariant := ParseJsonObject(ReadUtf8TextFile(lVariantLogPath), lVariantLogPath);
+    if lVariant = nil then
+    begin
+      Assert.Fail('Expected slash-path JSON. See: ' + lVariantLogPath);
+      Exit;
+    end;
+    try
+      lBaselineResult := lBaseline.GetValue('result');
+      lVariantResult := lVariant.GetValue('result');
+      if (lBaselineResult is TJSONObject) and (lVariantResult is TJSONObject) then
+        Assert.AreEqual(lBaselineResult.ToJSON, lVariantResult.ToJSON,
+          'Position result differs from backslash control: ' + lVariantLogPath)
+      else
+        Assert.Fail('Expected result objects. See: ' + lVariantLogPath);
+    finally
+      lVariant.Free;
+    end;
+  finally
+    lBaseline.Free;
+  end;
+end;
+
+procedure TSymbolMapDefinitionQueryTests.CliMalformedPositionPathReturnsDiagnostic;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+begin
+  lLogPath := UniqueTempPath('symbol-map-malformed-file-path') + '.log';
+  lArgs := 'symbol-map find-definition --project ' + QuoteArg(FixtureProjectPath) +
+    ' --file ' + QuoteArg('bad|path.pas') +
+    ' --line 1 --col 1 --cache-root ' +
+    QuoteArg(UniqueTempPath('symbol-map-malformed-file-cache')) + ' --format json';
+  Assert.IsTrue(RunProcess(BuildFreshResolverExe, lArgs, RepoRoot, lLogPath,
+    lExitCode), 'Failed to start malformed-path command.');
+  Assert.AreEqual(Cardinal(6), lExitCode,
+    'Malformed --file must fail without an unhandled exception. See: ' + lLogPath);
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lLogPath), 'Invalid --file path:'),
+    'Expected a path diagnostic. See: ' + lLogPath);
 end;
 
 procedure TSymbolMapDefinitionQueryTests.ProjectionNormalizesProjectSnapshotSourceKind;
@@ -3027,6 +3508,140 @@ begin
   Assert.IsTrue(lSecond.fCacheHit, 'Expected second RTL index to hit.');
   Assert.AreEqual(1, lSecond.fUnitsIndexed);
   Assert.AreEqual(1, CompilerProfileUnitCount(lStatus.fCentralDbPath, lProfile.fProfileKey));
+end;
+
+procedure TSymbolMapRtlIndexTests.LegacyRtlProfileRebuildsScopeProjection;
+var
+  lBuilder: TStringBuilder;
+  lCacheRoot: string;
+  lConnection: TFDConnection;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lError: string;
+  lFileHash: THashSHA2;
+  lFirst: TSymbolMapRtlIndexResult;
+  lIdentity: TDelphiSemanticCacheIdentityContext;
+  lLegacyHash: string;
+  lOldKey: string;
+  lCurrentKey: string;
+  lPreprocess: TDelphiSemanticPreprocessOptions;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lProjectPath: string;
+  lRoot: string;
+  lRtlContext: TSymbolMapContext;
+  lSecond: TSymbolMapRtlIndexResult;
+  lStatus: TSymbolMapCacheStatus;
+  lUnitPath: string;
+  lVersion: string;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-rtl-legacy-cache');
+  lRoot := UniqueTempPath('symbol-map-rtl-legacy-root');
+  WriteRtlUnit(lRoot, 'rtl\sys\System.pas', 'System');
+  lUnitPath := TPath.Combine(lRoot, 'rtl\sys\System.pas');
+  lProjectPath := BuildContext(lCacheRoot, lContext);
+  Assert.AreEqual(FixtureProjectPath, lProjectPath,
+    'Legacy RTL profile test must use the intended fixture project.');
+  Assert.IsTrue(SameText(lProjectPath, lContext.fProject.ProjectPath),
+    'Context project identity must match the fixture before seeding the old profile.');
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError), lError);
+  Assert.IsTrue(IndexSymbolMapRtlSources(lContext, lStatus, lRoot, lProfile, lFirst, lError), lError);
+  Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'TSystemFixture', '',
+    lDefinition, lError), lError);
+  Assert.IsTrue(lDefinition.fFound, 'Expected the RTL source declaration.');
+  Assert.AreEqual('exact', lDefinition.fConfidence);
+
+  // Recreate the pre-v4 projection identity and profile hash for unchanged source bytes.
+  lRtlContext := lContext.WithRtlSourceRoot(lRoot);
+  lPreprocess := Default(TDelphiSemanticPreprocessOptions);
+  lPreprocess.SourceFileName := lUnitPath;
+  lPreprocess.Defines := lRtlContext.fDefines;
+  lPreprocess.SearchPaths := lRtlContext.fUnitSearchPath;
+  lIdentity := Default(TDelphiSemanticCacheIdentityContext);
+  lVersion := 'symbol-map-parser-v3|' + TDelphiSemanticCacheIdentityBuilder.ModelParserVersion;
+  lIdentity.SchemaVersion := cSymbolMapSchemaVersion.ToString;
+  lIdentity.ParserVersion := lVersion;
+  lIdentity.IncludeGraphHash := TDelphiSemanticPreprocessor.PreprocessFile(lPreprocess).IncludeGraphHash;
+  lIdentity.DelphiVersion := lRtlContext.fDelphiVersion;
+  lIdentity.Platform := lRtlContext.fPlatform;
+  lIdentity.ParserDefines := lRtlContext.fProject.ParserDefines;
+  lIdentity.Defines := lRtlContext.fDefines;
+  lIdentity.UnitScopes := lRtlContext.fUnitScopes;
+  lIdentity.UnitAliases := lRtlContext.fUnitAliases;
+  lIdentity.ProjectPath := lRtlContext.fProject.ProjectPath;
+  lIdentity.Configuration := lRtlContext.fConfig;
+  lIdentity.SearchPaths := lRtlContext.fUnitSearchPath;
+  lIdentity.CentralCacheRoot := lRtlContext.fCentralCacheRoot;
+  lOldKey := TDelphiSemanticCacheIdentityBuilder.BuildUnitIdentity(lUnitPath, lIdentity).UnitCacheKey;
+  lFileHash := THashSHA2.Create;
+  lFileHash.Update(TFile.ReadAllBytes(lUnitPath));
+  lBuilder := TStringBuilder.Create;
+  try
+    lBuilder.AppendLine(TPath.GetFullPath(lRoot));
+    lBuilder.AppendLine('System.pas=' + lFileHash.HashAsString);
+    lLegacyHash := THashSHA2.GetHashString(lBuilder.ToString);
+  finally
+    lBuilder.Free;
+  end;
+
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := lStatus.fCentralDbPath;
+    lConnection.Connected := True;
+    lCurrentKey := VarToStr(lConnection.ExecSQLScalar(
+      'select unit_cache_key from compiler_profile_units where profile_key = ?', [lProfile.fProfileKey]));
+    Assert.AreNotEqual(lCurrentKey, lOldKey, 'The v3 and v4 projection identities must differ.');
+    lConnection.StartTransaction;
+    try
+      lConnection.ExecSQL('update symbol_map_units set unit_cache_key = ?, parser_version = ?, ' +
+        'diagnostics_json = ? where unit_cache_key = ?', [lOldKey, lVersion, '', lCurrentKey]);
+      lConnection.ExecSQL('update symbols set unit_cache_key = ? where unit_cache_key = ?',
+        [lOldKey, lCurrentKey]);
+      lConnection.ExecSQL('update members set unit_cache_key = ? where unit_cache_key = ?',
+        [lOldKey, lCurrentKey]);
+      lConnection.ExecSQL('update unit_uses set unit_cache_key = ? where unit_cache_key = ?',
+        [lOldKey, lCurrentKey]);
+      lConnection.ExecSQL('update symbol_map_references set unit_cache_key = ? where unit_cache_key = ?',
+        [lOldKey, lCurrentKey]);
+      lConnection.ExecSQL('update compiler_profile_units set unit_cache_key = ? where profile_key = ?',
+        [lOldKey, lProfile.fProfileKey]);
+      lConnection.ExecSQL('update compiler_profiles set source_roots_hash = ? where profile_key = ?',
+        [lLegacyHash, lProfile.fProfileKey]);
+      lConnection.Commit;
+    except
+      lConnection.Rollback;
+      raise;
+    end;
+    Assert.AreEqual(1, Integer(lConnection.ExecSQLScalar(
+      'select count(*) from symbol_map_units where unit_cache_key = ? and parser_version = ? ' +
+      'and diagnostics_json = ?', [lOldKey, lVersion, ''])));
+    Assert.AreEqual(1, Integer(lConnection.ExecSQLScalar(
+      'select count(*) from compiler_profile_units where profile_key = ? and unit_cache_key = ?',
+      [lProfile.fProfileKey, lOldKey])));
+    Assert.AreEqual(lLegacyHash, VarToStr(lConnection.ExecSQLScalar(
+      'select source_roots_hash from compiler_profiles where profile_key = ?', [lProfile.fProfileKey])));
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+  Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'TSystemFixture', '',
+    lDefinition, lError), lError);
+  Assert.AreEqual('scope-unverified', lDefinition.fConfidence,
+    'The old profile links a statusless declaration.');
+
+  Assert.IsTrue(IndexSymbolMapRtlSources(lContext, lStatus, lRoot, lProfile, lFirst, lError), lError);
+  Assert.IsFalse(lFirst.fCacheHit, 'A v3 RTL profile must rebuild with unchanged sources.');
+  Assert.AreEqual(1, lFirst.fUnitCacheMisses);
+  Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'TSystemFixture', '',
+    lDefinition, lError), lError);
+  Assert.AreEqual('exact', lDefinition.fConfidence,
+    'Rebuilt AST-backed RTL declaration must regain exact confidence.');
+  Assert.IsTrue(IndexSymbolMapRtlSources(lContext, lStatus, lRoot, lProfile, lSecond, lError), lError);
+  Assert.IsTrue(lSecond.fCacheHit, 'A rebuilt profile should be reusable.');
 end;
 
 function TSymbolMapTopLevelDeclarationTests.FindSymbol(const aModel: TSymbolMapUnitModel; const aName, aKind,

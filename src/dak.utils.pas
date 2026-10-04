@@ -7,6 +7,7 @@ function NormalizeConfiguredPath(const aValue: string; const aBaseDir: string = 
 function ResolveExePathFromConfiguredValue(const aValue, aExeName: string; const aBaseDir: string = ''): string;
 function TryNormalizeInputPath(const aPath: string; out aNormalizedPath: string; out aError: string): Boolean;
 function TryResolveAbsolutePath(const aInputPath: string; out aResolvedPath: string; out aError: string): Boolean;
+function TryResolvePositionFilePath(const aInputPath: string; out aResolvedPath: string; out aError: string): Boolean;
 function TryResolveDprojPath(const aInputPath: string; out aDprojPath: string; out aError: string): Boolean;
 // The full path, with the Windows extended-length prefix when a file of up to aReserve more characters
 // beneath it could pass the classic MAX_PATH limit. Short paths stay unprefixed for readability.
@@ -116,6 +117,27 @@ begin
     Exit(False);
   aResolvedPath := TPath.GetFullPath(lNormalizedPath);
   Result := True;
+end;
+
+function TryResolvePositionFilePath(const aInputPath: string; out aResolvedPath: string;
+  out aError: string): Boolean;
+var
+  lNormalizedPath: string;
+begin
+  aResolvedPath := '';
+  if not TryNormalizeInputPath(aInputPath, lNormalizedPath, aError) then
+    Exit(False);
+  try
+    Result := TryResolveAbsolutePath(lNormalizedPath.Replace('/', '\', [rfReplaceAll]),
+      aResolvedPath, aError);
+  except
+    on E: Exception do
+    begin
+      aResolvedPath := '';
+      aError := 'Invalid --file path: ' + E.Message;
+      Result := False;
+    end;
+  end;
 end;
 
 function TryResolveDprojPath(const aInputPath: string; out aDprojPath: string; out aError: string): Boolean;

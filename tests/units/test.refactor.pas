@@ -37,6 +37,14 @@ type
     [Test]
     procedure RenameCommandAcceptsSourcePositionTarget;
     [Test]
+    [TestCase('Find absolute forward slashes', 'find-usages,absolute')]
+    [TestCase('Find mixed separators', 'find-usages,mixed')]
+    [TestCase('Find relative mixed separators', 'find-usages,relative')]
+    [TestCase('Rename absolute forward slashes', 'rename,absolute')]
+    [TestCase('Rename mixed separators', 'rename,mixed')]
+    [TestCase('Rename relative mixed separators', 'rename,relative')]
+    procedure PositionTargetAcceptsSlashSeparatedFilePath(const aCommand, aPathKind: string);
+    [Test]
     procedure RenamePlanKeepsOverloadAndRangeBoundIdentity;
     [Test]
     procedure RenamePlansQualifiedMemberReferencesAndAppliesWithBuild;
@@ -612,6 +620,107 @@ begin
   Assert.IsTrue(Pos('RenamedValue', lLogText) > 0, 'Expected planned rename text. See: ' + lLogPath);
   Assert.IsTrue(Pos('SharedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
     'Dry-run position rename must not edit declaration file.');
+end;
+
+procedure TRefactorCommandTests.PositionTargetAcceptsSlashSeparatedFilePath(
+  const aCommand, aPathKind: string);
+var
+  lArgs: string;
+  lBaselineArgs: string;
+  lBaselineJson: TJSONObject;
+  lBaselineLogPath: string;
+  lBaselineValue: TJSONValue;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFileArgument: string;
+  lJson: TJSONObject;
+  lLogPath: string;
+  lResultKey: string;
+  lRoot: string;
+  lUnitOnePath: string;
+  lUnitTwoPath: string;
+  lVariantValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-file-path-' + aCommand + '-' + aPathKind);
+  CreateFixtureProject(TPath.Combine(lRoot, 'sub'), lDprojPath, lUnitOnePath,
+    lUnitTwoPath);
+  if aPathKind = 'absolute' then
+    lFileArgument := StringReplace(lUnitOnePath, '\', '/', [rfReplaceAll])
+  else if aPathKind = 'mixed' then
+    lFileArgument := StringReplace(lUnitOnePath, 'sub\UnitOne.pas',
+      'sub/UnitOne.pas', [])
+  else
+    lFileArgument := '.\sub/UnitOne.pas';
+  lLogPath := TPath.Combine(TempRoot, 'refactor-file-path-' + aCommand + '-' +
+    aPathKind + '.log');
+  lBaselineLogPath := TPath.Combine(TempRoot, 'refactor-file-path-baseline-' +
+    aCommand + '-' + aPathKind + '.log');
+  lArgs := aCommand + ' --project ' + QuoteArg(lDprojPath) + ' --file ' +
+    QuoteArg(lFileArgument) + ' --line 6 --col 3 --format json --no-semantic-cache';
+  lBaselineArgs := aCommand + ' --project ' + QuoteArg(lDprojPath) +
+    ' --file ' + QuoteArg(lUnitOnePath) +
+    ' --line 6 --col 3 --format json --no-semantic-cache';
+  if aCommand = 'rename' then
+  begin
+    lArgs := lArgs + ' --new-name RenamedValue';
+    lBaselineArgs := lBaselineArgs + ' --new-name RenamedValue';
+  end;
+
+  Assert.IsTrue(RunResolverProcess(lBaselineArgs, lRoot, lBaselineLogPath,
+    lExitCode), 'Failed to start backslash control. See: ' + lBaselineLogPath);
+  Assert.AreEqual(Cardinal(0), lExitCode,
+    'Backslash control failed. See: ' + lBaselineLogPath);
+  lBaselineJson := ParseJsonObject(ReadUtf8TextFile(lBaselineLogPath),
+    lBaselineLogPath);
+  if lBaselineJson = nil then
+  begin
+    Assert.Fail('Expected backslash-control JSON. See: ' + lBaselineLogPath);
+    Exit;
+  end;
+  try
+    Assert.IsTrue(RunResolverProcess(lArgs, lRoot, lLogPath, lExitCode),
+      'Failed to start position command. See: ' + lLogPath);
+    Assert.AreEqual(Cardinal(0), lExitCode,
+      'Position command must resolve ' + lFileArgument + '. See: ' + lLogPath);
+    lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+    if lJson = nil then
+    begin
+      Assert.Fail('Expected position-result JSON. See: ' + lLogPath);
+      Exit;
+    end;
+    try
+      if aCommand = 'rename' then
+      begin
+        Assert.AreEqual('planned', lJson.GetValue<string>('status', ''),
+          'Expected a dry-run rename plan. See: ' + lLogPath);
+        Assert.AreEqual('SharedValue', lJson.GetValue<string>('symbol', ''),
+          'Expected the declaration symbol. See: ' + lLogPath);
+        lResultKey := 'edits';
+      end else begin
+        Assert.AreEqual('resolved', lJson.GetValue<string>('status', ''),
+          'Expected resolved usages. See: ' + lLogPath);
+        Assert.AreEqual('SharedValue', lJson.GetValue<string>('symbol', ''),
+          'Expected the declaration symbol. See: ' + lLogPath);
+        Assert.AreEqual(3, lJson.GetValue<Integer>('count', -1),
+          'Expected declaration and both references. See: ' + lLogPath);
+        lResultKey := 'usages';
+      end;
+      lBaselineValue := lBaselineJson.Values[lResultKey];
+      lVariantValue := lJson.Values[lResultKey];
+      if (lBaselineValue is TJSONArray) and (lVariantValue is TJSONArray) then
+        Assert.AreEqual(lBaselineValue.ToJSON, lVariantValue.ToJSON,
+          'Position result must match the backslash control. See: ' + lLogPath)
+      else
+        Assert.Fail('Expected ' + lResultKey + ' arrays. See: ' + lLogPath);
+    finally
+      lJson.Free;
+    end;
+  finally
+    lBaselineJson.Free;
+  end;
+  Assert.IsTrue(Pos('SharedValue', TFile.ReadAllText(lUnitOnePath,
+    TEncoding.UTF8)) > 0, 'Position queries must not edit the source file.');
 end;
 
 procedure CreateOverloadRangeFixtureProject(const aRoot: string; out aDprojPath,

@@ -54,6 +54,8 @@ type
     procedure CapturedProvenanceDoesNotSeeTheRunsOwnOutput;
     [Test]
     procedure RelocatedPalOutputKeepsNormalizedFindingsInTheReport;
+    [Test]
+    procedure PalReportNameFindingsUseRecordedMainSource;
     // Expectations pinned from workspace.resolve_workspace on the same layout (T-328 evidence).
     [TestCase('default', 'default,,none,src,auto,default')]
     [TestCase('project', 'project,project,none,src,project,command_line')]
@@ -605,6 +607,54 @@ end;
 
 // T-343 contract: --pa-output moves only the raw Pascal Analyzer XML reports. The normalized rows
 // publish under the report's pascal-analyzer folder, where finalization, replay and verify read them.
+procedure TNativeAnalysisProjectTests.PalReportNameFindingsUseRecordedMainSource;
+var
+  lExit: Cardinal;
+  lJson: TJSONObject;
+  lLines: TArray<string>;
+  lLog: string;
+  lScope: IInterface;
+  lSummary: TJSONObject;
+  i: Integer;
+begin
+  TFile.Move(TPath.Combine(fProjectDir, 'Sample.dpr'),
+    TPath.Combine(fProjectDir, 'Sample.Project.dpr'));
+  TFile.WriteAllText(fProjectPath,
+    TFile.ReadAllText(fProjectPath).Replace('<MainSource>Sample.dpr</MainSource>',
+      '<MainSource>Sample.Project.dpr</MainSource>'), TEncoding.UTF8);
+  fReportedFile := 'Sample.Project.dpr';
+  fExtraArgs := ' --pascal-analyzer true --pa-path ' + QuoteArg(ParamStr(0));
+  lScope := SetScopedEnvironmentVariables(['DAK_TEST_PAL_EXIT', '0', 'DAK_TEST_PAL_IDENTITY', '1']);
+  lLog := RunAnalyze(0, lExit);
+  lScope := nil;
+  Assert.AreEqual(Cardinal(0), lExit, 'The report-name findings remain owned. Log: ' + lLog);
+  lSummary := ReadSummary;
+  try
+    Assert.AreEqual(0, lSummary.GetValue<Integer>('counts.raw.ownership.unknown'));
+    Assert.AreEqual(4, lSummary.GetValue<Integer>('counts.raw.ownership.project'));
+  finally
+    lSummary.Free;
+  end;
+  lLines := TFile.ReadAllLines(TPath.Combine(fOutRoot, 'pascal-analyzer\pal-findings.jsonl'));
+  Assert.AreEqual(2, Integer(Length(lLines)));
+  for i := 0 to High(lLines) do
+  begin
+    lJson := ParseJsonObject(lLines[i]);
+    try
+      if i = 0 then
+        Assert.AreEqual('Sample.Project', lJson.GetValue<string>('module'))
+      else
+        Assert.AreEqual('Sample.Project\TWorker\Run', lJson.GetValue<string>('module'));
+      Assert.AreEqual('resolved', lJson.GetValue<string>('path_status'));
+      Assert.AreEqual('project', lJson.GetValue<string>('ownership'));
+      Assert.IsTrue(SameText(TPath.Combine(fProjectDir, 'Sample.Project.dpr'),
+        lJson.GetValue<string>('source_path')), lJson.ToJSON);
+    finally
+      lJson.Free;
+    end;
+  end;
+end;
+
 procedure TNativeAnalysisProjectTests.RelocatedPalOutputKeepsNormalizedFindingsInTheReport;
 var
   lExit: Cardinal;

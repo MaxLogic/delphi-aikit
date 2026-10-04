@@ -337,12 +337,20 @@ end;
 
 procedure TPascalAnalyzerTests.ProjectRunnerUsesExactNamedReportRoot;
 var
+  lNamePos: Integer;
+  lNormalizePos: Integer;
+  lRootPos: Integer;
   lSource: string;
 begin
   lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.analyze.projectrunner.pas'), TEncoding.UTF8);
-  Assert.IsTrue(lSource.Contains(
-    'lPaReportRoot := TPath.Combine(fPal.OutputRoot, TPath.GetFileNameWithoutExtension(fParams.fProjectDpr));'),
-    'Project analysis must construct the exact DAK-owned PAL report folder.');
+  lNamePos := Pos('lReportName := TPath.GetFileNameWithoutExtension(fParams.fProjectDpr);', lSource);
+  lRootPos := Pos('lPaReportRoot := TPath.Combine(fPal.OutputRoot, lReportName);', lSource);
+  lNormalizePos := Pos('lPaReportRoot := PalArtifactPath(lPaReportRoot);', lSource);
+  Assert.IsTrue(lNamePos > 0, 'Project analysis must derive the PAL report name from the exact DPR.');
+  Assert.IsTrue(lRootPos > lNamePos,
+    'Project analysis must combine that DPR-derived name with the PAL output root.');
+  Assert.IsTrue(lNormalizePos > lRootPos,
+    'Project analysis must normalize the exact named report folder.');
   Assert.IsFalse(lSource.Contains('TryFindPalReportRoot(fPal.OutputRoot'),
     'Project analysis must not recursively select a report below the parent output root.');
 end;

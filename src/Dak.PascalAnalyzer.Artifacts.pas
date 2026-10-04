@@ -15,6 +15,8 @@ function PalArtifactPath(const aPath: string): string;
 function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: string; out aError: string): Boolean;
 function TryGeneratePalArtifactsWithCounts(const aReportRoot: string; const aOutRoot: string;
   out aCounts: TPalFindingCounts; out aError: string): Boolean;
+function TryGeneratePalArtifactsForProject(const aReportRoot, aOutRoot, aReportName, aMainSource: string;
+  out aCounts: TPalFindingCounts; out aError: string): Boolean;
 
 implementation
 
@@ -185,14 +187,21 @@ begin
   end;
 end;
 
-function TryLoadModulePaths(const aPath: string; out aPaths: TDictionary<string, string>;
+function TryLoadModulePaths(const aPath, aReportName, aMainSource: string;
+  out aPaths: TDictionary<string, string>;
   out aError: string): Boolean;
 var
   lDoc: IXMLDocument;
+  lExisting: string;
   lInclude: IXMLNode;
+  lMainName: string;
+  lMainPath: string;
+  lModuleName: string;
+  lModulePath: string;
   lModule: IXMLNode;
   lRoot: IXMLNode;
   lSection: IXMLNode;
+  lConflictingMain: Boolean;
   i: Integer;
   j: Integer;
   k: Integer;
@@ -200,6 +209,11 @@ begin
   Result := False;
   aError := '';
   aPaths := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  lMainPath := '';
+  if (Trim(aReportName) <> '') and TPath.IsPathRooted(Trim(aMainSource)) then
+    lMainPath := NormalizeModulePath(aMainSource, ExtractFilePath(aPath));
+  lMainName := '';
+  lConflictingMain := False;
   if not FileExists(aPath) then
     Exit(True);
   if not TryLoadXml(aPath, lDoc, aError) then
@@ -217,6 +231,18 @@ begin
         if not SameText(lModule.NodeName, 'module') then
           Continue;
         AddModulePath(lModule, ExtractFilePath(aPath), aPaths);
+        if lMainPath <> '' then
+        begin
+          lModuleName := NormalizeLineText(ChildText(lModule, 'name'));
+          lModulePath := NormalizeModulePath(ChildText(lModule, 'path'), ExtractFilePath(aPath));
+          if (lModuleName <> '') and SameText(lModulePath, lMainPath) then
+          begin
+            if lMainName = '' then
+              lMainName := lModuleName
+            else if not SameText(lMainName, lModuleName) then
+              lConflictingMain := True;
+          end;
+        end;
         for k := 0 to lModule.ChildNodes.Count - 1 do
         begin
           lInclude := lModule.ChildNodes[k];
@@ -224,6 +250,14 @@ begin
             AddModulePath(lInclude, ExtractFilePath(aPath), aPaths);
         end;
       end;
+    end;
+    if (lMainName <> '') and (not lConflictingMain) and
+      aPaths.TryGetValue(lMainName, lExisting) and SameText(lExisting, lMainPath) then
+    begin
+      if not aPaths.TryGetValue(aReportName, lExisting) then
+        aPaths.Add(aReportName, lMainPath)
+      else if not SameText(lExisting, lMainPath) then
+        aPaths[aReportName] := '';
     end;
     Result := True;
   except
@@ -878,7 +912,7 @@ begin
   Result := True;
 end;
 
-function TryGeneratePalArtifactsWithCounts(const aReportRoot: string; const aOutRoot: string;
+function TryGeneratePalArtifactsCore(const aReportRoot, aOutRoot, aReportName, aMainSource: string;
   out aCounts: TPalFindingCounts; out aError: string): Boolean;
 var
   lReportRoot: string;
@@ -943,7 +977,7 @@ begin
   lSeen := THashSet<string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   lModulePaths := nil;
   try
-    if not TryLoadModulePaths(lModulesPath, lModulePaths, lError) then
+    if not TryLoadModulePaths(lModulesPath, aReportName, aMainSource, lModulePaths, lError) then
     begin
       aError := lError;
       Exit(False);
@@ -1100,6 +1134,18 @@ begin
   end;
 
   Result := True;
+end;
+
+function TryGeneratePalArtifactsForProject(const aReportRoot, aOutRoot, aReportName, aMainSource: string;
+  out aCounts: TPalFindingCounts; out aError: string): Boolean;
+begin
+  Result := TryGeneratePalArtifactsCore(aReportRoot, aOutRoot, aReportName, aMainSource, aCounts, aError);
+end;
+
+function TryGeneratePalArtifactsWithCounts(const aReportRoot: string; const aOutRoot: string;
+  out aCounts: TPalFindingCounts; out aError: string): Boolean;
+begin
+  Result := TryGeneratePalArtifactsCore(aReportRoot, aOutRoot, '', '', aCounts, aError);
 end;
 
 function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: string; out aError: string): Boolean;

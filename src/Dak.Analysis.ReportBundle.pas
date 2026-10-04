@@ -1441,11 +1441,26 @@ var
   lKeys: TArray<string>;
   lRootEntry: TJSONArray;
   lRootList: TList<TJSONArray>;
+  lRootRow: TJSONArray;
   lNested: TJSONArray;
+  lPair: TJSONPair;
+  lPairKey: TJSONString;
   lOptions: TJSONObject;
   lEncoded: string;
 const
   cCompilerKeys: array[0..3] of string = ('delphi', 'platform', 'config', 'search_path_sha256');
+  procedure AddOwnedString(aArray: TJSONArray; const aValue: string);
+  var
+    lValue: TJSONString;
+  begin
+    lValue := TJSONString.Create(aValue);
+    try
+      aArray.AddElement(lValue);
+      lValue := nil;
+    finally
+      lValue.Free;
+    end;
+  end;
 begin
   lAnalyzers := JsonObjectMember(aSeed, 'analyzers');
   lInputs := JsonObjectMember(aSeed, 'inputs');
@@ -1482,11 +1497,22 @@ begin
       end;
     end;
     lSourceInputs := JsonObjectMember(lTarget, 'source_inputs');
+    lRootRow := nil;
+    lRootEntry := nil;
+    lNested := nil;
+    lPolicyRoots := nil;
+    lPair := nil;
+    lPairKey := nil;
     lRootList := TList<TJSONArray>.Create;
     try
       for i := 0 to High(aContext.fPolicyRoots) do
-        lRootList.Add(TJSONArray.Create.Add(aContext.fPolicyRoots[i].fOwnership)
-          .Add(CanonicalLower(aContext.fPolicyRoots[i].fPath)));
+      begin
+        lRootRow := TJSONArray.Create;
+        AddOwnedString(lRootRow, aContext.fPolicyRoots[i].fOwnership);
+        AddOwnedString(lRootRow, CanonicalLower(aContext.fPolicyRoots[i].fPath));
+        lRootList.Add(lRootRow);
+        lRootRow := nil;
+      end;
       lRootList.Sort(TComparer<TJSONArray>.Construct(
         function(const aLeft, aRight: TJSONArray): Integer
         begin
@@ -1496,21 +1522,45 @@ begin
         end));
       lPolicyRoots := TJSONObject.Create;
       lRootEntry := TJSONArray.Create;
-      for i := 0 to lRootList.Count - 1 do
-        lRootEntry.AddElement(lRootList[i]);
-      lRootList.Clear;
-      lPolicyRoots.AddPair('policy_roots', lRootEntry);
+      while lRootList.Count > 0 do
+      begin
+        lRootRow := lRootList.ExtractAt(0);
+        lRootEntry.AddElement(lRootRow);
+        lRootRow := nil;
+      end;
+      lPairKey := TJSONString.Create('policy_roots');
+      lPair := TJSONPair.Create(lPairKey, lRootEntry);
+      lPairKey := nil;
+      lRootEntry := nil;
+      lPolicyRoots.AddPair(lPair);
+      lPair := nil;
       lNested := TJSONArray.Create;
       for lName in aContext.fMaintainedNestedRoots do
-        lNested.Add(CanonicalLower(lName));
-      lPolicyRoots.AddPair('maintained_nested_roots', lNested);
+        AddOwnedString(lNested, CanonicalLower(lName));
+      lPairKey := TJSONString.Create('maintained_nested_roots');
+      lPair := TJSONPair.Create(lPairKey, lNested);
+      lPairKey := nil;
+      lNested := nil;
+      lPolicyRoots.AddPair(lPair);
+      lPair := nil;
+      lMaterial.AddPair('ownership_contract', 'maintained-roots-v2');
+      lPairKey := TJSONString.Create('ownership_boundaries');
+      lPair := TJSONPair.Create(lPairKey, lPolicyRoots);
+      lPairKey := nil;
+      lPolicyRoots := nil;
+      lMaterial.AddPair(lPair);
+      lPair := nil;
     finally
+      lPairKey.Free;
+      lPair.Free;
+      lRootRow.Free;
+      lRootEntry.Free;
+      lNested.Free;
+      lPolicyRoots.Free;
       for lRootEntry in lRootList do
         lRootEntry.Free;
       lRootList.Free;
     end;
-    lMaterial.AddPair('ownership_contract', 'maintained-roots-v2');
-    lMaterial.AddPair('ownership_boundaries', lPolicyRoots);
     lMaterial.AddPair('subject_kind', JsonText(lSubject, 'kind'));
     lWorkspace := JsonObjectMember(aSeed, 'workspace');
     lCompiler := JsonObjectMember(aSeed, 'compiler');

@@ -257,6 +257,7 @@ var
   lRunExit: Cardinal;
   lRunError: string;
   lPaReportRoot: string;
+  lReportName: string;
   lPalPostError: string;
   lPalCounts: TPalFindingCounts;
   lStopwatch: TStopwatch;
@@ -288,7 +289,8 @@ begin
     else
     begin
       try
-        lPaReportRoot := TPath.Combine(fPal.OutputRoot, TPath.GetFileNameWithoutExtension(fParams.fProjectDpr));
+        lReportName := TPath.GetFileNameWithoutExtension(fParams.fProjectDpr);
+        lPaReportRoot := TPath.Combine(fPal.OutputRoot, lReportName);
         lPaReportRoot := PalArtifactPath(lPaReportRoot);
         if FileExists(TPath.Combine(lPaReportRoot, 'Status.xml')) then
         begin
@@ -296,7 +298,8 @@ begin
           ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), fPal.Version, fPal.Compiler);
           // A relocated PAL output root holds only the raw XML reports. The normalized rows belong to
           // the report, where finalization, replay and verify read them (T-343).
-          if not TryGeneratePalArtifactsWithCounts(lPaReportRoot, fPaDir, lPalCounts, lPalPostError) then
+          if not TryGeneratePalArtifactsForProject(lPaReportRoot, fPaDir, lReportName,
+            fParams.fProjectDpr, lPalCounts, lPalPostError) then
             AddError('PAL findings generation failed: ' + lPalPostError, 6);
           fPal.Warnings := lPalCounts.Warnings;
           fPal.StrongWarnings := lPalCounts.StrongWarnings;

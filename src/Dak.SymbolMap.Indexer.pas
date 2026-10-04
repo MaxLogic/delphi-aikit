@@ -58,6 +58,7 @@ type
     fUnitName: string;
     fFilePath: string;
     fEncodingName: string;
+    fScopeModelStatus: string;
     fUses: TArray<TSymbolMapUnitUse>;
     fSymbols: TArray<TSymbolMapSymbolModel>;
     fMembers: TArray<TSymbolMapMemberModel>;
@@ -721,6 +722,7 @@ procedure MergeDelphiSemanticModel(var aModel: TSymbolMapUnitModel; const aSeman
 var
   lDiagnostic: TDelphiSemanticModelDiagnostic;
 begin
+  aModel.fScopeModelStatus := aSemanticModel.ScopeModelStatus;
   if aModel.fUnitName = '' then
   begin
     aModel.fUnitName := aSemanticModel.UnitName;
@@ -745,6 +747,40 @@ begin
   Result.fFilePath := aSemanticModel.FileName;
   Result.fEncodingName := aSemanticModel.EncodingName;
   MergeDelphiSemanticModel(Result, aSemanticModel);
+end;
+
+procedure SetProjectScopeStatuses(var aModels: TArray<TSymbolMapUnitModel>;
+  const aContext: TDelphiSemanticSymbolQueryContext);
+var
+  i: Integer;
+  lModel: TDelphiSemanticUnitModel;
+  lStatuses: TDictionary<string, string>;
+  lFileKey: string;
+  lStatus: string;
+begin
+  lStatuses := TDictionary<string, string>.Create;
+  try
+    for lModel in [aContext.UnitModel] + aContext.IndexedUnitModels do
+    begin
+      lFileKey := SymbolMapProjectFileKey(lModel.FileName);
+      if lFileKey = '' then
+        Continue;
+      if lStatuses.TryGetValue(lFileKey, lStatus) then
+      begin
+        if not SameText(lStatus, lModel.ScopeModelStatus) then
+          lStatuses.AddOrSetValue(lFileKey, 'ambiguous');
+      end else begin
+        lStatuses.Add(lFileKey, lModel.ScopeModelStatus);
+      end;
+    end;
+    for i := 0 to High(aModels) do
+      if lStatuses.TryGetValue(SymbolMapProjectFileKey(aModels[i].fFilePath), lStatus) then
+        aModels[i].fScopeModelStatus := lStatus
+      else
+        aModels[i].fScopeModelStatus := 'missing';
+  finally
+    lStatuses.Free;
+  end;
 end;
 
 function SymbolMapSemanticSessionOptions(const aContext: TSymbolMapContext): TDelphiSemanticOptions;
@@ -954,6 +990,7 @@ begin
       lIndex := TDelphiSemanticApi.BuildProjectSymbolIndex(lContext);
       aModels := SymbolMapUnitModelsFromDelphiSemanticProjectIndex(lIndex,
         lAllowedFileKeys);
+      SetProjectScopeStatuses(aModels, lContext);
       Result := True;
     finally
       lSessionResult.Session.Free;

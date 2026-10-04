@@ -27,6 +27,8 @@ type
     [Test]
     procedure VerifiedOutputReportsActionableOwnership;
     [Test]
+    procedure NonObjectFindingsFailWithoutReportMutation;
+    [Test]
     procedure CorruptTriageRowIsEvidenceMismatch;
     [Test]
     procedure CorruptSarifMessageIsEvidenceMismatch;
@@ -294,6 +296,30 @@ begin
   Assert.AreEqual(TPythonJson.Compact(Member(lSummary, ['counts', 'actionable', 'ownership'])),
     TPythonJson.Compact(lCounts), 'verify returns the actionable ownership counts');
   Assert.AreEqual('project=10, repository=0, third_party=0, unknown=0', AnalysisOwnershipText(lCounts));
+end;
+
+procedure TNativeAnalysisVerifyTests.NonObjectFindingsFailWithoutReportMutation;
+var
+  lOriginal, lPath, lRelative, lRow: string;
+  lAfter, lBefore: TBytes;
+begin
+  VerifyAnalysisReport(fOutput).Free; // The pristine report is accepted.
+  for lRelative in ['fixinsight\fi-findings.jsonl', 'pascal-analyzer\pal-findings.jsonl'] do
+  begin
+    lPath := TPath.Combine(fOutput, lRelative);
+    lOriginal := ReadUtf8(lPath);
+    for lRow in ['1', '[]', 'null'] do
+    begin
+      WriteRaw(lRelative, lOriginal + lRow + #10);
+      lBefore := TFile.ReadAllBytes(lPath);
+      AssertVerifyFails('normalized JSONL finding must be an object');
+      lAfter := TFile.ReadAllBytes(lPath);
+      Assert.IsTrue((Length(lBefore) = Length(lAfter)) and
+        ((Length(lBefore) = 0) or CompareMem(@lBefore[0], @lAfter[0], Length(lBefore))),
+        lRelative + ' remains unchanged');
+    end;
+    WriteRaw(lRelative, lOriginal);
+  end;
 end;
 
 procedure TNativeAnalysisVerifyTests.CorruptTriageRowIsEvidenceMismatch;
