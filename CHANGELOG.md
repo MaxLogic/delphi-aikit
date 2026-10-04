@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- `remove-with` now resolves nested indexed default-property and pointer selectors through an enclosing `with` using the bound member type's declaring unit; unknown or ambiguous provenance refuses the rewrite.
 - Pascal Analyzer findings that use a project's dotted report name now resolve to its recorded main DPR when Modules.xml uniquely identifies that source under a different Pascal program name; conflicting metadata remains unresolved.
 - Analysis baseline comparison rejects non-object `top_warning_sections` rows with a controlled error, without changing the accepted baseline or history.
 - `analyze-report --verify` rejects non-object retained FixInsight and Pascal Analyzer finding rows with a controlled error while preserving the report files.
