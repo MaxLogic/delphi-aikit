@@ -68,6 +68,7 @@ uses
   ProjectFileReader in '..\\lib\\DFMCheck\\Source\\Console\\ProjectFileReader.pas',
   Test.Support in 'units\\test.support.pas',
   Test.App in 'units\\test.app.pas',
+  Test.CrashReporting in 'units\test.crashreporting.pas',
   Test.AnalyzeStatus in 'units\\test.analyzestatus.pas',
   Test.Build in 'units\\test.build.pas',
   Test.Cli in 'units\\test.cli.pas',

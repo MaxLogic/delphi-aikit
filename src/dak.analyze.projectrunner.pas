@@ -12,7 +12,7 @@ implementation
 
 uses
   System.Diagnostics, System.Hash, System.JSON, System.StrUtils,
-  Dak.Analysis.WorkflowFinish,
+  Dak.Analysis.WorkflowFinish, Dak.ExitCodes,
   Dak.FixInsight, Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
 
 type
@@ -56,7 +56,7 @@ type
     function TryOpenLog: Boolean;
     function TryPrepareParams: Boolean;
     procedure ResolveOutputRoot;
-    procedure PrepareOutputTree;
+    function TryPrepareOutputTree: Boolean;
     procedure PrepareFixInsightParams;
     procedure InitFixInsightDefaults;
     procedure RunFixInsightReports;
@@ -137,10 +137,23 @@ begin
   TDirectory.CreateDirectory(fOutRoot);
 end;
 
-procedure TAnalyzeProjectRunner.PrepareOutputTree;
+function TAnalyzeProjectRunner.TryPrepareOutputTree: Boolean;
 begin
   if fOptions.fAnalyzeClean then
-    CleanAnalyzeOutput(fOutRoot, True);
+  begin
+    try
+      CleanAnalyzeOutput(fOutRoot, True);
+    except
+      // Only the cleanup safety refusal is handled here; nothing was deleted. Any other
+      // exception still reaches the unhandled-exception reporter.
+      on E: EAnalyzeCleanupRefused do
+      begin
+        WriteLn(ErrOutput, E.Message);
+        fExitCode := cExitEnvironmentError;
+        Exit(False);
+      end;
+    end;
+  end;
   TDirectory.CreateDirectory(fOutRoot);
   RemoveStaleAnalysisSummary(fOutRoot);
 
@@ -152,6 +165,7 @@ begin
   fRunLog := TPath.Combine(fOutRoot, 'run.log');
   if fOptions.fAnalyzeClean or (not FileExists(fRunLog)) then
     WriteLogText(fRunLog, '');
+  Result := True;
 end;
 
 procedure TAnalyzeProjectRunner.PrepareFixInsightParams;
@@ -615,7 +629,8 @@ begin
     // Before the run writes anything, as analyze.py captured it before starting DAK: the report
     // records the sources as they were analyzed, not the run's own untracked output.
     fCapturedProvenance := CaptureAnalysisRunProvenance(fSettings.fWorkspace, fOutRoot, fDiagnostics);
-    PrepareOutputTree;
+    if not TryPrepareOutputTree then
+      Exit(fExitCode);
     // The analyzer stage runs where analyze.py started DAK; finalization runs back in the caller's
     // directory, where analyze.py itself ran.
     lCallerDirectory := EnterAnalysisWorkspace(fSettings.fWorkspace.fRoot);

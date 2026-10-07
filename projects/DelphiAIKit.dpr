@@ -10,6 +10,7 @@ uses
   madListHardware,
   madListProcesses,
   madListModules,
+  MaxLogic.MadExcept.AiRunner in '..\lib\MaxLogicFoundation\MaxLogic.MadExcept.AiRunner.pas',
 
   FireDAC.Phys.SQLiteWrapper.Stat,
   Dak.Analysis.Workspace in '..\src\Dak.Analysis.Workspace.pas',
@@ -121,5 +122,8 @@ uses
 begin
   // DAK-394: before any command runs, so neither DAK nor a tool it starts can block on an OS message box.
   ApplyUnattendedErrorMode;
+  {$IFDEF madExcept}
+  MaxLogic.MadExcept.AiRunner.ConfigureFromEnvironment;
+  {$ENDIF}
   Halt(TDelphiAIKitApp.Run);
 end.

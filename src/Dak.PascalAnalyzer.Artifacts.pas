@@ -21,7 +21,7 @@ function TryGeneratePalArtifactsForProject(const aReportRoot, aOutRoot, aReportN
 implementation
 
 uses
-  System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.Math, System.StrUtils,
+  System.Classes, System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.Math, System.StrUtils,
   System.SysUtils, System.Types, System.Variants,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
   maxLogic.StrUtils,
@@ -214,7 +214,7 @@ begin
     lMainPath := NormalizeModulePath(aMainSource, ExtractFilePath(aPath));
   lMainName := '';
   lConflictingMain := False;
-  if not FileExists(aPath) then
+  if not FileExists(PalArtifactPath(aPath)) then
     Exit(True);
   if not TryLoadXml(aPath, lDoc, aError) then
     Exit(False);
@@ -460,27 +460,40 @@ begin
 end;
 
 function TryLoadXml(const aPath: string; out aDoc: IXMLDocument; out aError: string): Boolean;
+var
+  lStream: TFileStream;
 begin
   Result := False;
   aError := '';
   aDoc := nil;
-  if not FileExists(aPath) then
+  if not FileExists(PalArtifactPath(aPath)) then
   begin
     aError := 'PAL XML not found: ' + aPath;
     Exit(False);
   end;
   try
     DefaultDOMVendor := sOmniXmlVendor;
-    aDoc := TXMLDocument.Create(nil);
-    aDoc.Options := [doNodeAutoIndent];
-    aDoc.LoadFromFile(aPath);
-    aDoc.Active := True;
-    if (aDoc.DocumentElement = nil) then
-    begin
-      aError := 'PAL XML has no document element: ' + aPath;
-      Exit(False);
+    lStream := TFileStream.Create(PalArtifactPath(aPath), fmOpenRead or fmShareDenyNone);
+    try
+      try
+        aDoc := TXMLDocument.Create(nil);
+        aDoc.Options := [doNodeAutoIndent];
+        aDoc.LoadFromStream(lStream);
+        aDoc.Active := True;
+        if aDoc.DocumentElement = nil then
+        begin
+          aDoc := nil;
+          aError := 'PAL XML has no document element: ' + aPath;
+          Exit(False);
+        end;
+        Result := True;
+      except
+        aDoc := nil;
+        raise;
+      end;
+    finally
+      lStream.Free;
     end;
-    Result := True;
   except
     on E: Exception do
     begin
@@ -500,7 +513,7 @@ var
 begin
   aParsed := False;
   aError := '';
-  if not FileExists(aPath) then
+  if not FileExists(PalArtifactPath(aPath)) then
     Exit;
   if not TryLoadXml(aPath, lDoc, aError) then
     Exit;
@@ -572,7 +585,7 @@ begin
   Result := False;
   aError := '';
   aEntries := nil;
-  if not FileExists(aPath) then
+  if not FileExists(PalArtifactPath(aPath)) then
     Exit(False);
   if not TryLoadXml(aPath, lDoc, aError) then
     Exit(False);
@@ -642,7 +655,7 @@ begin
   Result := False;
   aError := '';
   aLines := nil;
-  if not FileExists(aPath) then
+  if not FileExists(PalArtifactPath(aPath)) then
     Exit(False);
   if not TryLoadXml(aPath, lDoc, aError) then
     Exit(False);
@@ -876,6 +889,7 @@ var
   lRoot: string;
   lFiles: TStringDynArray;
   lPath: string;
+  lPhysicalRoot: string;
 begin
   Result := False;
   aError := '';
@@ -888,27 +902,35 @@ begin
     Exit(False);
   end;
   lRoot := TPath.GetFullPath(lRoot);
-  if not DirectoryExists(lRoot) then
+  if not DirectoryExists(PalArtifactPath(lRoot)) then
   begin
     aError := 'PAL output root not found: ' + lRoot;
     Exit(False);
   end;
 
   lPath := TPath.Combine(lRoot, SPalStatusFileName);
-  if FileExists(lPath) then
+  if FileExists(PalArtifactPath(lPath)) then
   begin
     aReportRoot := ExcludeTrailingPathDelimiter(lRoot);
     Exit(True);
   end;
 
-  lFiles := TDirectory.GetFiles(lRoot, SPalStatusFileName, TSearchOption.soAllDirectories);
+  lPhysicalRoot := IncludeTrailingPathDelimiter(PalArtifactPath(lRoot));
+  lFiles := TDirectory.GetFiles(lPhysicalRoot, SPalStatusFileName, TSearchOption.soAllDirectories);
   if Length(lFiles) = 0 then
   begin
     aError := 'PAL report root not found under: ' + lRoot;
     Exit(False);
   end;
 
-  aReportRoot := ExcludeTrailingPathDelimiter(ExtractFilePath(lFiles[0]));
+  lPath := IncludeTrailingPathDelimiter(ExtractFilePath(lFiles[0]));
+  if not StartsText(lPhysicalRoot, lPath) then
+  begin
+    aError := 'PAL report root not found under: ' + lRoot;
+    Exit(False);
+  end;
+  aReportRoot := ExcludeTrailingPathDelimiter(
+    TPath.Combine(lRoot, Copy(lPath, Length(lPhysicalRoot) + 1, MaxInt)));
   Result := True;
 end;
 
@@ -953,7 +975,7 @@ begin
     Exit(False);
   end;
   lReportRoot := TPath.GetFullPath(lReportRoot);
-  if not DirectoryExists(lReportRoot) then
+  if not DirectoryExists(PalArtifactPath(lReportRoot)) then
   begin
     aError := 'PAL report root not found: ' + lReportRoot;
     Exit(False);
@@ -963,8 +985,8 @@ begin
   if lOutRoot = '' then
     lOutRoot := lReportRoot;
   lOutRoot := TPath.GetFullPath(lOutRoot);
-  if not DirectoryExists(lOutRoot) then
-    TDirectory.CreateDirectory(lOutRoot);
+  if not DirectoryExists(PalArtifactPath(lOutRoot)) then
+    TDirectory.CreateDirectory(PalArtifactPath(lOutRoot));
 
   lWarningsPath := TPath.Combine(lReportRoot, SPalWarningsFileName);
   lStrongPath := TPath.Combine(lReportRoot, SPalStrongWarningsFileName);
@@ -984,7 +1006,7 @@ begin
     end;
     lHasFindingsSource := False;
     lParsed := False;
-    if FileExists(lWarningsPath) then
+    if FileExists(PalArtifactPath(lWarningsPath)) then
     begin
       ParseFindingReport(lWarningsPath, SPalWarningsFileName, SPalSeverityWarning, lFindings, lSeen, lParsed, lError);
       lHasFindingsSource := lParsed;
@@ -996,7 +1018,7 @@ begin
     end;
 
     lParsed := False;
-    if FileExists(lStrongPath) then
+    if FileExists(PalArtifactPath(lStrongPath)) then
     begin
       ParseFindingReport(lStrongPath, SPalStrongWarningsFileName, SPalSeverityStrongWarning, lFindings, lSeen, lParsed,
         lError);
@@ -1009,7 +1031,7 @@ begin
     end;
 
     lParsed := False;
-    if FileExists(lOptimizationPath) then
+    if FileExists(PalArtifactPath(lOptimizationPath)) then
     begin
       ParseFindingReport(lOptimizationPath, SPalOptimizationFileName, SPalSeverityOptimization, lFindings, lSeen, lParsed,
         lError);
@@ -1021,7 +1043,8 @@ begin
       end;
     end;
 
-    lHasHotspotSource := FileExists(lComplexityPath) or FileExists(lModuleTotalsPath);
+    lHasHotspotSource := FileExists(PalArtifactPath(lComplexityPath)) or
+      FileExists(PalArtifactPath(lModuleTotalsPath));
     ResolveFindingPaths(lFindings, lModulePaths);
     CaptureFindingCounts(lFindings, aCounts);
 
@@ -1054,13 +1077,13 @@ begin
       try
         if not TryLoadComplexityEntries(lComplexityPath, lEntries, lError) then
         begin
-          if FileExists(lComplexityPath) and (lError <> '') then
+          if FileExists(PalArtifactPath(lComplexityPath)) and (lError <> '') then
             lHotspotWarnings.Add(SPalComplexityFileName + ': ' + lError);
           lEntries := nil;
         end;
         if not TryLoadModuleLines(lModuleTotalsPath, lModuleLines, lError) then
         begin
-          if FileExists(lModuleTotalsPath) and (lError <> '') then
+          if FileExists(PalArtifactPath(lModuleTotalsPath)) and (lError <> '') then
             lHotspotWarnings.Add(SPalModuleTotalsFileName + ': ' + lError);
           lModuleLines := nil;
         end;

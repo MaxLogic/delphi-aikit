@@ -33,6 +33,7 @@
     <Cfg_2>true</Cfg_2>
     <CfgParent>Base</CfgParent>
     <Base>true</Base>
+    <DCC_Optimize>false</DCC_Optimize>
     <DCC_RangeChecking>true</DCC_RangeChecking>
     <DCC_IntegerOverflowCheck>true</DCC_IntegerOverflowCheck>
   </PropertyGroup>
@@ -122,6 +123,7 @@
         <DCCReference Include="units\test.nativeanalysisreports.import.fixinsight.pas"/>
     <DCCReference Include="units\\test.support.pas"/>
     <DCCReference Include="units\\test.app.pas"/>
+    <DCCReference Include="units\test.crashreporting.pas"/>
     <DCCReference Include="units\\test.build.pas"/>
     <DCCReference Include="units\\test.cli.pas"/>
     <DCCReference Include="units\test.consistency.pas"/>

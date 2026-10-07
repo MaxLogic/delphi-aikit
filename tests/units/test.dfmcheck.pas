@@ -3,20 +3,24 @@ unit Test.DfmCheck;
 interface
 
 uses
-  DUnitX.TestFramework,
   System.Classes, System.IniFiles, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
   System.Variants,
   Winapi.Windows,
-  Dak.DfmCheck, Dak.Types,
-  Test.Support,
-  Xml.XMLDoc, Xml.XMLIntf;
+  Xml.XMLDoc, Xml.XMLIntf,
+  DUnitX.TestFramework,
+  Dak.DfmCheck, Dak.Types, Test.Support;
 
 type
+  IDfmCheckRunnerProbe = interface
+    ['{AA6A22D3-4499-4D4A-8989-77C933A4E80E}']
+    function GetRunCount: Integer;
+  end;
+
   TMockValidatorMode = (vmHappy, vmHappyParentBin, vmBroken, vmBrokenEventSignature,
     vmWarnStandaloneActionImageBinding, vmBuildFailGeneratedUnit, vmBuildFailHighExitCode, vmBuildFailMadExceptLinked,
-    vmValidatorNonZeroNoFail);
+    vmValidatorNonZeroNoFail, vmBuildTimeout, vmValidatorTimeout, vmBuildStartFailure);
 
-  TMockDfmCheckRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
+  TMockDfmCheckRunner = class(TInterfacedObject, IDfmCheckProcessRunner, IDfmCheckRunnerProbe)
   private
     fGeneratedDproj: string;
     fConfig: string;
@@ -34,6 +38,7 @@ type
     procedure WriteValidatorLog(const aLogPath: string; const aLines: TArray<string>);
   public
     constructor Create(const aMode: TMockValidatorMode; const aConfig: string; const aPlatform: string);
+    function GetRunCount: Integer;
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
       const aEnvironmentBlock: string; const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal;
       out aError: string): Boolean;
@@ -52,6 +57,8 @@ type
     function GetDfmCheckWorkRoot(const aProjectDproj: string): string;
     function GetSingleChildDirectory(const aParentDir: string): string;
     function JoinOutput(const aLines: TStrings): string;
+    procedure CheckRunnerFailureCase(const aMode: TMockValidatorMode; const aExpectedError: string;
+      const aExpectedRunCount: Integer; const aExpectPreservedLog: Boolean);
   public
     [Test]
     procedure ResolveProjectPathMapsDprToSiblingDproj;
@@ -151,6 +158,12 @@ type
     procedure PipelineAllModeCacheSkipsUpdateOnValidatorFailureWithoutFailLines;
     [Test]
     procedure PipelineBuildTimeoutPreservesDiagnosticsAndSkipsCache;
+    [Test]
+    procedure PipelineMsBuildTimeoutUsesNumericSentinel;
+    [Test]
+    procedure PipelineValidatorTimeoutUsesNumericSentinel;
+    [Test]
+    procedure PipelineFailedStartIsNotTimeout;
     [Test]
     procedure PipelineAllModeUsesProgressWithoutQuietValidator;
     [Test]
@@ -443,6 +456,11 @@ begin
   fValidatorArguments := '';
 end;
 
+function TMockDfmCheckRunner.GetRunCount: Integer;
+begin
+  Result := fRunCount;
+end;
+
 function TMockDfmCheckRunner.ReadFirstArg(const aArguments: string): string;
 var
   lArgs: string;
@@ -640,6 +658,18 @@ begin
     end;
     fGeneratedDproj := lDprojPath;
 
+    if fMode = TMockValidatorMode.vmBuildTimeout then
+    begin
+      aExitCode := WAIT_TIMEOUT;
+      aError := 'Process exceeded deadline';
+      Exit(False);
+    end;
+    if fMode = TMockValidatorMode.vmBuildStartFailure then
+    begin
+      aError := 'CreateProcess failed for timed out marker in executable path';
+      Exit(False);
+    end;
+
     if fMode = TMockValidatorMode.vmBuildFailGeneratedUnit then
     begin
       if lBuildLogPath <> '' then
@@ -685,6 +715,12 @@ begin
   if fRunCount = 2 then
   begin
     fValidatorArguments := aArguments;
+    if fMode = TMockValidatorMode.vmValidatorTimeout then
+    begin
+      aExitCode := WAIT_TIMEOUT;
+      aError := 'Process exceeded deadline';
+      Exit(False);
+    end;
     SetLength(lValidatorLines, 0);
     if Assigned(aOutput) then
     begin
@@ -3822,6 +3858,88 @@ begin
   end;
 end;
 
+procedure TDfmCheckTests.CheckRunnerFailureCase(const aMode: TMockValidatorMode; const aExpectedError: string;
+  const aExpectedRunCount: Integer; const aExpectPreservedLog: Boolean);
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lEnvGuard: IInterface;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsGuard: IInterface;
+  lLogPaths: TArray<string>;
+  lOptions: TAppOptions;
+  lResult: Integer;
+  lRunner: IDfmCheckProcessRunner;
+  lProbe: IDfmCheckRunnerProbe;
+  lRunsRoot: string;
+  lLogName: string;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-runner-failure');
+  WriteInjectStubs(lInjectDir);
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_TIMEOUT_MS', '250'
+  ]);
+  lKeepArtifactsGuard := ClearScopedEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  try
+    lRunner := TMockDfmCheckRunner.Create(aMode, 'Release', 'Win32');
+    Assert.IsTrue(Supports(lRunner, IDfmCheckRunnerProbe, lProbe), 'Mock runner must expose its call count.');
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.IsTrue(lResult <> 0, 'Runner failure must produce a nonzero result.');
+    Assert.AreEqual(aExpectedError, lError);
+    Assert.AreEqual(aExpectedRunCount, lProbe.GetRunCount);
+    if aMode = TMockValidatorMode.vmValidatorTimeout then
+      Assert.AreEqual(TDfmCheckErrorCategory.ecValidatorFailed, lCategory)
+    else
+      Assert.AreEqual(TDfmCheckErrorCategory.ecBuildFailed, lCategory);
+    lRunsRoot := TPath.Combine(GetDfmCheckWorkRoot(lDprojPath), 'runs');
+    if aMode = TMockValidatorMode.vmValidatorTimeout then
+      lLogName := '_DfmCheckValidator.log'
+    else
+      lLogName := '_DfmCheckBuild.log';
+    if TDirectory.Exists(lRunsRoot) then
+      lLogPaths := TDirectory.GetFiles(lRunsRoot, lLogName, TSearchOption.soAllDirectories)
+    else
+      lLogPaths := [];
+    Assert.AreEqual(aExpectPreservedLog, Length(lLogPaths) > 0,
+      'Only a numeric timeout should preserve a diagnostic log.');
+    if aExpectPreservedLog then
+      Assert.IsTrue(ContainsText(TFile.ReadAllText(lLogPaths[0]), aExpectedError),
+        'Preserved log must contain the phase diagnostic.');
+  finally
+    lKeepArtifactsGuard := nil;
+    lEnvGuard := nil;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineMsBuildTimeoutUsesNumericSentinel;
+begin
+  CheckRunnerFailureCase(TMockValidatorMode.vmBuildTimeout, 'MSBuild timed out after 250 ms', 1, True);
+end;
+
+procedure TDfmCheckTests.PipelineValidatorTimeoutUsesNumericSentinel;
+begin
+  CheckRunnerFailureCase(TMockValidatorMode.vmValidatorTimeout, 'Validator executable timed out after 250 ms', 2, True);
+end;
+
+procedure TDfmCheckTests.PipelineFailedStartIsNotTimeout;
+begin
+  CheckRunnerFailureCase(TMockValidatorMode.vmBuildStartFailure,
+    'MSBuild failed to start: CreateProcess failed for timed out marker in executable path', 1, False);
+end;
+
 procedure TDfmCheckTests.PipelineBuildTimeoutPreservesDiagnosticsAndSkipsCache;
 var
   lBuildLogFound: Boolean;
@@ -3887,7 +4005,7 @@ begin
           Sleep(50);
         end;
       end;
-      if ContainsText(lBuildLogText, 'timed out') then
+      if ContainsText(lBuildLogText, 'MSBuild timed out after 250 ms') then
       begin
         lBuildLogFound := True;
         Break;

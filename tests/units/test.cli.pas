@@ -122,6 +122,10 @@ type
     [Test]
     procedure AnalyzeCleanRejectsLinkedOutputBeforeDeleting;
     [Test]
+    procedure AnalyzeCleanRejectionIsHandledUnderUnattendedCrashReporting;
+    [Test]
+    procedure AnalyzeUnitCleanRejectionIsHandledUnderUnattendedCrashReporting;
+    [Test]
     procedure AnalyzeProjectDefaultOutRootUsesSiblingDakFolder;
     [Test]
     procedure AnalyzeProjectDefaultOutRootUsesSiblingDprojFolderWhenMainSourceLivesElsewhere;
@@ -1032,8 +1036,15 @@ begin
   Assert.IsFalse(ContainsText(TFile.ReadAllText(TPath.Combine(lOutRoot, 'run.log')), 'stale run log'));
 end;
 
-procedure TCliTests.AnalyzeCleanRejectsLinkedOutputBeforeDeleting;
+// aUnitMode runs the analyze-unit runner, which only cleans (and so only checks) the pascal-analyzer folder;
+// the project runner also cleans fixinsight. The junction replaces the first folder the chosen runner checks.
+procedure RunAnalyzeCleanLinkedOutputCase(const aCaseName, aUnattended: string; const aUnitMode: Boolean);
 var
+  lLinkName: string;
+  lStaleDir: string;
+  lEnvGuard: IInterface;
+  lLog: string;
+  lReport: string;
   lArgs: string;
   lExitCode: Cardinal;
   lLinkPath: string;
@@ -1042,36 +1053,72 @@ var
   lTarget: string;
 begin
   EnsureResolverBuilt;
-  lRoot := TPath.Combine(TempRoot, 'analyze-clean-linked-output');
+  lReport := TPath.Combine(ExtractFilePath(ResolverExePath), 'bugreport.txt');
+  lRoot := TPath.Combine(TempRoot, aCaseName);
   lOutRoot := TPath.Combine(lRoot, 'reports');
   lTarget := TPath.Combine(lRoot, 'external-data');
   TDirectory.CreateDirectory(lOutRoot);
   TDirectory.CreateDirectory(lTarget);
   TFile.WriteAllText(TPath.Combine(lTarget, 'keep.txt'), 'external sentinel');
   TFile.WriteAllText(TPath.Combine(lOutRoot, 'baseline.json'), 'baseline sentinel');
-  TDirectory.CreateDirectory(TPath.Combine(lOutRoot, 'pascal-analyzer'));
-  TFile.WriteAllText(TPath.Combine(lOutRoot, 'pascal-analyzer\stale.txt'), 'untouched before rejection');
-  lLinkPath := TPath.Combine(lOutRoot, 'fixinsight');
+  if aUnitMode then
+  begin
+    lLinkName := 'pascal-analyzer';
+    lStaleDir := 'fixinsight';
+  end else begin
+    lLinkName := 'fixinsight';
+    lStaleDir := 'pascal-analyzer';
+  end;
+  TDirectory.CreateDirectory(TPath.Combine(lOutRoot, lStaleDir));
+  TFile.WriteAllText(TPath.Combine(lOutRoot, lStaleDir + '\stale.txt'), 'untouched before rejection');
+  lLinkPath := TPath.Combine(lOutRoot, lLinkName);
   lArgs := '/C mklink /J ' + QuoteArg(lLinkPath) + ' ' + QuoteArg(lTarget);
   Assert.IsTrue(RunCommandProcess(GetEnvironmentVariable('ComSpec'), lArgs, lRoot,
     TPath.Combine(lRoot, 'junction.log'), lExitCode));
   Assert.AreEqual(Cardinal(0), lExitCode, 'Could not create isolated directory junction.');
   try
-    lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dproj')) +
-      ' --platform Win64 --config Release --delphi 23.0 --fixinsight false --pascal-analyzer false' +
-      ' --clean true --out ' + QuoteArg(lOutRoot);
-    Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, TPath.Combine(lRoot, 'analyze.log'), lExitCode));
-    Assert.AreNotEqual(Cardinal(0), lExitCode, 'Linked analyzer output must be rejected before cleanup.');
+    if aUnitMode then
+      lArgs := 'analyze-unit --unit ' + QuoteArg(TPath.Combine(RepoRoot, 'tests\fixtures\GlobalVarsFixture.Globals.pas')) +
+        ' --delphi 23.0 --pascal-analyzer false --clean true --out ' + QuoteArg(lOutRoot)
+    else
+      lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dproj')) +
+        ' --platform Win64 --config Release --delphi 23.0 --fixinsight false --pascal-analyzer false' +
+        ' --clean true --out ' + QuoteArg(lOutRoot);
+    // An empty value explicitly clears an inherited setting, so each case controls madExcept's mode.
+    lEnvGuard := SetScopedEnvironmentVariables(['MAXLOGIC_MADEXCEPT_AI', aUnattended]);
+    if TFile.Exists(lReport) then
+      TFile.Delete(lReport);
+    lLog := TPath.Combine(lRoot, 'analyze.log');
+    Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLog, lExitCode));
+    // 4 = cExitEnvironmentError: a handled refusal, not madExcept's 207 or an unhandled-exception 1.
+    Assert.AreEqual(Cardinal(4), lExitCode, 'Linked analyzer output must be refused with the environment-error exit code.');
+    Assert.IsFalse(TFile.Exists(lReport), 'The cleanup refusal must be handled, not reported as a crash: ' + lReport);
     Assert.AreEqual('external sentinel', TFile.ReadAllText(TPath.Combine(lTarget, 'keep.txt')));
     Assert.AreEqual('baseline sentinel', TFile.ReadAllText(TPath.Combine(lOutRoot, 'baseline.json')));
     Assert.AreEqual('untouched before rejection',
-      TFile.ReadAllText(TPath.Combine(lOutRoot, 'pascal-analyzer\stale.txt')));
-    Assert.IsTrue(ContainsText(TFile.ReadAllText(TPath.Combine(lRoot, 'analyze.log')), 'reparse'));
+      TFile.ReadAllText(TPath.Combine(lOutRoot, lStaleDir + '\stale.txt')));
+    Assert.IsTrue(ContainsText(TFile.ReadAllText(lLog), 'Refusing analyzer cleanup through a reparse point'),
+      'The refusal message must reach the captured output.');
   finally
     if TDirectory.Exists(lLinkPath) and
       ((GetFileAttributes(PChar(lLinkPath)) and FILE_ATTRIBUTE_REPARSE_POINT) <> 0) then
       Assert.IsTrue(Winapi.Windows.RemoveDirectory(PChar(lLinkPath)), 'Could not unlink isolated junction.');
   end;
+end;
+
+procedure TCliTests.AnalyzeCleanRejectsLinkedOutputBeforeDeleting;
+begin
+  RunAnalyzeCleanLinkedOutputCase('analyze-clean-linked-output', '', False);
+end;
+
+procedure TCliTests.AnalyzeCleanRejectionIsHandledUnderUnattendedCrashReporting;
+begin
+  RunAnalyzeCleanLinkedOutputCase('analyze-clean-linked-ai', '1', False);
+end;
+
+procedure TCliTests.AnalyzeUnitCleanRejectionIsHandledUnderUnattendedCrashReporting;
+begin
+  RunAnalyzeCleanLinkedOutputCase('analyze-unit-clean-linked-ai', '1', True);
 end;
 
 procedure TCliTests.AnalyzeProjectDefaultOutRootUsesSiblingDakFolder;

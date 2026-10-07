@@ -1,4 +1,4 @@
-unit Test.NativeAnalysisReports.Controls;
+﻿unit Test.NativeAnalysisReports.Controls;
 
 interface
 
@@ -14,6 +14,8 @@ type
   private
     fRoot: string;
     fEnvironment: IInterface;
+    procedure CheckPalCatalogLongXml(const aLongRoot: Boolean);
+    function PalCatalogProjection(const aRoot: string): string;
   public
     [Setup]
     procedure Setup;
@@ -31,6 +33,19 @@ type
     procedure PalNotRequestedDiscardsRetainedPalEvidence;
     [Test]
     procedure PalRuleIdentityKeepsExactReportAndSectionDistinctions;
+    [Test]
+    procedure PalCatalogLongXmlFileKeepsRuleResolution;
+    [Test]
+    procedure PalCatalogLongXmlRootKeepsRuleResolution;
+    [TestCase('Utf16Bom', '0,False')]
+    [TestCase('Windows1252', '1,False')]
+    [TestCase('Utf8Bom', '2,False')]
+    [TestCase('Utf16BomLongPath', '0,True')]
+    [TestCase('Windows1252LongPath', '1,True')]
+    procedure PalCatalogXmlEncodingKeepsRuleResolution(aVariant: Integer; aLong: Boolean);
+    [TestCase('Empty', '')]
+    [TestCase('Whitespace', '   ')]
+    procedure PalCatalogEmptyRootMeansNoCatalog(const aRoot: string);
     [Test]
     procedure PalRuleIdentitySurvivesSummarySarifAndFingerprint;
     [Test]
@@ -63,7 +78,7 @@ uses
   AutoFree,
   Dak.Analysis.JsonText, Dak.Analysis.Projections, Dak.Analysis.ReportBundle, Dak.Analysis.ReportPolicy,
   Dak.Analysis.ReportReplay, Dak.Analysis.ReportVerify, Dak.Analysis.ReportWriters, Dak.Analysis.Workspace,
-  Dak.Settings,
+  Dak.Settings, Dak.Utils,
   Test.Support;
 
 const
@@ -271,6 +286,152 @@ begin
     DeleteTempPath(fRoot);
 end;
 
+procedure TNativeAnalysisReportControlTests.CheckPalCatalogLongXml(const aLongRoot: Boolean);
+const
+  cCatalogXml = '<?xml version="1.0" encoding="utf-8"?>' +
+    '<report><section name="Catalog-only café" /></report>';
+var
+  g: TGarbos;
+  lCatalogRow, lLongPolicy, lShortPolicy: TJSONObject;
+  lLongDirectory: string;
+  lLongFile: string;
+  lLongRoot: string;
+  lRule: string;
+  lShortFile: string;
+  lShortRoot: string;
+  lLongFi, lLongPal, lShortFi, lShortPal: TJSONArray;
+begin
+  lShortRoot := TPath.Combine(fRoot, 'pal-catalog-short');
+  TDirectory.CreateDirectory(lShortRoot);
+  lShortFile := TPath.Combine(lShortRoot, 'Bindings.xml');
+  WriteUtf8(lShortFile, cCatalogXml);
+
+  lLongRoot := TPath.Combine(fRoot, 'pal-catalog-long');
+  TDirectory.CreateDirectory(lLongRoot);
+  lLongDirectory := lLongRoot;
+  if aLongRoot then
+  begin
+    while Length(lLongRoot) <= 300 do
+    begin
+      lLongRoot := TPath.Combine(lLongRoot, StringOfChar('x', 70));
+      TDirectory.CreateDirectory(LongPathSafe(lLongRoot));
+    end;
+    lLongDirectory := lLongRoot;
+  end else
+  begin
+    while Length(TPath.Combine(lLongDirectory, 'Bindings.xml')) <= 300 do
+    begin
+      lLongDirectory := TPath.Combine(lLongDirectory, StringOfChar('x', 70));
+      TDirectory.CreateDirectory(LongPathSafe(lLongDirectory));
+    end;
+    Assert.IsTrue(Length(lLongRoot) < MAX_PATH, 'The catalog root must stay enumerable.');
+  end;
+  lLongFile := TPath.Combine(lLongDirectory, 'Bindings.xml');
+  Assert.IsTrue(Length(lLongFile) > 300, 'The catalog XML filename must exceed 300 characters.');
+  TFile.Copy(lShortFile, LongPathSafe(lLongFile));
+  Assert.IsTrue(TFile.Exists(LongPathSafe(lLongFile)), 'Long catalog XML fixture setup failed.');
+  AssertBytesUnchanged(LongPathSafe(lLongFile), TFile.ReadAllBytes(lShortFile));
+
+  GC(lCatalogRow, PalRow('warning', 'Bindings.xml', 'Catalog-only café'), g);
+  lRule := AnalysisNormalizedRuleId(lCatalogRow);
+  GC(lShortPolicy, PolicyObject('{"gate_ownership": ["project"], "pal_ignore_rules": ["' +
+    lRule + '"]}'), g);
+  GC(lLongPolicy, PolicyObject('{"gate_ownership": ["project"], "pal_ignore_rules": ["' +
+    lRule + '"]}'), g);
+  GC(lShortFi, TJSONArray.Create, g);
+  GC(lLongFi, TJSONArray.Create, g);
+  GC(lShortPal, TJSONArray.Create, g);
+  GC(lLongPal, TJSONArray.Create, g);
+  lShortPal.AddElement(PalRow('warning', 'Warnings.xml', 'Unrelated rule'));
+  lLongPal.AddElement(PalRow('warning', 'Warnings.xml', 'Unrelated rule'));
+  ApplyAnalysisReportProjections(lShortFi, lShortPal, lShortPolicy, [], '', lShortRoot, True);
+  Assert.AreEqual('actionable', JsonText(TJSONObject(lShortPal.Items[0]), 'report_projection'));
+  ApplyAnalysisReportProjections(lLongFi, lLongPal, lLongPolicy, [], '', lLongRoot, True);
+  Assert.AreEqual(lShortPal.ToJSON, lLongPal.ToJSON);
+end;
+
+function TNativeAnalysisReportControlTests.PalCatalogProjection(const aRoot: string): string;
+var
+  g: TGarbos;
+  lPal, lFi: TJSONArray;
+  lPolicy, lRow: TJSONObject;
+begin
+  GC(lRow, PalRow('warning', 'Bindings.xml', 'Catalog-only café'), g);
+  GC(lPolicy, PolicyObject('{"gate_ownership": ["project"], "pal_ignore_rules": ["' +
+    AnalysisNormalizedRuleId(lRow) + '"]}'), g);
+  GC(lFi, TJSONArray.Create, g);
+  GC(lPal, TJSONArray.Create, g);
+  lPal.AddElement(PalRow('warning', 'Warnings.xml', 'Unrelated rule'));
+  ApplyAnalysisReportProjections(lFi, lPal, lPolicy, [], '', aRoot, True);
+  Result := lPal.ToJSON;
+end;
+
+procedure TNativeAnalysisReportControlTests.PalCatalogXmlEncodingKeepsRuleResolution(aVariant: Integer;
+  aLong: Boolean);
+const
+  cBody = '<report><section name="Catalog-only café" /></report>';
+var
+  lBytes, lPreamble: TBytes;
+  lDirectory, lFile, lBaseline, lRoot: string;
+  lEncoding: TEncoding;
+begin
+  // Every variant must resolve the same non-ASCII rule as the UTF-8 baseline through the stream loader.
+  lRoot := TPath.Combine(fRoot, 'pal-enc-base');
+  WriteUtf8(TPath.Combine(lRoot, 'Bindings.xml'), '<?xml version="1.0" encoding="utf-8"?>' + cBody);
+  lBaseline := PalCatalogProjection(lRoot);
+  Assert.IsTrue(lBaseline.Contains('"actionable"'), 'Baseline projection must be real.');
+
+  lRoot := TPath.Combine(fRoot, 'pal-enc-variant');
+  lDirectory := lRoot;
+  if aLong then
+    while Length(TPath.Combine(lDirectory, 'Bindings.xml')) <= 300 do
+    begin
+      lDirectory := TPath.Combine(lDirectory, StringOfChar('x', 70));
+      TDirectory.CreateDirectory(LongPathSafe(lDirectory));
+    end
+  else
+    TDirectory.CreateDirectory(lDirectory);
+  lFile := TPath.Combine(lDirectory, 'Bindings.xml');
+  case aVariant of
+    0: begin
+      lEncoding := TEncoding.Unicode;
+      lBytes := lEncoding.GetBytes('<?xml version="1.0" encoding="utf-16"?>' + cBody);
+    end;
+    1: begin
+      lEncoding := TEncoding.GetEncoding(1252);
+      try
+        lBytes := lEncoding.GetBytes('<?xml version="1.0" encoding="windows-1252"?>' + cBody);
+      finally
+        lEncoding.Free;
+      end;
+      Assert.IsTrue(TArray.IndexOf<Byte>(lBytes, $E9) >= 0, 'Fixture must contain the ANSI e-acute byte.');
+      lEncoding := nil;
+    end;
+  else
+    lEncoding := TEncoding.UTF8;
+    lBytes := lEncoding.GetBytes('<?xml version="1.0" encoding="utf-8"?>' + cBody);
+  end;
+  if (aVariant <> 1) and (lEncoding <> nil) then
+  begin
+    lPreamble := lEncoding.GetPreamble;
+    lBytes := lPreamble + lBytes;
+  end;
+  TFile.WriteAllBytes(LongPathSafe(lFile), lBytes);
+  if aLong then
+    Assert.IsTrue(Length(lFile) > 300, 'The catalog XML filename must exceed 300 characters.');
+  Assert.AreEqual(lBaseline, PalCatalogProjection(lRoot));
+end;
+
+procedure TNativeAnalysisReportControlTests.PalCatalogLongXmlFileKeepsRuleResolution;
+begin
+  CheckPalCatalogLongXml(False);
+end;
+
+procedure TNativeAnalysisReportControlTests.PalCatalogLongXmlRootKeepsRuleResolution;
+begin
+  CheckPalCatalogLongXml(True);
+end;
+
 procedure TNativeAnalysisReportControlTests.SummaryErrorsAreParsed;
 var
   g: TGarbos;
@@ -456,6 +617,29 @@ begin
   ApplyAnalysisReportProjections(lFi, lPal, lPolicy, [], '', TPath.Combine(fRoot, 'pascal-analyzer'), True);
   Assert.AreEqual('ignored', JsonText(TJSONObject(lPal.Items[0]), 'report_projection'));
   Assert.AreEqual('actionable', JsonText(TJSONObject(lPal.Items[1]), 'report_projection'));
+end;
+
+procedure TNativeAnalysisReportControlTests.PalCatalogEmptyRootMeansNoCatalog(const aRoot: string);
+var
+  g: TGarbos;
+  lActual, lExpected: TJSONArray;
+  lPolicy, lPolicyMissing: TJSONObject;
+  lRule: string;
+  lRow: TJSONObject;
+begin
+  GC(lRow, PalRow('warning', 'Warnings.xml', 'Plain rule'), g);
+  lRule := AnalysisNormalizedRuleId(lRow);
+  GC(lPolicy, PolicyObject('{"gate_ownership": ["project"], "pal_ignore_rules": ["' + lRule + '"]}'), g);
+  GC(lPolicyMissing, PolicyObject('{"gate_ownership": ["project"], "pal_ignore_rules": ["' + lRule + '"]}'), g);
+  GC(lActual, TJSONArray.Create, g);
+  GC(lExpected, TJSONArray.Create, g);
+  lActual.AddElement(PalRow('warning', 'Warnings.xml', 'Plain rule'));
+  lExpected.AddElement(PalRow('warning', 'Warnings.xml', 'Plain rule'));
+  // A nonexistent root is the established "no catalog" behavior; empty roots must match it.
+  ApplyAnalysisReportProjections(nil, lExpected, lPolicyMissing, [], '', TPath.Combine(fRoot, 'no-such-catalog'), True);
+  ApplyAnalysisReportProjections(nil, lActual, lPolicy, [], '', aRoot, True);
+  Assert.AreEqual(lExpected.ToJSON, lActual.ToJSON);
+  Assert.AreEqual('ignored', JsonText(TJSONObject(lActual.Items[0]), 'report_projection'));
 end;
 
 procedure TNativeAnalysisReportControlTests.PalRuleIdentitySurvivesSummarySarifAndFingerprint;

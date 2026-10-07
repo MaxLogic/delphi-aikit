@@ -5,6 +5,10 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- `analyze` and `analyze-unit` output cleanup now reports a refused cleanup (an output folder that is or contains a reparse point such as a junction) as a handled error on stderr with exit code 4, instead of an unhandled exception that exits 207 under `MAXLOGIC_MADEXCEPT_AI=1`. Nothing is deleted through the link.
+- Pascal Analyzer summary counts, status details and normalized findings now read retained XML beyond the Windows path limit while keeping report paths and XML encoding intact.
+- `DelphiAIKit.exe` can run unattended with `MAXLOGIC_MADEXCEPT_AI=1`: an uncaught madExcept exception writes a fresh `bugreport.txt` beside the executable and exits with code 207 without an exception or please-wait dialog.
+- `dfm-check` reports MSBuild and validator timeouts by phase and keeps their diagnostic logs, instead of reporting a failure to start.
 - `remove-with` now resolves nested indexed default-property and pointer selectors through an enclosing `with` using the bound member type's declaring unit; unknown or ambiguous provenance refuses the rewrite.
 - Pascal Analyzer findings that use a project's dotted report name now resolve to its recorded main DPR when Modules.xml uniquely identifies that source under a different Pascal program name; conflicting metadata remains unresolved.
 - Analysis baseline comparison rejects non-object `top_warning_sections` rows with a controlled error, without changing the accepted baseline or history.

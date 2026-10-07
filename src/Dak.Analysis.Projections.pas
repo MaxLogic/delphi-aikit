@@ -79,7 +79,7 @@ uses
   System.Hash, System.IOUtils, System.RegularExpressions, System.SysUtils, System.Variants,
   Xml.omnixmldom, Xml.XMLDoc, Xml.xmldom, Xml.XMLIntf,
   AutoFree,
-  Dak.Analysis.NumericText, Dak.Analysis.UnicodeText;
+  Dak.Analysis.NumericText, Dak.Analysis.UnicodeText, Dak.Utils;
 
 type
   TStringMap = TDictionary<string, string>;
@@ -504,6 +504,7 @@ end;
 
 function TryReadCatalogXml(const aPath: string; out aDocument: IXMLDocument): Boolean;
 var
+  lStream: TFileStream;
   lXml: TXMLDocument;
 begin
   Result := False;
@@ -511,8 +512,18 @@ begin
   aDocument := lXml;
   lXml.DOMVendor := GetDOMVendor(sOmniXmlVendor);
   try
-    aDocument.LoadFromFile(aPath);
-    Result := (aDocument.DocumentElement <> nil) and (aDocument.DocumentElement.LocalName = 'report');
+    lStream := TFileStream.Create(LongPathSafe(aPath), fmOpenRead or fmShareDenyNone);
+    try
+      try
+        aDocument.LoadFromStream(lStream);
+        Result := (aDocument.DocumentElement <> nil) and (aDocument.DocumentElement.LocalName = 'report');
+      except
+        aDocument := nil;
+        raise;
+      end;
+    finally
+      lStream.Free;
+    end;
   except
     // The reference ignores malformed/unreadable catalog files, retaining other valid reports.
     on EDOMParseError do Exit;
@@ -531,11 +542,16 @@ var
   lFiles: TArray<string>;
   lNode: IXMLNode;
   lPending: TStack<IXMLNode>;
-  lPath, lSection, lCanonical: string;
+  lPath, lPhysicalRoot, lSection, lCanonical: string;
 begin
-  if not TDirectory.Exists(aRoot) then
+  // An empty root means no catalog; skip it before path normalization, which rejects empty paths.
+  if Trim(aRoot) = '' then
     Exit;
-  lFiles := TDirectory.GetFiles(aRoot, '*.xml', TSearchOption.soAllDirectories);
+  // Keep the prefix through recursion when XML descendants exceed MAX_PATH.
+  lPhysicalRoot := LongPathSafe(aRoot, 240);
+  if not TDirectory.Exists(lPhysicalRoot) then
+    Exit;
+  lFiles := TDirectory.GetFiles(lPhysicalRoot, '*.xml', TSearchOption.soAllDirectories);
   TArray.Sort<string>(lFiles, TStringComparer.Ordinal);
   GC(lPending, TStack<IXMLNode>.Create, g);
   for lPath in lFiles do

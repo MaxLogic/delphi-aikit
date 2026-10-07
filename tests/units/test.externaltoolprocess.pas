@@ -15,6 +15,14 @@ type
     [Test]
     procedure ConcurrentChildrenDoNotInheritEachOthersPipes;
     [Test]
+    procedure CreateInheritablePipeClosesBothHandlesWhenSetupFails;
+    [Test]
+    procedure SecondPipeSetupFailureClosesBothPairs;
+    [Test]
+    [TestCase('Default child', '1')]
+    [TestCase('Concurrent children', '2')]
+    procedure PipeAcquisitionClosesEarlierHandlesWhenNulFails(aPipeCount: Integer);
+    [Test]
     [TestCase('Plain helper', '0')]
     [TestCase('Timeout helper', '1')]
     [TestCase('PAL help', '2')]
@@ -393,31 +401,199 @@ type
     ReadHandle: THandle;
     WriteHandle: THandle;
   end;
+  TPipeSetup = reference to function(const aPipe: TPipePair): Boolean;
+  TNulOpen = reference to function: THandle;
+  TChildHandles = record
+    fFirstPipe: TPipePair;
+    fSecondPipe: TPipePair;
+    fNul: THandle;
+    procedure Close;
+  end;
 
-function CreateInheritablePipe: TPipePair;
+procedure TChildHandles.Close;
+begin
+  if fFirstPipe.WriteHandle <> 0 then
+    CloseHandle(fFirstPipe.WriteHandle);
+  if fFirstPipe.ReadHandle <> 0 then
+    CloseHandle(fFirstPipe.ReadHandle);
+  if fSecondPipe.WriteHandle <> 0 then
+    CloseHandle(fSecondPipe.WriteHandle);
+  if fSecondPipe.ReadHandle <> 0 then
+    CloseHandle(fSecondPipe.ReadHandle);
+  if fNul <> 0 then
+    CloseHandle(fNul);
+  fFirstPipe := Default(TPipePair);
+  fSecondPipe := Default(TPipePair);
+  fNul := 0;
+end;
+
+function CreateInheritablePipe(const aSetup: TPipeSetup = nil): TPipePair;
 var
   lSecurity: TSecurityAttributes;
+  lSetupOk: Boolean;
 begin
+  Result := Default(TPipePair);
   lSecurity := Default(TSecurityAttributes);
   lSecurity.nLength := SizeOf(lSecurity);
   lSecurity.bInheritHandle := True;
   if not CreatePipe(Result.ReadHandle, Result.WriteHandle, @lSecurity, 4096) then
     RaiseLastOSError;
-  if not SetHandleInformation(Result.ReadHandle, HANDLE_FLAG_INHERIT, 0) then
-    RaiseLastOSError;
+  try
+    if Assigned(aSetup) then
+      lSetupOk := aSetup(Result)
+    else
+      lSetupOk := SetHandleInformation(Result.ReadHandle, HANDLE_FLAG_INHERIT, 0);
+    if not lSetupOk then
+      RaiseLastOSError;
+  except
+    // The raised native error is already captured before cleanup changes LastError.
+    CloseHandle(Result.WriteHandle);
+    CloseHandle(Result.ReadHandle);
+    raise;
+  end;
 end;
 
-function OpenInheritableNul: THandle;
+function OpenInheritableNul(const aOpen: TNulOpen = nil): THandle;
 var
   lSecurity: TSecurityAttributes;
 begin
   lSecurity := Default(TSecurityAttributes);
   lSecurity.nLength := SizeOf(lSecurity);
   lSecurity.bInheritHandle := True;
-  Result := CreateFile('NUL', GENERIC_READ, FILE_SHARE_READ or FILE_SHARE_WRITE, @lSecurity,
-    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+  if Assigned(aOpen) then
+    Result := aOpen()
+  else
+    Result := CreateFile('NUL', GENERIC_READ, FILE_SHARE_READ or FILE_SHARE_WRITE, @lSecurity,
+      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
   if Result = INVALID_HANDLE_VALUE then
     RaiseLastOSError;
+end;
+
+function AcquireChildHandles(aPipeCount: Integer; const aSetup: TPipeSetup = nil;
+  const aOpenNul: TNulOpen = nil): TChildHandles;
+begin
+  Result := Default(TChildHandles);
+  try
+    Result.fFirstPipe := CreateInheritablePipe(aSetup);
+    if aPipeCount = 2 then
+      Result.fSecondPipe := CreateInheritablePipe(aSetup);
+    Result.fNul := OpenInheritableNul(aOpenNul);
+  except
+    Result.Close;
+    raise;
+  end;
+end;
+
+procedure AssertClosedPipe(const aPipe: TPipePair);
+var
+  lReadFlags, lWriteFlags: DWORD;
+  lReadOpen, lWriteOpen: Boolean;
+  lReadError, lWriteError: DWORD;
+begin
+  if GetHandleInformation(aPipe.ReadHandle, lReadFlags) then
+    lReadOpen := True
+  else
+    lReadOpen := False;
+  lReadError := GetLastError;
+  if GetHandleInformation(aPipe.WriteHandle, lWriteFlags) then
+    lWriteOpen := True
+  else
+    lWriteOpen := False;
+  lWriteError := GetLastError;
+  Assert.IsFalse(lReadOpen, 'read end remained open');
+  Assert.IsFalse(lWriteOpen, 'write end remained open');
+  Assert.AreEqual<DWORD>(ERROR_INVALID_HANDLE, lReadError);
+  Assert.AreEqual<DWORD>(ERROR_INVALID_HANDLE, lWriteError);
+end;
+
+procedure TExternalToolProcessTests.CreateInheritablePipeClosesBothHandlesWhenSetupFails;
+var
+  lSeen: TPipePair;
+begin
+  lSeen := Default(TPipePair);
+  try
+    CreateInheritablePipe(
+      function(const aPipe: TPipePair): Boolean
+      begin
+        lSeen := aPipe;
+        SetLastError(ERROR_ACCESS_DENIED);
+        Result := False;
+      end);
+    Assert.Fail('SetHandleInformation failure must propagate');
+  except
+    on E: EOSError do
+      Assert.AreEqual<Integer>(ERROR_ACCESS_DENIED, E.ErrorCode);
+  end;
+  Assert.IsTrue(lSeen.ReadHandle <> 0, 'CreatePipe must succeed before the injected failure');
+  Assert.IsTrue(lSeen.WriteHandle <> 0, 'CreatePipe must return both pipe ends');
+  AssertClosedPipe(lSeen);
+end;
+
+procedure TExternalToolProcessTests.SecondPipeSetupFailureClosesBothPairs;
+var
+  lSeen: array[0..1] of TPipePair;
+  lSeenCount: Integer;
+  lSecondSetupAttempted: Boolean;
+begin
+  lSeenCount := 0;
+  lSecondSetupAttempted := False;
+  try
+    AcquireChildHandles(2,
+      function(const aPipe: TPipePair): Boolean
+      begin
+        lSeen[lSeenCount] := aPipe;
+        Inc(lSeenCount);
+        if lSeenCount = 2 then
+        begin
+          lSecondSetupAttempted := True;
+          SetLastError(ERROR_ACCESS_DENIED);
+          Result := False;
+        end else
+          Result := SetHandleInformation(aPipe.ReadHandle, HANDLE_FLAG_INHERIT, 0);
+      end);
+    Assert.Fail('second pipe setup failure must propagate');
+  except
+    on E: EOSError do
+      Assert.AreEqual<Integer>(ERROR_ACCESS_DENIED, E.ErrorCode);
+  end;
+  Assert.IsTrue(lSecondSetupAttempted, 'the second pipe setup must be reached');
+  Assert.AreEqual<Integer>(2, lSeenCount, 'both CreatePipe calls must succeed');
+  AssertClosedPipe(lSeen[0]);
+  AssertClosedPipe(lSeen[1]);
+end;
+
+procedure TExternalToolProcessTests.PipeAcquisitionClosesEarlierHandlesWhenNulFails(aPipeCount: Integer);
+var
+  lSeen: array[0..1] of TPipePair;
+  lSeenCount: Integer;
+  lNulAttempted: Boolean;
+begin
+  lSeenCount := 0;
+  lNulAttempted := False;
+  try
+    AcquireChildHandles(aPipeCount,
+      function(const aPipe: TPipePair): Boolean
+      begin
+        lSeen[lSeenCount] := aPipe;
+        Inc(lSeenCount);
+        Result := SetHandleInformation(aPipe.ReadHandle, HANDLE_FLAG_INHERIT, 0);
+      end,
+      function: THandle
+      begin
+        lNulAttempted := True;
+        SetLastError(ERROR_ACCESS_DENIED);
+        Result := INVALID_HANDLE_VALUE;
+      end);
+    Assert.Fail('NUL acquisition failure must propagate');
+  except
+    on E: EOSError do
+      Assert.AreEqual<Integer>(ERROR_ACCESS_DENIED, E.ErrorCode);
+  end;
+  Assert.IsTrue(lNulAttempted, 'the injected NUL acquisition must be reached');
+  Assert.AreEqual<Integer>(aPipeCount, lSeenCount, 'all earlier pipes must be created');
+  AssertClosedPipe(lSeen[0]);
+  if aPipeCount = 2 then
+    AssertClosedPipe(lSeen[1]);
 end;
 
 function RunOptions(const aArguments: string; aInput, aOutput, aError: THandle): TExternalToolProcessRunOptions;
@@ -450,8 +626,7 @@ end;
 
 procedure TExternalToolProcessTests.ConcurrentChildrenDoNotInheritEachOthersPipes;
 var
-  lSlowPipe, lFastPipe: TPipePair;
-  lNul: THandle;
+  lHandles: TChildHandles;
   lSlowThread: TThread;
   lSlowExit, lFastExit: Cardinal;
   lSlowTimedOut, lFastTimedOut, lSlowOk, lFastOk: Boolean;
@@ -459,9 +634,7 @@ var
   lWatch: TStopwatch;
   lFastMilliseconds: Int64;
 begin
-  lSlowPipe := CreateInheritablePipe;
-  lFastPipe := CreateInheritablePipe;
-  lNul := OpenInheritableNul;
+  lHandles := AcquireChildHandles(2);
   try
     lSlowOk := False;
     lSlowExit := 0;
@@ -470,19 +643,19 @@ begin
     lSlowThread := TThread.CreateAnonymousThread(
       procedure
       begin
-        lSlowOk := TryRunExternalToolProcess(RunOptions('/c ping -n 4 127.0.0.1 >nul', lNul,
-          lSlowPipe.WriteHandle, lSlowPipe.WriteHandle), lSlowExit, lSlowTimedOut, lSlowError);
+        lSlowOk := TryRunExternalToolProcess(RunOptions('/c ping -n 4 127.0.0.1 >nul', lHandles.fNul,
+          lHandles.fFirstPipe.WriteHandle, lHandles.fFirstPipe.WriteHandle), lSlowExit, lSlowTimedOut, lSlowError);
       end);
     lSlowThread.FreeOnTerminate := False;
     lSlowThread.Start;
     Sleep(300);
     lWatch := TStopwatch.StartNew;
-    lFastOk := TryRunExternalToolProcess(RunOptions('/c echo fast', lNul, lFastPipe.WriteHandle,
-      lFastPipe.WriteHandle), lFastExit, lFastTimedOut, lFastError);
+    lFastOk := TryRunExternalToolProcess(RunOptions('/c echo fast', lHandles.fNul, lHandles.fSecondPipe.WriteHandle,
+      lHandles.fSecondPipe.WriteHandle), lFastExit, lFastTimedOut, lFastError);
     // Close our own copy so EOF depends only on children that inherited the write end.
-    CloseHandle(lFastPipe.WriteHandle);
-    lFastPipe.WriteHandle := 0;
-    lFastOutput := ReadUntilEof(lFastPipe.ReadHandle);
+    CloseHandle(lHandles.fSecondPipe.WriteHandle);
+    lHandles.fSecondPipe.WriteHandle := 0;
+    lFastOutput := ReadUntilEof(lHandles.fSecondPipe.ReadHandle);
     lFastMilliseconds := lWatch.ElapsedMilliseconds;
     lSlowThread.WaitFor;
     lSlowThread.Free;
@@ -494,12 +667,7 @@ begin
       Format('fast child pipe reached EOF after %d ms; a leaked pipe end waits for the slow child (about 3000 ms)',
       [lFastMilliseconds]));
   finally
-    if lFastPipe.WriteHandle <> 0 then
-      CloseHandle(lFastPipe.WriteHandle);
-    CloseHandle(lFastPipe.ReadHandle);
-    CloseHandle(lSlowPipe.WriteHandle);
-    CloseHandle(lSlowPipe.ReadHandle);
-    CloseHandle(lNul);
+    lHandles.Close;
   end;
 end;
 
@@ -507,29 +675,25 @@ end;
 // flags FixInsight and PAL callers use, and returns everything it wrote.
 function RunDefaultExternalToolChild(out aExit: Cardinal): string;
 var
-  lPipe: TPipePair;
-  lNul: THandle;
+  lHandles: TChildHandles;
   lOptions: TExternalToolProcessRunOptions;
   lStarted, lTimedOut: Boolean;
   lError: string;
 begin
-  lPipe := CreateInheritablePipe;
-  lNul := OpenInheritableNul;
+  lHandles := AcquireChildHandles(1);
   try
-    lOptions := RunOptions('', lNul, lPipe.WriteHandle, lPipe.WriteHandle);
+    lOptions := RunOptions('', lHandles.fNul, lHandles.fFirstPipe.WriteHandle,
+      lHandles.fFirstPipe.WriteHandle);
     lOptions.fExePath := ParamStr(0);
     lOptions.fCreationFlags := 0;
     lStarted := TryRunExternalToolProcess(lOptions, aExit, lTimedOut, lError);
-    CloseHandle(lPipe.WriteHandle);
-    lPipe.WriteHandle := 0;
-    Result := ReadUntilEof(lPipe.ReadHandle);
+    CloseHandle(lHandles.fFirstPipe.WriteHandle);
+    lHandles.fFirstPipe.WriteHandle := 0;
+    Result := ReadUntilEof(lHandles.fFirstPipe.ReadHandle);
     Assert.IsTrue(lStarted, lError);
     Assert.IsFalse(lTimedOut);
   finally
-    if lPipe.WriteHandle <> 0 then
-      CloseHandle(lPipe.WriteHandle);
-    CloseHandle(lPipe.ReadHandle);
-    CloseHandle(lNul);
+    lHandles.Close;
   end;
 end;
 

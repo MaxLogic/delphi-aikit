@@ -30,6 +30,7 @@ uses
   Winapi.ShellAPI, Winapi.Windows,
   Xml.omnixmldom, Xml.xmldom,
   maxLogic.CmdLineParams, MaxMadExcept,
+  {$IFDEF madExcept}MaxLogic.MadExcept.AiRunner,{$ENDIF}
   Dak.Analysis.Doctor, Dak.Analysis.ReportCommand, Dak.Analysis.WorkspaceCommand, Dak.Analyze, Dak.Build, Dak.Cli,
   Dak.Consistency.Command, Dak.Deps, Dak.DfmCheck,
   Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
@@ -105,6 +106,9 @@ end;
 procedure TDelphiAIKitApp.ApplyMadExceptSettings(const aBugReportDir: string);
 begin
   MaxMadExcept.AdjustMadExcept(aBugReportDir);
+  {$IFDEF madExcept}
+  MaxLogic.MadExcept.AiRunner.ConfigureFromEnvironment;
+  {$ENDIF}
 end;
 
 function TDelphiAIKitApp.ResolveBugReportDir: string;
@@ -218,6 +222,12 @@ end;
 function TDelphiAIKitApp.Execute: Integer;
 begin
   InitializeProcess;
+  {$IF DEFINED(DEBUG) AND DEFINED(madExcept)}
+  if (GetEnvironmentVariable('MAXLOGIC_MADEXCEPT_AI') = '1') and
+    (GetEnvironmentVariable('DAK_TEST_UNHANDLED_EXCEPTION') <> '') then
+    raise Exception.Create('DAK-396 unhandled test exception: ' +
+      GetEnvironmentVariable('DAK_TEST_UNHANDLED_EXCEPTION'));
+  {$IFEND}
   if HandleHelpIfRequested(Result) then
     Exit(Result);
   if not TryParseOptions(Result) then

@@ -12,7 +12,7 @@ implementation
 
 uses
   System.Diagnostics, System.JSON,
-  Dak.Analysis.WorkflowFinish, Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
+  Dak.Analysis.WorkflowFinish, Dak.ExitCodes, Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
 
 type
   TAnalyzeUnitRunner = class
@@ -43,7 +43,7 @@ type
     function TryLoadSettings: Boolean;
     function TryPrepareUnit: Boolean;
     procedure ResolveOutputRoot;
-    procedure PrepareOutputTree;
+    function TryPrepareOutputTree: Boolean;
     procedure RunPascalAnalyzer;
     procedure WriteSummary;
   public
@@ -176,10 +176,23 @@ begin
   TDirectory.CreateDirectory(fOutRoot);
 end;
 
-procedure TAnalyzeUnitRunner.PrepareOutputTree;
+function TAnalyzeUnitRunner.TryPrepareOutputTree: Boolean;
 begin
   if fOptions.fAnalyzeClean then
-    CleanAnalyzeOutput(fOutRoot, False);
+  begin
+    try
+      CleanAnalyzeOutput(fOutRoot, False);
+    except
+      // Only the cleanup safety refusal is handled here; nothing was deleted. Any other
+      // exception still reaches the unhandled-exception reporter.
+      on E: EAnalyzeCleanupRefused do
+      begin
+        WriteLn(ErrOutput, E.Message);
+        fExitCode := cExitEnvironmentError;
+        Exit(False);
+      end;
+    end;
+  end;
   TDirectory.CreateDirectory(fOutRoot);
   RemoveStaleAnalysisSummary(fOutRoot);
 
@@ -189,6 +202,7 @@ begin
   fRunLog := TPath.Combine(fOutRoot, 'run.log');
   if fOptions.fAnalyzeClean or (not FileExists(fRunLog)) then
     WriteLogText(fRunLog, '');
+  Result := True;
 end;
 
 procedure TAnalyzeUnitRunner.RunPascalAnalyzer;
@@ -313,7 +327,8 @@ begin
     // analyze-unit.py captures provenance for the project context when there is one, else the unit,
     // before DAK writes anything; the settings already resolved the workspace for that subject.
     fCapturedProvenance := CaptureAnalysisRunProvenance(fSettings.fWorkspace, fOutRoot, fDiagnostics);
-    PrepareOutputTree;
+    if not TryPrepareOutputTree then
+      Exit(fExitCode);
     // analyze-unit.py started DAK in the workspace root and finalized in its own directory.
     lCallerDirectory := EnterAnalysisWorkspace(fSettings.fWorkspace.fRoot);
     try

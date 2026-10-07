@@ -1,14 +1,16 @@
-unit Test.PalFindingNormalize;
+﻿unit Test.PalFindingNormalize;
 
 interface
 
 uses
+  System.Classes,
   System.JSON,
   System.IOUtils,
   System.SysUtils,
+  Xml.omnixmldom, Xml.xmldom,
   Winapi.Windows,
   DUnitX.TestFramework,
-  Dak.Analyze.Common, Dak.PascalAnalyzer.Artifacts,
+  Dak.Analyze.Common, Dak.PascalAnalyzer.Artifacts, Dak.Utils,
   Test.Support;
 
 type
@@ -16,6 +18,7 @@ type
   TPalFindingNormalizeTests = class
   private
     procedure CopyPalFixtureToTemp(const aSourceRoot, aTempName: string; out aFixtureRoot: string);
+    procedure PrepareLongXmlPair(out aShortRoot, aLongRoot: string);
   public
     [Test]
     procedure NormalizePalFindingsFromFixtures;
@@ -40,6 +43,16 @@ type
     procedure ModulesXmlResolvesIncludePaths(const aModule, aExpectedStatus: string; const aConflicting: Boolean);
     [Test]
     procedure LocInfoPreservesAnalyzerMessage;
+    [Test]
+    procedure LongXmlSectionCountsMatchShortXml;
+    [Test]
+    procedure LongXmlStatusMatchesShortXml;
+    [Test]
+    procedure LongXmlFindingsMatchShortXml;
+    [Test]
+    procedure LongXmlMalformedAndMissingKeepFailureContracts;
+    [Test]
+    procedure NestedLongPalReportRootDiscoveryKeepsLogicalPath;
     [Test]
     procedure MissingPalFixturesFailClosedWithoutOptOut;
     [Test]
@@ -103,6 +116,259 @@ begin
   begin
     lTargetFile := TPath.Combine(aFixtureRoot, TPath.GetFileName(lFile));
     TFile.Copy(lFile, lTargetFile);
+  end;
+end;
+
+procedure TPalFindingNormalizeTests.PrepareLongXmlPair(out aShortRoot, aLongRoot: string);
+const
+  cWarningsXml = '<?xml version="1.0" encoding="utf-8"?>' +
+    '<report><section name="Unused variables" count="1">' +
+    '<loc><locmod>Sample.Unit</locmod><locline>7</locline><info>café</info></loc>' +
+    '</section></report>';
+  cStatusXml = '<?xml version="1.0" encoding="utf-16"?>' +
+    '<report><section name="Overview"><version>2.1 é</version>' +
+    '<compiler>Delphi 12 ü</compiler></section></report>';
+var
+  lBytes: TBytes;
+  lPath: string;
+  lPreamble: TBytes;
+  lStream: TFileStream;
+
+  procedure WriteXml(const aPath, aXml: string; const aEncoding: TEncoding);
+  begin
+    lStream := TFileStream.Create(aPath, fmCreate);
+    try
+      lPreamble := aEncoding.GetPreamble;
+      if Length(lPreamble) > 0 then
+        lStream.WriteBuffer(lPreamble[0], Length(lPreamble));
+      lBytes := aEncoding.GetBytes(aXml);
+      lStream.WriteBuffer(lBytes[0], Length(lBytes));
+    finally
+      lStream.Free;
+    end;
+  end;
+
+begin
+  aShortRoot := TPath.Combine(TempRoot, 'pal-short-xml');
+  aLongRoot := TPath.Combine(TempRoot, 'pal-long-xml');
+  TDirectory.CreateDirectory(aShortRoot);
+  TDirectory.CreateDirectory(aLongRoot);
+  while Length(TPath.Combine(aLongRoot, 'Warnings.xml')) <= 300 do
+  begin
+    aLongRoot := TPath.Combine(aLongRoot, StringOfChar('x', 70));
+    TDirectory.CreateDirectory(LongPathSafe(aLongRoot));
+  end;
+  Assert.IsTrue(Length(TPath.Combine(aLongRoot, 'Warnings.xml')) > 300,
+    'The PAL XML fixture must exercise an absolute path beyond 300 characters.');
+  Assert.IsTrue(TDirectory.Exists(LongPathSafe(aLongRoot)), 'Long XML directory setup failed.');
+
+  lPath := TPath.Combine(aShortRoot, 'Warnings.xml');
+  WriteXml(lPath, cWarningsXml, TEncoding.UTF8);
+  TFile.Copy(lPath, LongPathSafe(TPath.Combine(aLongRoot, 'Warnings.xml')), True);
+  lPath := TPath.Combine(aShortRoot, 'Status.xml');
+  WriteXml(lPath, cStatusXml, TEncoding.Unicode);
+  TFile.Copy(lPath, LongPathSafe(TPath.Combine(aLongRoot, 'Status.xml')), True);
+  Assert.IsTrue(TFile.Exists(LongPathSafe(TPath.Combine(aLongRoot, 'Warnings.xml'))),
+    'Long Warnings.xml fixture setup failed.');
+  Assert.IsTrue(TFile.Exists(LongPathSafe(TPath.Combine(aLongRoot, 'Status.xml'))),
+    'Long Status.xml fixture setup failed.');
+end;
+
+procedure TPalFindingNormalizeTests.LongXmlSectionCountsMatchShortXml;
+var
+  lLongRoot: string;
+  lShortRoot: string;
+  lVendor: string;
+begin
+  PrepareLongXmlPair(lShortRoot, lLongRoot);
+  lVendor := DefaultDOMVendor;
+  try
+    DefaultDOMVendor := sOmniXmlVendor;
+    Assert.AreEqual(1, GetSectionCountTotal(TPath.Combine(lShortRoot, 'Warnings.xml')));
+    Assert.AreEqual(1, GetSectionCountTotal(TPath.Combine(lLongRoot, 'Warnings.xml')));
+  finally
+    DefaultDOMVendor := lVendor;
+  end;
+end;
+
+procedure TPalFindingNormalizeTests.LongXmlStatusMatchesShortXml;
+var
+  lLongCompiler: string;
+  lLongRoot: string;
+  lLongVersion: string;
+  lShortCompiler: string;
+  lShortRoot: string;
+  lShortVersion: string;
+  lVendor: string;
+begin
+  PrepareLongXmlPair(lShortRoot, lLongRoot);
+  lVendor := DefaultDOMVendor;
+  try
+    DefaultDOMVendor := sOmniXmlVendor;
+    ReadStatusSummary(TPath.Combine(lShortRoot, 'Status.xml'), lShortVersion, lShortCompiler);
+    Assert.AreEqual('2.1 é', lShortVersion);
+    Assert.AreEqual('Delphi 12 ü', lShortCompiler);
+    ReadStatusSummary(TPath.Combine(lLongRoot, 'Status.xml'), lLongVersion, lLongCompiler);
+    Assert.AreEqual(lShortVersion, lLongVersion);
+    Assert.AreEqual(lShortCompiler, lLongCompiler);
+  finally
+    DefaultDOMVendor := lVendor;
+  end;
+end;
+
+procedure TPalFindingNormalizeTests.LongXmlFindingsMatchShortXml;
+var
+  lError: string;
+  lJson: TJSONObject;
+  lLongCounts: TPalFindingCounts;
+  lLongLines: TArray<string>;
+  lLongOut: string;
+  lLongRoot: string;
+  lShortCounts: TPalFindingCounts;
+  lShortLines: TArray<string>;
+  lShortOut: string;
+  lShortRoot: string;
+  lVendor: string;
+begin
+  PrepareLongXmlPair(lShortRoot, lLongRoot);
+  lShortOut := TPath.Combine(TempRoot, 'pal-short-xml-out');
+  lLongOut := TPath.Combine(TempRoot, 'pal-long-xml-out');
+  TDirectory.CreateDirectory(lShortOut);
+  TDirectory.CreateDirectory(lLongOut);
+  lVendor := DefaultDOMVendor;
+  try
+    Assert.IsTrue(TryGeneratePalArtifactsWithCounts(lShortRoot, lShortOut, lShortCounts, lError), lError);
+    Assert.AreEqual(1, lShortCounts.Total);
+    lShortLines := TFile.ReadAllLines(TPath.Combine(lShortOut, 'pal-findings.jsonl'));
+    Assert.AreEqual<NativeInt>(NativeInt(1), Length(lShortLines));
+    lJson := ParseJsonObject(lShortLines[0]);
+    try
+      Assert.IsTrue(lJson <> nil, 'Short PAL finding JSON is invalid.');
+      Assert.AreEqual('café', lJson.GetValue<string>('message'));
+    finally
+      lJson.Free;
+    end;
+    Assert.IsTrue(TryGeneratePalArtifactsWithCounts(lLongRoot, lLongOut, lLongCounts, lError), lError);
+    Assert.AreEqual(lShortCounts.Total, lLongCounts.Total);
+    lLongLines := TFile.ReadAllLines(TPath.Combine(lLongOut, 'pal-findings.jsonl'));
+    Assert.AreEqual<NativeInt>(Length(lShortLines), Length(lLongLines));
+    Assert.AreEqual(lShortLines[0], lLongLines[0]);
+  finally
+    DefaultDOMVendor := lVendor;
+  end;
+end;
+
+procedure TPalFindingNormalizeTests.LongXmlMalformedAndMissingKeepFailureContracts;
+var
+  lCompiler: string;
+  lCounts: TPalFindingCounts;
+  lError: string;
+  lLongRoot: string;
+  lMissingPath: string;
+  lOutRoot: string;
+  lRaised: Boolean;
+  lShortError: string;
+  lShortRoot: string;
+  lVendor: string;
+  lVersion: string;
+begin
+  PrepareLongXmlPair(lShortRoot, lLongRoot);
+  lMissingPath := TPath.Combine(lLongRoot, 'Missing.xml');
+  Assert.AreEqual(0, GetSectionCountTotal(lMissingPath));
+  ReadStatusSummary(lMissingPath, lVersion, lCompiler);
+  Assert.AreEqual('', lVersion);
+  Assert.AreEqual('', lCompiler);
+
+  TFile.WriteAllText(TPath.Combine(lShortRoot, 'Warnings.xml'),
+    '<?xml version="1.0" encoding="utf-8"?><report><section>', TEncoding.UTF8);
+  TFile.Copy(TPath.Combine(lShortRoot, 'Warnings.xml'),
+    LongPathSafe(TPath.Combine(lLongRoot, 'Warnings.xml')), True);
+  lVendor := DefaultDOMVendor;
+  try
+    DefaultDOMVendor := sOmniXmlVendor;
+    lRaised := False;
+    try
+      GetSectionCountTotal(TPath.Combine(lShortRoot, 'Warnings.xml'));
+    except
+      on E: Exception do
+        lRaised := True;
+    end;
+    Assert.IsTrue(lRaised, 'Malformed short XML must raise from the common reader.');
+    lRaised := False;
+    try
+      GetSectionCountTotal(TPath.Combine(lLongRoot, 'Warnings.xml'));
+    except
+      on E: Exception do
+        lRaised := True;
+    end;
+    Assert.IsTrue(lRaised, 'Malformed long XML must raise from the common reader.');
+
+    lOutRoot := TPath.Combine(TempRoot, 'pal-malformed-long-xml-out');
+    TDirectory.CreateDirectory(lOutRoot);
+    Assert.IsFalse(TryGeneratePalArtifactsWithCounts(lShortRoot, lOutRoot, lCounts, lShortError));
+    Assert.IsTrue(lShortError.StartsWith('PAL XML load failed: ' +
+      TPath.Combine(lShortRoot, 'Warnings.xml')), lShortError);
+    Assert.IsFalse(TryGeneratePalArtifactsWithCounts(lLongRoot, lOutRoot, lCounts, lError));
+    Assert.IsTrue(lError.StartsWith('PAL XML load failed: ' +
+      TPath.Combine(lLongRoot, 'Warnings.xml')), lError);
+  finally
+    DefaultDOMVendor := lVendor;
+  end;
+end;
+
+procedure TPalFindingNormalizeTests.NestedLongPalReportRootDiscoveryKeepsLogicalPath;
+var
+  lCounts: TPalFindingCounts;
+  lError: string;
+  lLongNested: string;
+  lLongReportRoot: string;
+  lLongRoot: string;
+  lOutRoot: string;
+  lShortNested: string;
+  lShortReportRoot: string;
+  lShortRoot: string;
+  lVendor: string;
+begin
+  PrepareLongXmlPair(lShortRoot, lLongRoot);
+  lShortNested := TPath.Combine(lShortRoot, 'report');
+  lLongNested := TPath.Combine(lLongRoot, 'report');
+  TDirectory.CreateDirectory(lShortNested);
+  TDirectory.CreateDirectory(LongPathSafe(lLongNested));
+  TFile.Copy(TPath.Combine(lShortRoot, 'Status.xml'),
+    TPath.Combine(lShortNested, 'Status.xml'));
+  TFile.Copy(TPath.Combine(lShortRoot, 'Warnings.xml'),
+    TPath.Combine(lShortNested, 'Warnings.xml'));
+  TFile.Copy(LongPathSafe(TPath.Combine(lLongRoot, 'Status.xml')),
+    LongPathSafe(TPath.Combine(lLongNested, 'Status.xml')));
+  TFile.Copy(LongPathSafe(TPath.Combine(lLongRoot, 'Warnings.xml')),
+    LongPathSafe(TPath.Combine(lLongNested, 'Warnings.xml')));
+  TFile.Delete(TPath.Combine(lShortRoot, 'Status.xml'));
+  TFile.Delete(LongPathSafe(TPath.Combine(lLongRoot, 'Status.xml')));
+
+  Assert.IsFalse(TFile.Exists(TPath.Combine(lShortRoot, 'Status.xml')),
+    'Short root Status.xml must be absent to require nested discovery.');
+  Assert.IsFalse(TFile.Exists(LongPathSafe(TPath.Combine(lLongRoot, 'Status.xml'))),
+    'Long root Status.xml must be absent to require nested discovery.');
+  Assert.IsTrue(Length(TPath.Combine(lLongNested, 'Status.xml')) > 300,
+    'Nested PAL Status.xml must exceed 300 characters.');
+  Assert.IsTrue(TFile.Exists(LongPathSafe(TPath.Combine(lLongNested, 'Status.xml'))),
+    'Nested long Status.xml setup failed.');
+  Assert.IsTrue(TFile.Exists(LongPathSafe(TPath.Combine(lLongNested, 'Warnings.xml'))),
+    'Nested long Warnings.xml setup failed.');
+
+  Assert.IsTrue(TryFindPalReportRoot(lShortRoot, lShortReportRoot, lError), lError);
+  Assert.AreEqual(lShortNested, lShortReportRoot);
+  Assert.IsTrue(TryFindPalReportRoot(lLongRoot, lLongReportRoot, lError), lError);
+  Assert.AreEqual(lLongNested, lLongReportRoot);
+
+  lOutRoot := TPath.Combine(TempRoot, 'pal-nested-long-xml-out');
+  TDirectory.CreateDirectory(lOutRoot);
+  lVendor := DefaultDOMVendor;
+  try
+    Assert.IsTrue(TryGeneratePalArtifactsWithCounts(lLongReportRoot, lOutRoot, lCounts, lError), lError);
+    Assert.AreEqual(1, lCounts.Total);
+  finally
+    DefaultDOMVendor := lVendor;
   end;
 end;
 

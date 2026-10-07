@@ -31,6 +31,11 @@ type
     Optimizations: Integer;
   end;
 
+type
+  // Cleanup refused before deleting anything (reparse point, target outside the output root).
+  // A dedicated class lets the analyze runners report this one refusal as a handled CLI error.
+  EAnalyzeCleanupRefused = class(EInOutError);
+
 function FormatTimestamp: string;
 procedure AppendLogText(const aPath: string; const aText: string);
 procedure WriteLogText(const aPath: string; const aText: string);
@@ -388,11 +393,23 @@ end;
 function TryLoadXmlDocument(const aPath: string): IXMLDocument;
 var
   lDoc: IXMLDocument;
+  lStream: TFileStream;
 begin
-  if not FileExists(aPath) then
+  if not FileExists(LongPathSafe(aPath)) then
     Exit(nil);
-  lDoc := Xml.XMLDoc.LoadXMLDocument(aPath);
-  Result := lDoc;
+  lStream := TFileStream.Create(LongPathSafe(aPath), fmOpenRead or fmShareDenyNone);
+  try
+    try
+      lDoc := TXMLDocument.Create(nil);
+      lDoc.LoadFromStream(lStream);
+      Result := lDoc;
+    except
+      lDoc := nil;
+      raise;
+    end;
+  finally
+    lStream.Free;
+  end;
 end;
 
 function GetSectionCountTotal(const aPath: string): Integer;
@@ -554,7 +571,7 @@ begin
     RaiseLastOSError(lError);
   end;
   if (lAttributes and FILE_ATTRIBUTE_REPARSE_POINT) <> 0 then
-    raise EInOutError.Create('Refusing analyzer cleanup through a reparse point: ' + aPath);
+    raise EAnalyzeCleanupRefused.Create('Refusing analyzer cleanup through a reparse point: ' + aPath);
   if aRecurse and ((lAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0) then
     for lChild in TDirectory.GetFileSystemEntries(aPath) do
       CheckAnalyzeCleanupPath(lChild, True);
@@ -579,7 +596,7 @@ begin
   begin
     lPath := TPath.GetFullPath(TPath.Combine(lRoot, cDirectories[i]));
     if not SameFileName(IncludeTrailingPathDelimiter(ExtractFileDir(lPath)), lRoot) then
-      raise EInOutError.Create('Analyzer cleanup target is outside its output directory: ' + lPath);
+      raise EAnalyzeCleanupRefused.Create('Analyzer cleanup target is outside its output directory: ' + lPath);
     CheckAnalyzeCleanupPath(lPath, True);
   end;
   for lReport in cReports do

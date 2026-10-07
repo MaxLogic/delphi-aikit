@@ -3,11 +3,10 @@ unit Dak.DfmCheck;
 interface
 
 uses
-  System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.IniFiles, System.RegularExpressions,
+  System.Classes, System.Generics.Collections, System.Hash, System.IniFiles, System.IOUtils, System.RegularExpressions,
   System.StrUtils, System.SysUtils,
   System.Win.Registry,
-  Winapi.Messages,
-  Winapi.Windows,
+  Winapi.Messages, Winapi.Windows,
   DfmCheck_Utils,
   Dak.Diagnostics, Dak.Messages, Dak.MsBuild.Args, Dak.RsVars, Dak.Settings, Dak.SourceContext, Dak.Types, Dak.Utils;
 
@@ -75,6 +74,8 @@ type
 
   IDfmCheckProcessRunner = interface
     ['{ACB2FBB2-D818-4F75-B0D1-A6E6CAEA3A54}']
+    // False with WAIT_TIMEOUT means a supervised timeout; false with exit code 0 means startup failed.
+    // True means the child completed, including native nonzero exits.
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
       const aEnvironmentBlock: string; const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal;
       out aError: string): Boolean;
@@ -342,6 +343,15 @@ begin
     Exit;
   if TryStrToUInt(lTimeoutText, lTimeoutValue) and (lTimeoutValue > 0) then
     Result := lTimeoutValue;
+end;
+
+function DfmCheckRunnerFailureMessage(const aPhase: string; const aRunnerError: string;
+  const aExitCode: Cardinal): string;
+begin
+  if aExitCode = WAIT_TIMEOUT then
+    Result := Format('%s timed out after %d ms', [aPhase, ResolveDfmCheckProcessTimeoutMs])
+  else
+    Result := aPhase + ' failed to start: ' + aRunnerError;
 end;
 
 procedure TerminateProcessTree(const aProcessId: Cardinal; const aExitCode: Cardinal);
@@ -4313,11 +4323,11 @@ begin
     if not aRunner.Run(lBuildCmdPath, '', lPaths.fGeneratedDir, lRsVarsEnvironmentBlock, nil, lExitCode,
       lRunnerError) then
     begin
-      lPreserveArtifactsForDiagnostics := ContainsText(lRunnerError, 'timed out');
+      lPreserveArtifactsForDiagnostics := lExitCode = WAIT_TIMEOUT;
+      aError := DfmCheckRunnerFailureMessage('MSBuild', lRunnerError, lExitCode);
       if lPreserveArtifactsForDiagnostics then
-        WriteDfmCheckTimeoutDiagnosticLog(lBuildLogPath, lRunnerError);
+        WriteDfmCheckTimeoutDiagnosticLog(lBuildLogPath, aError);
       aCategory := TDfmCheckErrorCategory.ecBuildFailed;
-      aError := 'MSBuild failed to start: ' + lRunnerError;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
     if FileExists(lBuildLogPath) then
@@ -4377,11 +4387,11 @@ begin
     if not aRunner.Run(lValidatorExePath, lValidatorArgs, lPaths.fGeneratedDir, lRsVarsEnvironmentBlock, nil,
       lExitCode, lRunnerError) then
     begin
-      lPreserveArtifactsForDiagnostics := ContainsText(lRunnerError, 'timed out');
+      lPreserveArtifactsForDiagnostics := lExitCode = WAIT_TIMEOUT;
+      aError := DfmCheckRunnerFailureMessage('Validator executable', lRunnerError, lExitCode);
       if lPreserveArtifactsForDiagnostics then
-        WriteDfmCheckTimeoutDiagnosticLog(lValidatorLogPath, lRunnerError);
+        WriteDfmCheckTimeoutDiagnosticLog(lValidatorLogPath, aError);
       aCategory := TDfmCheckErrorCategory.ecValidatorFailed;
-      aError := 'Validator executable failed to start: ' + lRunnerError;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
 
