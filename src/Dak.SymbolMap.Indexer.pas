@@ -599,6 +599,28 @@ begin
   end;
 end;
 
+// Routine-scoped declarations (routine-local types, consts, vars and the enum values of a
+// routine-local enum) are not part of the top-level inventory. We decide from the model's scope
+// facts: a declaration belongs to the unit scope when its owner scope is the unit scope itself or a
+// type nested directly in it; any other owner scope is a routine scope.
+function IsRoutineScopedDeclaration(const aDeclaration: TDelphiSemanticDeclaration;
+  const aUnitName: string): Boolean;
+var
+  lOwnerRoot: string;
+  lSeparator: Integer;
+begin
+  if SameText(aDeclaration.ScopeKind, 'routine') then
+    Exit(True);
+  if not SameText(aDeclaration.ScopeKind, 'type') then
+    Exit(False);
+
+  lOwnerRoot := aDeclaration.OwnerScopeId;
+  lSeparator := Pos('|type|', lOwnerRoot);
+  if lSeparator > 0 then
+    lOwnerRoot := Copy(lOwnerRoot, 1, lSeparator - 1);
+  Result := (lOwnerRoot <> '') and not SameText(lOwnerRoot, aUnitName);
+end;
+
 procedure AppendSemanticSymbol(var aModel: TSymbolMapUnitModel; aKeys: THashSet<string>; const aName,
   aKind, aOwnerName, aTypeName, aSignature, aSectionKind: string; const aLine, aCol, aEndLine,
   aEndCol: Integer; var aSymbolCount: Integer);
@@ -636,10 +658,15 @@ begin
     SetLength(aModel.fSymbols, lSymbolCount + Length(aSemanticModel.Declarations) +
       Length(aSemanticModel.Routines));
     for lDeclaration in aSemanticModel.Declarations do
+    begin
+      if IsRoutineScopedDeclaration(lDeclaration, aSemanticModel.UnitName) then
+        Continue;
+
       AppendSemanticSymbol(aModel, lSymbolKeys, lDeclaration.Name, lDeclaration.Kind,
         SemanticDeclarationOwnerName(lDeclaration), SemanticDeclarationTypeName(lDeclaration), '',
         lDeclaration.SectionKind, lDeclaration.Line, lDeclaration.Column, lDeclaration.Line,
         lDeclaration.Column, lSymbolCount);
+    end;
     for lRoutine in aSemanticModel.Routines do
       AppendSemanticSymbol(aModel, lSymbolKeys, lRoutine.Name, 'routine', lRoutine.OwnerName,
         lRoutine.ReturnType, lRoutine.Signature, lRoutine.SectionKind, lRoutine.Line, lRoutine.Column,

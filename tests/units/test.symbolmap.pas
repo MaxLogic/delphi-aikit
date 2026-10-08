@@ -121,6 +121,8 @@ type
     [Test]
     procedure ExtractsTopLevelDeclarationsAndEnumValues;
     [Test]
+    procedure RoutineLocalTypeIsModeledButNotTopLevel;
+    [Test]
     procedure IndexUnitCommandReportsTopLevelDeclarationCounts;
   end;
 
@@ -3757,6 +3759,39 @@ begin
     'Local types inside routine bodies must not be indexed as top-level declarations.');
   Assert.IsFalse(FindSymbol(lModel, 'lLocalValue', 'var', 'implementation', lSymbol),
     'Local vars inside routine bodies must not be indexed as top-level declarations.');
+end;
+
+procedure TSymbolMapTopLevelDeclarationTests.RoutineLocalTypeIsModeledButNotTopLevel;
+var
+  lDeclaration: TDelphiSemanticDeclaration;
+  lFound: Boolean;
+  lOptions: TDelphiSemanticModelOptions;
+  lSemanticModel: TDelphiSemanticUnitModel;
+  lSymbol: TSymbolMapSymbolModel;
+  lTopLevelModel: TSymbolMapUnitModel;
+  lError: string;
+begin
+  lOptions := Default(TDelphiSemanticModelOptions);
+  lOptions.SourceFileName := FixtureUnitPath;
+  lOptions.ProjectContextApplied := False;
+  lSemanticModel := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+  Assert.IsTrue(lSemanticModel.Success, 'Expected the DelphiSemantics model to be extracted.');
+
+  lFound := False;
+  for lDeclaration in lSemanticModel.Declarations do
+  begin
+    if SameText(lDeclaration.Name, 'TLocalType') then
+    begin
+      lFound := True;
+      Assert.AreEqual('routine', lDeclaration.ScopeKind, 'Routine-local type must carry the routine scope fact.');
+      Break;
+    end;
+  end;
+  Assert.IsTrue(lFound, 'The DelphiSemantics model must contain the routine-local type.');
+
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lTopLevelModel, lError), lError);
+  Assert.IsFalse(FindSymbol(lTopLevelModel, 'TLocalType', 'type-alias', 'implementation', lSymbol),
+    'The top-level inventory must not contain the routine-local type.');
 end;
 
 procedure TSymbolMapTopLevelDeclarationTests.IndexUnitCommandReportsTopLevelDeclarationCounts;
