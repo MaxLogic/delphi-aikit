@@ -14,14 +14,21 @@ type
   TRefactorTransactionTests = class
   private
     fRoot: string;
+    fBase: string;
     fOptions: TAppOptions;
     fSources: TArray<TSemanticPlanSource>;
     function Plan(const aReplacement: string = '2'): TSemanticRefactoringPlan;
     procedure AssertOriginals;
+    procedure CreateFixture(const aRoot: string);
+    procedure UseLongRoot;
   public
     [Setup] procedure Setup;
     [TearDown] procedure TearDown;
     [Test] procedure SuccessfulBuildsAndJournal;
+    [Test] procedure ShortRootKeepsLogicalPathsUnprefixed;
+    [Test] procedure LongRootPublishesLockJournalAndStaging;
+    [Test] procedure LongRootAcquireLockCreatesTransactionDirectory;
+    [Test] procedure LongRootRecoveryRestoresOriginalBytes;
     [Test] procedure BaselineFailureWritesNothing;
     [Test] procedure PostBuildFailureRestoresBothFiles;
     [Test] procedure StaleSecondSourceWritesNothing;
@@ -54,6 +61,7 @@ uses
   System.Classes, System.Hash, System.IOUtils, System.JSON,
   Winapi.Windows,
   AutoFree, maxLogic.ioutils,
+  Dak.Utils,
   Test.Support;
 
 function HashBytes(const aBytes: TBytes): string;
@@ -66,26 +74,45 @@ begin
 end;
 
 procedure TRefactorTransactionTests.Setup;
+begin
+  fBase := CombinePath([RepoRoot, 'projects', '.dak', 'DelphiAIKit',
+    'refactoring-light-transaction', 'fixtures', TGUID.NewGuid.ToString]);
+  TDirectory.CreateDirectory(fBase);
+  CreateFixture(fBase);
+end;
+
+// DAK-398: the same owned project, relocated beneath a directory chain well past MAX_PATH.
+procedure TRefactorTransactionTests.UseLongRoot;
+var
+  lPath: string;
+begin
+  lPath := fBase;
+  while Length(lPath) < 300 do
+    lPath := TPath.Combine(lPath, StringOfChar('d', 60));
+  TDirectory.CreateDirectory(LongPathSafe(lPath));
+  CreateFixture(lPath);
+end;
+
+procedure TRefactorTransactionTests.CreateFixture(const aRoot: string);
 var
   i: Integer;
   lName: string;
 begin
-  fRoot := CombinePath([RepoRoot, 'projects', '.dak', 'DelphiAIKit',
-    'refactoring-light-transaction', 'fixtures', TGUID.NewGuid.ToString]);
-  TDirectory.CreateDirectory(fRoot);
+  fRoot := aRoot;
   fOptions := Default(TAppOptions);
   fOptions.fDprojPath := TPath.Combine(fRoot, 'Owned.dproj');
   fOptions.fPlatform := 'Win64';
   fOptions.fConfig := 'Debug';
   fOptions.fDelphiVersion := '23.0';
-  TFile.WriteAllText(fOptions.fDprojPath,
+  // Fixture files use the physical-I/O form so a root beyond MAX_PATH is writable; logical names stay plain.
+  TFile.WriteAllText(LongPathSafe(fOptions.fDprojPath),
     '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
     '<PropertyGroup><MainSource>Owned.dpr</MainSource><Base>True</Base>' +
     '<ProjectName>Owned</ProjectName><AppType>Console</AppType><FrameworkType>None</FrameworkType>' +
     '<DCC_ExeOutput>bin</DCC_ExeOutput><DCC_DcuOutput>bin</DCC_DcuOutput>' +
     '</PropertyGroup><ItemGroup><DelphiCompile Include="Owned.dpr"><MainSource>MainSource</MainSource>' +
     '</DelphiCompile></ItemGroup><Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/></Project>', TEncoding.UTF8);
-  TFile.WriteAllText(TPath.Combine(fRoot, 'Owned.dpr'),
+  TFile.WriteAllText(LongPathSafe(TPath.Combine(fRoot, 'Owned.dpr')),
     'program Owned; {$APPTYPE CONSOLE} uses First, Second; begin Writeln(First.Value + Second.Value); end.'#13#10,
     TEncoding.UTF8);
   SetLength(fSources, 2);
@@ -97,15 +124,17 @@ begin
       lName := 'Second';
     fSources[i].FileName := TPath.Combine(fRoot, lName + '.pas');
     fSources[i].OriginalText := 'unit ' + lName + '; interface const Value = 1; implementation end.'#13#10;
-    TFile.WriteAllBytes(fSources[i].FileName, TEncoding.UTF8.GetBytes(fSources[i].OriginalText));
-    fSources[i].ContentHash := HashBytes(TFile.ReadAllBytes(fSources[i].FileName));
+    TFile.WriteAllBytes(LongPathSafe(fSources[i].FileName), TEncoding.UTF8.GetBytes(fSources[i].OriginalText));
+    fSources[i].ContentHash := HashBytes(TFile.ReadAllBytes(LongPathSafe(fSources[i].FileName)));
     fSources[i].IncludeGraphHash := 'no-includes';
   end;
 end;
 
 procedure TRefactorTransactionTests.TearDown;
+var
+  lError: string;
 begin
-  TDirectory.Delete(fRoot, True);
+  Assert.IsTrue(TryDeleteTreeLongPath(fBase, lError), lError);
 end;
 
 function TRefactorTransactionTests.Plan(const aReplacement: string): TSemanticRefactoringPlan;
@@ -137,7 +166,7 @@ var
   lSource: TSemanticPlanSource;
 begin
   for lSource in fSources do
-    Assert.AreEqual(lSource.ContentHash, HashBytes(TFile.ReadAllBytes(lSource.FileName)));
+    Assert.AreEqual(lSource.ContentHash, HashBytes(TFile.ReadAllBytes(LongPathSafe(lSource.FileName))));
 end;
 
 procedure TRefactorTransactionTests.SuccessfulBuildsAndJournal;
@@ -157,6 +186,152 @@ begin
   Assert.AreEqual('written', lResult.Files[0].Status);
   Assert.AreEqual('written', lResult.Files[1].Status);
   Assert.AreEqual(lResult.Files[0].ProposedHash, HashBytes(TFile.ReadAllBytes(fSources[0].FileName)));
+end;
+
+// DAK-398 helpers: physical access through the long-path form, logical paths everywhere else.
+function ReadLongText(const aPath: string): string;
+begin
+  Result := TFile.ReadAllText(LongPathSafe(aPath), TEncoding.UTF8);
+end;
+
+function LongFileHash(const aPath: string): string;
+begin
+  Result := HashBytes(TFile.ReadAllBytes(LongPathSafe(aPath)));
+end;
+
+function JournalValue(const aJournalPath, aName: string): string;
+var
+  g: TGarbos;
+  lJson: TJSONObject;
+begin
+  g := Default(TGarbos);
+  GC(lJson, TJSONObject.ParseJSONValue(ReadLongText(aJournalPath)) as TJSONObject, g);
+  Result := lJson.GetValue<string>(aName);
+end;
+
+procedure SetLongJournalStates(const aPath, aState, aFileState: string);
+var
+  g: TGarbos;
+  lJson, lFile: TJSONObject;
+  lItem: TJSONValue;
+begin
+  g := Default(TGarbos);
+  GC(lJson, TJSONObject.ParseJSONValue(ReadLongText(aPath)) as TJSONObject, g);
+  lJson.RemovePair('status').Free;
+  lJson.AddPair('status', aState);
+  for lItem in lJson.GetValue<TJSONArray>('files') do
+  begin
+    lFile := lItem as TJSONObject;
+    lFile.RemovePair('status').Free;
+    lFile.AddPair('status', aFileState);
+  end;
+  TFile.WriteAllText(LongPathSafe(aPath), lJson.ToJSON, TEncoding.UTF8);
+end;
+
+procedure TRefactorTransactionTests.ShortRootKeepsLogicalPathsUnprefixed;
+var
+  g: TGarbos;
+  lPlan: TSemanticRefactoringPlan;
+  lResult: TRefactoringTransactionResult;
+begin
+  g := Default(TGarbos);
+  GC(lPlan, Plan, g);
+  Assert.IsTrue(ApplyRefactoringTransaction(fOptions, lPlan, fRoot, lResult), lResult.Error);
+  Assert.IsFalse(lResult.JournalPath.StartsWith('\\?\'));
+  Assert.IsTrue(lResult.JournalPath.StartsWith(TransactionRoot(fOptions.fDprojPath) + '\'));
+  Assert.AreEqual(fOptions.fDprojPath, JournalValue(lResult.JournalPath, 'project'));
+  Assert.AreEqual(fRoot, JournalValue(lResult.JournalPath, 'workspace'));
+end;
+
+// The baseline build cannot run beyond MAX_PATH (MSBuild and the Delphi compiler are not long-path aware, DAK-385),
+// so the apply stops at 'baseline-failed'. Everything the transaction itself owns must still land.
+procedure TRefactorTransactionTests.LongRootPublishesLockJournalAndStaging;
+var
+  g: TGarbos;
+  lPlan: TSemanticRefactoringPlan;
+  lResult: TRefactoringTransactionResult;
+  lDirectory: string;
+  i: Integer;
+begin
+  g := Default(TGarbos);
+  UseLongRoot;
+  Assert.IsTrue(Length(fOptions.fDprojPath) >= 300);
+  GC(lPlan, Plan, g);
+  Assert.IsFalse(ApplyRefactoringTransaction(fOptions, lPlan, fRoot, lResult));
+  Assert.AreEqual('baseline-failed', lResult.Status, lResult.Error);
+  Assert.IsFalse(lResult.JournalPath.StartsWith('\\?\'));
+  Assert.IsTrue(lResult.JournalPath.StartsWith(TransactionRoot(fOptions.fDprojPath) + '\'));
+  Assert.IsTrue(Length(lResult.JournalPath) > 300);
+  Assert.IsTrue(TFile.Exists(LongPathSafe(TPath.Combine(TransactionRoot(fOptions.fDprojPath), 'transaction.lock'))));
+  Assert.IsTrue(TFile.Exists(LongPathSafe(lResult.JournalPath)));
+  Assert.AreEqual('baseline-failed', JournalValue(lResult.JournalPath, 'status'));
+  Assert.AreEqual(fOptions.fDprojPath, JournalValue(lResult.JournalPath, 'project'));
+  Assert.AreEqual(fRoot, JournalValue(lResult.JournalPath, 'workspace'));
+  lDirectory := ExtractFileDir(lResult.JournalPath);
+  Assert.AreEqual<NativeInt>(0, Length(TDirectory.GetFiles(LongPathSafe(lDirectory), '*.tmp')));
+  for i := 0 to 1 do
+  begin
+    Assert.AreEqual(fSources[i].ContentHash, LongFileHash(TPath.Combine(lDirectory, IntToStr(i) + '.original')));
+    Assert.AreEqual(lResult.Files[i].ProposedHash, LongFileHash(TPath.Combine(lDirectory, IntToStr(i) + '.proposed')));
+  end;
+  AssertOriginals;
+  // The lock was released: a second transaction reaches the same stage instead of 'transaction.busy'.
+  Assert.IsFalse(ApplyRefactoringTransaction(fOptions, lPlan, fRoot, lResult));
+  Assert.AreNotEqual('transaction.busy', lResult.Error);
+end;
+
+procedure TRefactorTransactionTests.LongRootAcquireLockCreatesTransactionDirectory;
+var
+  lResult: TRefactoringTransactionResult;
+  lTransactionRoot, lMissingJournal: string;
+begin
+  UseLongRoot;
+  lTransactionRoot := TransactionRoot(fOptions.fDprojPath);
+  lMissingJournal := TPath.Combine(TPath.Combine(lTransactionRoot, 'missing'), 'journal.json');
+  Assert.IsTrue(Length(lTransactionRoot) > 260);
+  Assert.IsFalse(TDirectory.Exists(LongPathSafe(lTransactionRoot)));
+  // No journal exists, so recovery stops after AcquireLock has created the directory and taken the lock.
+  Assert.IsFalse(RecoverRefactoringTransaction(fOptions.fDprojPath, fRoot, lMissingJournal, lResult));
+  Assert.AreEqual('blocked', lResult.Status);
+  Assert.AreNotEqual('transaction.busy', lResult.Error);
+  Assert.IsTrue(TDirectory.Exists(LongPathSafe(lTransactionRoot)), lResult.Error);
+  Assert.IsTrue(TFile.Exists(LongPathSafe(TPath.Combine(lTransactionRoot, 'transaction.lock'))), lResult.Error);
+  // Released on exit: a second acquisition does not report a busy lock.
+  Assert.IsFalse(RecoverRefactoringTransaction(fOptions.fDprojPath, fRoot, lMissingJournal, lResult));
+  Assert.AreNotEqual('transaction.busy', lResult.Error);
+end;
+
+procedure TRefactorTransactionTests.LongRootRecoveryRestoresOriginalBytes;
+var
+  g: TGarbos;
+  lPlan: TSemanticRefactoringPlan;
+  lApplied, lResult: TRefactoringTransactionResult;
+  lDirectory: string;
+  i: Integer;
+begin
+  g := Default(TGarbos);
+  UseLongRoot;
+  GC(lPlan, Plan, g);
+  Assert.IsFalse(ApplyRefactoringTransaction(fOptions, lPlan, fRoot, lApplied));
+  Assert.AreEqual('baseline-failed', lApplied.Status, lApplied.Error);
+  lDirectory := ExtractFileDir(lApplied.JournalPath);
+  // Model an interruption after both sources were written with the staged proposed bytes.
+  for i := 0 to 1 do
+    TFile.WriteAllBytes(LongPathSafe(fSources[i].FileName),
+      TFile.ReadAllBytes(LongPathSafe(TPath.Combine(lDirectory, IntToStr(i) + '.proposed'))));
+  Assert.AreNotEqual(fSources[0].ContentHash, LongFileHash(fSources[0].FileName));
+  SetLongJournalStates(lApplied.JournalPath, 'writing', 'written');
+  // The pending journal beyond MAX_PATH is found and reported with its logical path.
+  Assert.IsFalse(ApplyRefactoringTransaction(fOptions, lPlan, fRoot, lResult));
+  Assert.AreEqual('recovery-required', lResult.Status);
+  Assert.AreEqual(lApplied.JournalPath, lResult.JournalPath);
+  Assert.IsTrue(RecoverRefactoringTransaction(fOptions.fDprojPath, fRoot, lApplied.JournalPath, lResult), lResult.Error);
+  Assert.AreEqual('rolled-back', lResult.Status);
+  Assert.AreEqual('restored', lResult.Files[0].Status);
+  Assert.AreEqual('restored', lResult.Files[1].Status);
+  AssertOriginals;
+  Assert.AreEqual('rolled-back', JournalValue(lApplied.JournalPath, 'status'));
+  Assert.AreEqual<NativeInt>(0, Length(TDirectory.GetFiles(LongPathSafe(lDirectory), '*.tmp')));
 end;
 
 procedure TRefactorTransactionTests.BaselineFailureWritesNothing;

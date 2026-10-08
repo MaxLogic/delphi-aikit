@@ -30,7 +30,7 @@ uses
   System.IOUtils, System.Math, System.StrUtils,
   Winapi.Windows,
   AutoFree, maxLogic.StrUtils,
-  Dak.Analysis.Workspace;
+  Dak.Analysis.Workspace, Dak.Utils;
 
 type
   TByteEdit = record
@@ -92,7 +92,8 @@ begin
     Exit;
   // Deny concurrent writes/deletion while observing identity and bytes. Apply must
   // reacquire and revalidate these observations before its first mutation.
-  GC(lStream, TFileStream.Create(aSource.FileName, fmOpenRead or fmShareDenyWrite), g);
+  // DAK-398: physical open in long-path form; the logical name is replaced by the handle's path below.
+  GC(lStream, TFileStream.Create(LongPathSafe(aSource.FileName), fmOpenRead or fmShareDenyWrite), g);
   aFile.FileName := HandlePath(lStream.Handle);
   if not StartsText(IncludeTrailingPathDelimiter(aRoot), aFile.FileName) then
     Exit;
@@ -275,7 +276,7 @@ begin
     Exit;
   try
     aError := 'preflight.invalid-workspace';
-    if not TPath.IsPathRooted(aWorkspaceRoot) or not TDirectory.Exists(aWorkspaceRoot) then
+    if not TPath.IsPathRooted(aWorkspaceRoot) or not TDirectory.Exists(LongPathSafe(aWorkspaceRoot)) then
       Exit;
     lRoot := ResolveFilesystemPath(aWorkspaceRoot);
     GC(lNames, THashSet<string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase), g);

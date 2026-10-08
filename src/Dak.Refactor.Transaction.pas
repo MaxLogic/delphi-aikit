@@ -226,7 +226,8 @@ begin
   // An existing project file proves the project is inside the selected root.
   GC(lProjectStream, OpenChecked(aProject, aRoot, fmOpenRead or fmShareDenyWrite), g);
   lDirectory := TransactionRoot(HandlePath(lProjectStream.Handle));
-  TDirectory.CreateDirectory(lDirectory);
+  // DAK-398: physical creation uses the long-path form; lDirectory stays the logical path.
+  TDirectory.CreateDirectory(LongPathSafe(lDirectory));
   if not SameText(CanonicalDirectory(lDirectory), lDirectory) then
     raise EInOutError.Create('transaction.journal-path-alias');
   Result := CreateFile(PChar(LongPathSafe(TPath.Combine(lDirectory, 'transaction.lock'))), GENERIC_READ or GENERIC_WRITE,
@@ -273,13 +274,23 @@ begin
   AtomicArtifact(aResult.JournalPath, lBytes);
 end;
 
+// The readable form of a path the file system may return in extended-length form.
+function LogicalPath(const aPath: string): string;
+begin
+  Result := aPath;
+  if StartsText('\\?\UNC\', Result) then
+    Result := '\\' + Copy(Result, 9, MaxInt)
+  else if StartsText('\\?\', Result) then
+    Delete(Result, 1, 4);
+end;
+
 function ReadJournal(const aPath: string): TJSONObject;
 var
   lValue: TJSONValue;
 begin
-  if TFile.GetSize(aPath) > cRecoveryJournalBytes then
+  if TFile.GetSize(LongPathSafe(aPath)) > cRecoveryJournalBytes then
     raise EInOutError.Create('transaction.journal-too-large');
-  lValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(aPath, TEncoding.UTF8));
+  lValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(LongPathSafe(aPath), TEncoding.UTF8));
   if not (lValue is TJSONObject) then
   begin
     lValue.Free;
@@ -291,12 +302,14 @@ end;
 function PendingJournal(const aProject: string): string;
 var
   g: TGarbos;
-  lPath, lStatus: string;
+  lFound, lPath, lStatus: string;
   lJson: TJSONObject;
 begin
   Result := '';
-  for lPath in TDirectory.GetFiles(TransactionRoot(aProject), 'journal.json', TSearchOption.soAllDirectories) do
+  for lFound in TDirectory.GetFiles(LongPathSafe(TransactionRoot(aProject)), 'journal.json',
+    TSearchOption.soAllDirectories) do
   begin
+    lPath := LogicalPath(lFound);
     g := Default(TGarbos);
     GC(lJson, ReadJournal(lPath), g);
     lStatus := lJson.GetValue<string>('status');
