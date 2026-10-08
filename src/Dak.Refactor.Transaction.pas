@@ -221,6 +221,7 @@ var
   g: TGarbos;
   lDirectory: string;
   lProjectStream: TFileStream;
+  lError: DWORD;
 begin
   g := Default(TGarbos);
   // An existing project file proves the project is inside the selected root.
@@ -233,7 +234,14 @@ begin
   Result := CreateFile(PChar(LongPathSafe(TPath.Combine(lDirectory, 'transaction.lock'))), GENERIC_READ or GENERIC_WRITE,
     0, nil, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
   if Result = INVALID_HANDLE_VALUE then
-    raise EInOutError.Create('transaction.busy');
+  begin
+    lError := GetLastError;
+    // Share mode 0 makes a lock held elsewhere a sharing violation (CreateFile does not document
+    // ERROR_LOCK_VIOLATION). Any other failure is a path or permission defect, not a busy lock.
+    if lError = ERROR_SHARING_VIOLATION then
+      raise EInOutError.Create('transaction.busy');
+    raise EInOutError.Create('transaction.lock-failed: error ' + IntToStr(lError) + ': ' + SysErrorMessage(lError));
+  end;
 end;
 
 procedure SaveJournal(const aProject, aRoot: string; const aResult: TRefactoringTransactionResult);

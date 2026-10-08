@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- Refactor transactions report `transaction.busy` only when another process holds the project lock; any other failure to open the lock file now reports `transaction.lock-failed` with the OS error code and message.
 - Refactor transactions now create their lock directory and read their journals beyond the Windows path limit, so a project nested deeper than 260 characters can reach lock, journal, staging and recovery (the build verification still needs a path within the limit).
 - `analyze` and `analyze-unit` output cleanup now reports a refused cleanup (an output folder that is or contains a reparse point such as a junction) as a handled error on stderr with exit code 4, instead of an unhandled exception that exits 207 under `MAXLOGIC_MADEXCEPT_AI=1`. Nothing is deleted through the link.
 - Pascal Analyzer summary counts, status details and normalized findings now read retained XML beyond the Windows path limit while keeping report paths and XML encoding intact.

@@ -29,6 +29,8 @@ type
     [Test] procedure LongRootPublishesLockJournalAndStaging;
     [Test] procedure LongRootAcquireLockCreatesTransactionDirectory;
     [Test] procedure LongRootRecoveryRestoresOriginalBytes;
+    [Test] procedure HeldLockReportsBusy;
+    [Test] procedure UnopenableLockPathReportsLockFailedWithOsError;
     [Test] procedure BaselineFailureWritesNothing;
     [Test] procedure PostBuildFailureRestoresBothFiles;
     [Test] procedure StaleSecondSourceWritesNothing;
@@ -332,6 +334,49 @@ begin
   AssertOriginals;
   Assert.AreEqual('rolled-back', JournalValue(lApplied.JournalPath, 'status'));
   Assert.AreEqual<NativeInt>(0, Length(TDirectory.GetFiles(LongPathSafe(lDirectory), '*.tmp')));
+end;
+
+procedure TRefactorTransactionTests.HeldLockReportsBusy;
+var
+  lResult: TRefactoringTransactionResult;
+  lMissingJournal, lLockPath: string;
+  lHeld: THandle;
+begin
+  lMissingJournal := TPath.Combine(TPath.Combine(TransactionRoot(fOptions.fDprojPath), 'missing'), 'journal.json');
+  // The first call creates the lock file; its failure is expected (no journal) and not busy.
+  Assert.IsFalse(RecoverRefactoringTransaction(fOptions.fDprojPath, fRoot, lMissingJournal, lResult));
+  Assert.AreNotEqual('transaction.busy', lResult.Error);
+  lLockPath := TPath.Combine(TransactionRoot(fOptions.fDprojPath), 'transaction.lock');
+  lHeld := CreateFile(PChar(LongPathSafe(lLockPath)), GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL, 0);
+  Assert.AreNotEqual(INVALID_HANDLE_VALUE, lHeld);
+  try
+    Assert.IsFalse(RecoverRefactoringTransaction(fOptions.fDprojPath, fRoot, lMissingJournal, lResult));
+    Assert.AreEqual('transaction.busy', lResult.Error);
+    Assert.AreEqual('blocked', lResult.Status);
+  finally
+    CloseHandle(lHeld);
+  end;
+  Assert.IsFalse(RecoverRefactoringTransaction(fOptions.fDprojPath, fRoot, lMissingJournal, lResult));
+  Assert.AreNotEqual('transaction.busy', lResult.Error);
+end;
+
+procedure TRefactorTransactionTests.UnopenableLockPathReportsLockFailedWithOsError;
+var
+  lResult: TRefactoringTransactionResult;
+  lCode: Integer;
+begin
+  // A directory where the lock file belongs cannot be opened as a file: a defect, not a held lock.
+  TDirectory.CreateDirectory(TPath.Combine(TransactionRoot(fOptions.fDprojPath), 'transaction.lock'));
+  Assert.IsFalse(RecoverRefactoringTransaction(fOptions.fDprojPath, fRoot,
+    TPath.Combine(TPath.Combine(TransactionRoot(fOptions.fDprojPath), 'missing'), 'journal.json'), lResult));
+  Assert.AreEqual('blocked', lResult.Status);
+  Assert.IsTrue(lResult.Error.StartsWith('transaction.lock-failed: error '), lResult.Error);
+  lCode := StrToIntDef(Copy(lResult.Error, Length('transaction.lock-failed: error ') + 1,
+    Pos(':', lResult.Error, Length('transaction.lock-failed: error ') + 1) -
+    Length('transaction.lock-failed: error ') - 1), 0);
+  Assert.IsTrue(lCode > 0, lResult.Error);
+  Assert.AreNotEqual(Integer(ERROR_SHARING_VIOLATION), lCode);
 end;
 
 procedure TRefactorTransactionTests.BaselineFailureWritesNothing;
