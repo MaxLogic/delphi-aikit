@@ -474,7 +474,7 @@ Routing guidance:
 The JSON result contract is operation-specific:
 - `definition` returns `result.locations[]`
 - `probe` returns per-mode capability matrices for `contextFile` and `settingsFile`, and can show the generated init/config payloads with `--show-init-options`
-- `hover` returns `result.contentsText` plus optional markdown/range data; it returns content for a symbol position when DAK resolves the Win32/Win64 compiler DLL beside `DelphiLSP.exe` (positions without a symbol stay empty); otherwise `warnings` names why and hover may be empty
+- `hover` returns `result.contentsText` plus optional markdown/range data. DAK resolves the Win32/Win64 compiler DLL beside `DelphiLSP.exe` for semantic hover; if it cannot, `warnings` names why. The server can still return empty content for a symbol: the installed Delphi 13 server returns class hover but empty method hover at the recorded fixture positions. See [the capability recheck](docs/lsp-capability-probe.md).
 - external Delphi 23 and Delphi 13 `DelphiLSP.exe` builds support `definition`, `hover`, and file-scoped `documentSymbol`; only `textDocument/references` and `workspace/symbol` are unsupported
 - `symbols` returns `result.symbols[]` from file-scoped `documentSymbol` data
 

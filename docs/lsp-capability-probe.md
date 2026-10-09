@@ -9,6 +9,35 @@
 
 Use the results to compare Delphi versions and handshake styles.
 
+## Installed-server recheck, 2026-10-09 (DAK-349)
+
+The installed `bin\DelphiAIKit.exe` (1.2.1.0) was checked against the unchanged
+LspProjectFixture in Debug, on Win32 and Win64. The Delphi 12 server in
+`Studio\23.0\bin` is version `29.0.53982.0329`; the Delphi 13 server in
+`Studio\37.0\bin` is version `37.0.59082.6021`.
+
+Both servers advertise the same nine capabilities listed below in both handshake
+modes. Neither advertises `referencesProvider` or `workspaceSymbolProvider`.
+All probe, hover and definition commands exited 0.
+
+| Server | Platform | Method hover at `Unit1.pas:8:21` | Class hover at `13:18` | Definition at `8:21` |
+| --- | --- | --- | --- | --- |
+| Delphi 12 | Win32 | `class procedure TFixtureType.Run` | Not rerun | `Unit1.pas:13:1` |
+| Delphi 12 | Win64 | `class procedure TFixtureType.Run` | Not rerun | `Unit1.pas:13:1` |
+| Delphi 13 | Win32 | Empty | `type Unit1.TFixtureType = class(TObject)` | `Unit1.pas:13:1` |
+| Delphi 13 | Win64 | Empty | `type Unit1.TFixtureType = class(TObject)` | `Unit1.pas:13:1` |
+
+DAK-371 already supplies the compiler DLL setting needed for semantic hover.
+That setting does not guarantee content at every symbol: the Delphi 13 method
+hover is empty even though class hover and definition work. These observations
+do not establish that the server accepted every supplied project setting.
+Each invocation reports controlled process-tree termination, and no owned
+DelphiLSP process remained after the checks.
+
+Responses are retained under
+`tests/fixtures/LspProjectFixture/.dak/LspProjectFixture/lsp/recheck-20261009/`.
+The dated observations below remain historical evidence.
+
 ## Delphi 13 raw-protocol retry, 2026-09-08
 
 The unchanged three-file fixture was copied into `projects/.dak/DelphiAIKit/goal-current/lsp-repro/`. DAK generated its project context for Win64 Debug using the installed Delphi 13 server, file version `37.0.59082.6021`. Four isolated raw sessions then tested a settings-file path, a settings-file URI, controller mode, and controller mode with `returnHoverModel: true`.
