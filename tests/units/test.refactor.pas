@@ -1087,8 +1087,8 @@ begin
   Result := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
 end;
 
-// DS-652 review shapes. TA.Limit is a class constant the model does not record, so the with-body
-// Limit (UC2 21:14) may be TA.Limit; TComponent may declare Name, so WriteLn(Name) in TK.Go
+// DS-652/DS-699: snapshots do not index the type-owned TA.Limit constant. Its declaration
+// and the with-body Limit must stay unresolved. TComponent may declare Name, so WriteLn(Name) in TK.Go
 // (UA2 28:11) may be TComponent.Name; whitespace in Run (UC2 22:1) names no symbol.
 procedure TRefactorCommandTests.RenameRefusesUnprovenMemberAndPositionBindings;
 var
@@ -1131,7 +1131,7 @@ begin
     Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lJson.ToJSON);
     Assert.AreEqual('uc2.pas:15:3 uc2.pas:18:3', JsonPositionKeys(lJson, 'edits', 'file',
       'startLine', 'startColumn'), lJson.ToJSON);
-    Assert.AreEqual('uc2.pas:21:14', JsonPositionKeys(lJson, 'unresolved', 'file', 'line',
+    Assert.AreEqual('ua2.pas:11:5 uc2.pas:21:14', JsonPositionKeys(lJson, 'unresolved', 'file', 'line',
       'column'), lJson.ToJSON);
   finally
     lJson.Free;
@@ -1214,7 +1214,8 @@ begin
     Assert.AreEqual('incomplete', lJson.GetValue<string>('status', ''), lJson.ToJSON);
     Assert.AreEqual('uinc.pas:17:11 uinc.pas:25:20 uinc.pas:4:3', JsonPositionKeys(lJson,
       'edits', 'file', 'startLine', 'startColumn'), lJson.ToJSON);
-    Assert.AreEqual('body.inc:1:3 inner.inc:1:3 inner.inc:1:9 uinc.pas:13:3',
+    // DAK-411/DS-667: line 13 is proven inactive; active include references still refuse apply.
+    Assert.AreEqual('body.inc:1:3 inner.inc:1:3 inner.inc:1:9',
       JsonPositionKeys(lJson, 'unresolved', 'file', 'line', 'column'), lJson.ToJSON);
   finally
     lJson.Free;

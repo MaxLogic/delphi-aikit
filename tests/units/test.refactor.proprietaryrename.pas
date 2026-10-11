@@ -67,7 +67,7 @@ begin
 end;
 
 // DAK-392: same-name occurrences DelphiSemantics cannot classify (inside with statements whose
-// selector type is not provable, or in inactive conditional code) refuse the apply.
+// selector type or conditional activity is not provable) refuse the apply.
 procedure TRefactorProprietaryRenameTests.AssertRefusedIncompleteRename(const aRoot: TJSONObject;
   const aSymbol: string; const aExitCode: Cardinal);
 var
@@ -277,9 +277,7 @@ procedure TRefactorProprietaryRenameTests.RenameApplyOnMaxTdbCloneBuildsAndPrese
 var
   lBuildExitCode: Cardinal;
   lBuildOutput: string;
-  lCloneBytes: TArray<TBytes>;
   lCloneDir: string;
-  lClonePaths: TArray<string>;
   lDprojPath: string;
   lExitCode: Cardinal;
   lOriginalBytes: TArray<TBytes>;
@@ -328,25 +326,31 @@ begin
     lRoot.Free;
   end;
 
-  // ArrayVarRecPtr is also used inside with statements over VarList[...] and DF[d]^ and in
-  // {$IFDEF DLL} code; AllFiles also appears in {$IFDEF NET} code. Neither can be proven.
-  SnapshotSourceFiles(lCloneDir, lClonePaths, lCloneBytes);
+  // DS-666: verified cast headers and dependent WITH selectors establish the active chain.
   lRoot := RunRenameApply(lDprojPath, 'ArrayVarRecPtr', 'TRenameDogfoodArrayVarRecPtr',
     'refactor-maxtdb-rename-arrayvarrecptr.json', lExitCode);
   try
-    AssertRefusedIncompleteRename(lRoot, 'ArrayVarRecPtr', lExitCode);
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected ArrayVarRecPtr rename to succeed.');
+    AssertAppliedRename(lRoot, 'ArrayVarRecPtr', 'TRenameDogfoodArrayVarRecPtr');
+    Assert.AreEqual(37, lRoot.GetValue<Integer>('editCount', -1));
+    Assert.AreEqual(0, lRoot.GetValue<Integer>('unresolvedCount', -1));
+    Assert.AreEqual('passed', lRoot.GetValue<string>('verification.status', ''));
   finally
     lRoot.Free;
   end;
 
+  // DAK-411/DS-667: NET is inactive; all four active AllFiles occurrences can be renamed.
   lRoot := RunRenameApply(lDprojPath, 'AllFiles', 'RenameDogfoodAllFiles',
     'refactor-maxtdb-rename-allfiles.json', lExitCode);
   try
-    AssertRefusedIncompleteRename(lRoot, 'AllFiles', lExitCode);
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected AllFiles rename to succeed.');
+    AssertAppliedRename(lRoot, 'AllFiles', 'RenameDogfoodAllFiles');
+    Assert.AreEqual(4, lRoot.GetValue<Integer>('editCount', -1));
+    Assert.AreEqual(0, lRoot.GetValue<Integer>('unresolvedCount', -1));
+    Assert.AreEqual('passed', lRoot.GetValue<string>('verification.status', ''));
   finally
     lRoot.Free;
   end;
-  AssertSnapshotUnchanged(lClonePaths, lCloneBytes, 'A refused rename must not edit the clone.');
 
   lRoot := RunRenameApply(lDprojPath, 'SourceVarRecPtr', 'TRenameDogfoodSourceVarRecPtr',
     'refactor-maxtdb-rename-sourcevarrecptr.json', lExitCode);
