@@ -5823,9 +5823,11 @@ end;
 
 procedure TRemoveWithHelperPrecedenceGoldenTests.PlanReportDistinguishesDirectHelperAmbiguousAndExternalHelpers;
 var
+  lClassification: TJSONValue;
   lClassifications: TJSONArray;
   lExitCode: Cardinal;
   lJson: TJSONValue;
+  lObject: TJSONObject;
   lOutput: string;
   lResolver: TJSONObject;
   lRoot: TJSONObject;
@@ -5855,7 +5857,21 @@ begin
       'TClassHelperTargetHelper');
     AssertJsonClassification(lClassifications, 'with-5', 'HelperData', 'resolved', 'helper',
       'TClassHelperTargetHelper');
-    AssertJsonClassification(lClassifications, 'with-6', 'ExternalHelper', 'unresolved', 'none', '');
+    AssertJsonClassification(lClassifications, 'with-6', 'ExternalHelper', 'unsupported', 'none', '');
+    for lClassification in lClassifications do
+    begin
+      if not (lClassification is TJSONObject) then
+        Continue;
+      lObject := lClassification as TJSONObject;
+      if SameText(lObject.GetValue<string>('statementId', ''), 'with-6') and
+        SameText(lObject.GetValue<string>('identifier', ''), 'ExternalHelper') then
+      begin
+        Assert.AreEqual('OWNER_INHERITED_MEMBERS_UNVERIFIED',
+          lObject.GetValue<string>('reason', ''));
+        Assert.AreEqual('OWNER_INHERITED_MEMBERS_UNVERIFIED',
+          lObject.GetValue<string>('detailedReason', ''));
+      end;
+    end;
   finally
     lJson.Free;
   end;
