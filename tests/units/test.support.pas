@@ -364,7 +364,8 @@ begin
   lDir := ExcludeTrailingPathDelimiter(TPath.GetFullPath(aPath));
   while lDir <> '' do
   begin
-    if DirectoryExists(TPath.Combine(lDir, '.git')) or DirectoryExists(TPath.Combine(lDir, '.svn')) then
+    if DirectoryExists(TPath.Combine(lDir, '.git')) or FileExists(TPath.Combine(lDir, '.git')) or
+      DirectoryExists(TPath.Combine(lDir, '.svn')) then
       Exit(True);
     lParent := ExcludeTrailingPathDelimiter(ExtractFilePath(lDir));
     if (lParent = '') or SameText(lParent, lDir) then

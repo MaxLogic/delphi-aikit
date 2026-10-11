@@ -154,6 +154,8 @@ type
     [Test]
     procedure LoadDakSettingsAutoRecognizesGitMarkerFile;
     [Test]
+    procedure NoRepoTempBaseRejectsGitWorktreeOutputRoot;
+    [Test]
     procedure LoadDakSettingsRejectsStrictGitWithoutMarker;
     [Test]
     procedure LoadDakSettingsRejectsStrictSvnWithoutMarker;
@@ -1539,6 +1541,27 @@ begin
     Assert.IsTrue(MatchText(lWorkspaceIniPath, lSettings.fLoadedPaths),
       'Expected settings from the Git worktree root.');
   finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.NoRepoTempBaseRejectsGitWorktreeOutputRoot;
+var
+  lBaseDir: string;
+  lEnvGuard: IInterface;
+  lOutputDir: string;
+begin
+  lBaseDir := UniqueNoRepoTempPath('worktree-output-root');
+  lOutputDir := TPath.Combine(lBaseDir, 'output');
+  TDirectory.CreateDirectory(lOutputDir);
+  try
+    TFile.WriteAllText(TPath.Combine(lBaseDir, '.git'),
+      'gitdir: ..\.git\worktrees\workspace' + sLineBreak, TEncoding.ASCII);
+    lEnvGuard := SetScopedEnvironmentVariable('DAK_TEST_OUTPUT_ROOT', lOutputDir);
+    Assert.AreEqual(TPath.Combine(TPath.GetTempPath, 'DelphiAIKit-tests-no-repo'), NoRepoTempBase,
+      'No-repository fixtures must stay outside a linked Git worktree.');
+  finally
+    lEnvGuard := nil;
     DeleteTempPath(lBaseDir);
   end;
 end;
