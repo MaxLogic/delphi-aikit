@@ -626,6 +626,19 @@ type
     [Test]
     procedure ApplyRefusesWhenPlannedSourceFingerprintIsStale;
     [Test]
+    [TestCase('Explicit context', 'explicit')]
+    [TestCase('Convenience overload', 'convenience')]
+    procedure ApplyRefusesNativeProofWithoutGuard(const aMode: string);
+    [Test]
+    [TestCase('Before preflight', '1')]
+    [TestCase('After preflight', '2')]
+    [TestCase('Valid guard', '0')]
+    [TestCase('Exception before preflight', '-1')]
+    [TestCase('Exception after preflight', '-2')]
+    procedure NativeProofGuardChecksBothPreflightBoundaries(const aRefusalCall: Integer);
+    [Test]
+    procedure RealRequestOwnerDriftRefusesApply;
+    [Test]
     procedure ApplyRefusesWhenSemanticEditExpectedSourceIsStale;
     [Test]
     procedure ApplyRefusesWhenReportOnlyAndApplyStatementIdsDiverge;
@@ -917,6 +930,9 @@ implementation
 
 uses
   System.Threading,
+  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.ProjectContext,
+  DelphiSemantics.RootMemberAbsence, DelphiSemantics.Source,
+  Dak.Build.NativeContext, Dak.Build.Runner, Dak.RootMemberAbsence,
   Winapi.Windows,
   AutoFree, DelphiAST, DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer, maxLogic.ioutils;
 
@@ -7234,6 +7250,8 @@ begin
   lRoot := RunApplyFixture(lDprojPath, 'remove-with-multiple-selectors.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected multiple-selector apply to succeed.');
+    Assert.IsNotNull(lRoot.Values['nativeRootProofFingerprint'],
+      'Native recovery must retain and serialize the guarded request provenance.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied multiple-selector status.');
     Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
       'Expected independent and dependent multiple-selector rewrite plans.');
@@ -7523,6 +7541,8 @@ begin
   lRoot := RunApplyFixture(lDprojPath, 'remove-with-combined-selectors.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected combined selector apply to succeed for safe edits.');
+    Assert.IsNotNull(lRoot.Values['nativeRootProofFingerprint'],
+      'Nested recovery must retain the native request owner through DTO adaptation.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied combined selector status.');
     Assert.AreEqual(3, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
       'Expected safe nested, safe child under blocked parent, and unrelated safe rewrite plans.');
@@ -12434,6 +12454,189 @@ begin
     'Expected maxTdb PRamText selector status. Type=' + lInfo.fTypeName + ' Reason=' + lInfo.fReason +
     ' Symbols=' + DescribeMaxTdbSelectorSymbols(['f', 'PRamText', 'TRamText']));
   Assert.AreEqual('TRamText', lInfo.fTypeName, 'Expected maxTdb PRamText selector receiver type.');
+end;
+
+type
+  INativePlanInputGuardProbe = interface(IDakRemoveWithPlanInputGuard)
+    ['{3F470486-B5E8-4FBA-8A19-EAD00A8A4C41}']
+    function CallCount: Integer;
+  end;
+
+  TNativePlanInputGuardStub = class(TInterfacedObject, INativePlanInputGuardProbe)
+  private
+    fRefusalCall: Integer;
+    fCallCount: Integer;
+  public
+    constructor Create(const aRefusalCall: Integer);
+    function ProofFingerprint: string;
+    function ValidateInputs(const aExpectedFingerprint: string; out aReason: string): Boolean;
+    function CallCount: Integer;
+  end;
+
+constructor TNativePlanInputGuardStub.Create(const aRefusalCall: Integer);
+begin
+  inherited Create;
+  fRefusalCall := aRefusalCall;
+end;
+
+function TNativePlanInputGuardStub.CallCount: Integer;
+begin
+  Result := fCallCount;
+end;
+
+function TNativePlanInputGuardStub.ProofFingerprint: string;
+begin
+  Result := 'native-plan-input-guard-test';
+end;
+
+function TNativePlanInputGuardStub.ValidateInputs(const aExpectedFingerprint: string;
+  out aReason: string): Boolean;
+begin
+  Inc(fCallCount);
+  if (fRefusalCall < 0) and (fCallCount = -fRefusalCall) then
+    raise EInvalidOpException.Create('Task-owned native input validation failure');
+  Result := (aExpectedFingerprint = ProofFingerprint) and
+    ((fRefusalCall <= 0) or (fCallCount < fRefusalCall));
+  if Result then
+    aReason := ''
+  else
+    aReason := 'native-request-inputs-changed';
+end;
+
+procedure TRemoveWithApplyCompileGateTests.ApplyRefusesNativeProofWithoutGuard(const aMode: string);
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lDprojPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lSuccess: Boolean;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'native-proof-missing-guard-' + aMode,
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+  lPlanResult.fNativeRootProofFingerprint := 'native-plan-input-guard-test';
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\missing-native-guard');
+  if aMode = 'convenience' then
+    lSuccess := ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+      lPlanResult, lTransactionResult, lError)
+  else
+    lSuccess := ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+      lPlanResult, lApplyContext, lTransactionResult, lError);
+  Assert.IsFalse(lSuccess, 'Our proof-dependent plan cannot apply without its retained input guard.');
+  Assert.IsTrue(ContainsText(lError, 'native-root-proof-guard-missing'), lError);
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)));
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath), 'Missing guard leaves sources unchanged.');
+end;
+
+procedure TRemoveWithApplyCompileGateTests.NativeProofGuardChecksBothPreflightBoundaries(
+  const aRefusalCall: Integer);
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lDprojPath: string;
+  lError: string;
+  lGuard: INativePlanInputGuardProbe;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lSuccess: Boolean;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'native-proof-boundary-' + IntToStr(aRefusalCall),
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+  lGuard := TNativePlanInputGuardStub.Create(aRefusalCall);
+  lApplyContext.fNativeRootInputGuard := lGuard;
+  lPlanResult.fNativeRootProofFingerprint := lGuard.ProofFingerprint;
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\native-boundary');
+  lSuccess := ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+    lPlanResult, lApplyContext, lTransactionResult, lError);
+  if aRefusalCall = 0 then
+  begin
+    Assert.IsTrue(lSuccess, lError);
+    Assert.AreEqual(2, lGuard.CallCount, 'Our guard is checked around preflight, before our own edits.');
+    Assert.IsTrue(Length(lTransactionResult.fFiles) > 0);
+    Assert.IsFalse(ContainsText(TFile.ReadAllText(lUnitPath), 'with '));
+  end else
+  begin
+    Assert.IsFalse(lSuccess, 'Changed native inputs must stop our transaction.');
+    Assert.AreEqual(Abs(aRefusalCall), lGuard.CallCount);
+    Assert.IsTrue(ContainsText(lError, 'native-request-inputs-changed'), lError);
+    Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)));
+    AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+      'Guard refusal must leave planned sources unchanged.');
+  end;
+end;
+
+procedure TRemoveWithApplyCompileGateTests.RealRequestOwnerDriftRefusesApply;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lContext: IDakNativeCompilerContext;
+  lGuard: IDakRemoveWithPlanInputGuard;
+  lObservation: TDelphiSemanticModelObservation;
+  lOwner: IDelphiSemanticModelObservationOwner;
+  lProfileOwner: IDelphiSemanticProjectProfileValidator;
+  lProject: TDelphiSemanticProjectInfo;
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lSource: TDelphiSemanticSourceLoadResult;
+  lProfile: TDakNativeCompilerSourceProfile;
+  lDprojPath, lUnitPath, lObservedPath, lError, lWorkspaceRoot, lDefine: string;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lTransactionResult: TRemoveWithTransactionResult;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'real-owner-apply-drift',
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+  lObservedPath := TPath.Combine(TPath.GetDirectoryName(lDprojPath), 'Observed.pas');
+  TFile.WriteAllText(lObservedPath, 'unit Observed; interface implementation end.', TEncoding.ASCII);
+  Assert.IsTrue(TryReadNativeCompilerContext(lOptions, lContext, lError), lError);
+  lProfile := lContext.SourceProfile;
+  lProvider := TryCreateNativeRootRequestOwner(lOptions, lGuard, lError);
+  Assert.IsTrue(lProvider <> nil, lError);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticProjectProfileValidator, lProfileOwner));
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticModelObservationOwner, lOwner));
+  lProject := Default(TDelphiSemanticProjectInfo);
+  lProject.Platform := lProfile.fPlatform;
+  lProject.Configuration := lProfile.fConfiguration;
+  lProject.ContextFingerprint := 'real-owner-apply-control';
+  lProject.Defines := TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(lProfile.fPlatform);
+  for lDefine in lProfile.fDefines.Split([';', #13, #10], TStringSplitOptions.ExcludeEmpty) do
+    lProject.Defines := lProject.Defines + [lDefine];
+  Assert.IsTrue(lProfileOwner.ValidateProjectProfile(lProject, lError), lError);
+  lSource := TDelphiSemanticSourceLoader.LoadFile(lObservedPath);
+  Assert.IsTrue(lSource.Success);
+  lObservation := Default(TDelphiSemanticModelObservation);
+  lObservation.ProjectContextFingerprint := lProject.ContextFingerprint;
+  lObservation.ModelFileName := lObservedPath;
+  lObservation.SourceObservations := lSource.SourceObservations;
+  Assert.IsTrue(lOwner.ValidateModelSources(lObservation, lError), lError);
+  Assert.IsTrue(lProvider.IsNameAbsent('DAK_UnownedName_414'), 'Real native proof must succeed');
+  lPlanResult.fNativeRootProofFingerprint := lGuard.ProofFingerprint;
+  Assert.IsTrue(lPlanResult.fNativeRootProofFingerprint <> '');
+  Assert.IsTrue(lGuard.ValidateInputs(lPlanResult.fNativeRootProofFingerprint, lError), lError);
+  lApplyContext.fNativeRootInputGuard := lGuard;
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  // The changed observed file is outside planned source hashes; only the real owner catches it.
+  TFile.AppendAllText(lObservedPath, sLineBreak + '// consumed source drift', TEncoding.ASCII);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\real-owner-drift');
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+    lPlanResult, lApplyContext, lTransactionResult, lError));
+  Assert.IsTrue(lError.Contains('native-request-inputs-changed'), lError);
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)));
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath), 'Real owner refusal must preserve bytes');
 end;
 
 end.

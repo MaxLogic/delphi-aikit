@@ -236,6 +236,9 @@
         <DCCReference Include="..\src\Dak.PascalAnalyzer.Help.pas"/>
         <DCCReference Include="..\src\dak.build.pas"/>
         <DCCReference Include="..\src\Dak.Build.Enrichment.pas"/>
+        <DCCReference Include="..\src\Dak.Build.NativeContext.pas"/>
+        <DCCReference Include="..\src\Dak.NativeInputLocks.pas"/>
+        <DCCReference Include="..\src\Dak.RootMemberAbsence.pas"/>
         <DCCReference Include="..\src\Dak.Lsp.Protocol.pas"/>
         <DCCReference Include="..\src\Dak.CommandOutput.pas"/>
         <DCCReference Include="..\src\dak.cli.pas"/>

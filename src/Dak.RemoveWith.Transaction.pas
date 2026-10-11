@@ -3,7 +3,7 @@ unit Dak.RemoveWith.Transaction;
 interface
 
 uses
-  Dak.RemoveWith.Planner, Dak.Types;
+  Dak.RemoveWith.Model, Dak.RemoveWith.Planner, Dak.Types;
 
 type
   TRemoveWithSourceFingerprint = record
@@ -15,6 +15,7 @@ type
     fContextFingerprint: string;
     fSemanticContextFingerprint: string;
     fSourceFingerprints: TArray<TRemoveWithSourceFingerprint>;
+    fNativeRootInputGuard: IDakRemoveWithPlanInputGuard;
   end;
 
   TRemoveWithTransactionStatus = (rwtxNotRun, rwtxApplied, rwtxPreflightBuildFailed, rwtxRolledBack,
@@ -132,6 +133,9 @@ type
       var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
     class function ValidateSemanticPlanContext(const aPlanResult: TRemoveWithPlanResult;
       const aApplyContext: TRemoveWithPlanApplyContext; out aError: string): Boolean; static;
+    class function ValidateNativePlanInputs(const aPlanResult: TRemoveWithPlanResult;
+      const aApplyContext: TRemoveWithPlanApplyContext;
+      var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
     class function VerifyBuild(const aOptions: TAppOptions; const aProjectPath, aDiagnosticsDir: string;
       var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
     class function ApplyLocked(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
@@ -266,6 +270,8 @@ function BuildRemoveWithPlanApplyContext(const aPlanResult: TRemoveWithPlanResul
   out aContext: TRemoveWithPlanApplyContext; out aError: string): Boolean;
 begin
   Result := BuildRemoveWithPlanApplyContextForFiles(PlannedSourceFiles(aPlanResult), aContext, aError);
+  if Result then
+    aContext.fNativeRootInputGuard := aPlanResult.fNativeRootInputGuard;
   if Result and SameText(aPlanResult.fSemanticPlan.Operation, 'remove-with') then
     aContext.fSemanticContextFingerprint := aPlanResult.fSemanticPlan.ContextFingerprint;
 end;
@@ -1165,6 +1171,50 @@ begin
   end;
 end;
 
+class function TRemoveWithTransaction.ValidateNativePlanInputs(const aPlanResult: TRemoveWithPlanResult;
+  const aApplyContext: TRemoveWithPlanApplyContext;
+  var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
+var
+  lReason: string;
+begin
+  aError := '';
+  if aPlanResult.fNativeRootProofFingerprint = '' then
+    Exit(True);
+
+  Result := False;
+  if aApplyContext.fNativeRootInputGuard = nil then
+    aError := 'native-root-proof-guard-missing'
+  else begin
+    lReason := '';
+    try
+      Result := (aApplyContext.fNativeRootInputGuard.ProofFingerprint =
+        aPlanResult.fNativeRootProofFingerprint) and
+        aApplyContext.fNativeRootInputGuard.ValidateInputs(
+          aPlanResult.fNativeRootProofFingerprint, lReason);
+    except
+      on E: Exception do
+      begin
+        // Optional native evidence cannot authorize edits when its owner fails.
+        Result := False;
+        lReason := E.ClassName + ': ' + E.Message;
+      end;
+    end;
+    if not Result then
+    begin
+      aError := 'native-request-inputs-changed';
+      if lReason <> '' then
+        aError := aError + ': ' + lReason;
+    end;
+  end;
+  if not Result then
+  begin
+    aTransactionResult.fError := aError;
+    aTransactionResult.fVerificationStatus := 'not-run';
+    aTransactionResult.fVerificationError := aError;
+    aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch;
+  end;
+end;
+
 class function TRemoveWithTransaction.ApplyLocked(const aOptions: TAppOptions; const aProjectPath,
   aWorkspaceRoot: string; const aPlanResult: TRemoveWithPlanResult;
   const aApplyContext: TRemoveWithPlanApplyContext; var aTransactionResult: TRemoveWithTransactionResult;
@@ -1177,6 +1227,13 @@ var
   lValidationError: string;
 begin
   if not ValidateReportApplyPlanMatch(aPlanResult, aTransactionResult, aError) then
+  begin
+    WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError);
+    Exit(False);
+  end;
+
+  // ApplyLocked runs under our project mutex, including the convenience overload.
+  if not ValidateNativePlanInputs(aPlanResult, aApplyContext, aTransactionResult, aError) then
   begin
     WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError);
     Exit(False);
@@ -1236,6 +1293,14 @@ begin
     aTransactionResult.fVerificationStatus := 'not-run';
     aTransactionResult.fVerificationError := aError;
     aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxSourceRangeMismatch;
+    WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError);
+    Exit(False);
+  end;
+
+  // Preflight can change native lookup observations. Check again before any
+  // source write; our subsequent owned edits must not be treated as input drift.
+  if not ValidateNativePlanInputs(aPlanResult, aApplyContext, aTransactionResult, aError) then
+  begin
     WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError);
     Exit(False);
   end;

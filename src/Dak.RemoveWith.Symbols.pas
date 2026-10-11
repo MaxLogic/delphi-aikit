@@ -39,6 +39,10 @@ type
   end;
 
   TRemoveWithFactSet = record
+    fNativeRootProofFingerprint: string;
+    fNativeRootProofDiagnostic: string;
+    fNativeRootProofProvenance: string;
+    fNativeRootInputGuard: IDakRemoveWithPlanInputGuard;
     fContextFingerprint: string;
     fSymbols: TArray<TRemoveWithSymbolInfo>;
     fDelphiSemanticLookupIndex: TDelphiSemanticRemoveWithLookupIndex;
@@ -144,7 +148,7 @@ uses
   System.SysUtils,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile,
   DelphiSemantics.Model, DelphiSemantics.Model.Text,
-  Dak.RadStudio.Locator, Dak.RemoveWith.Source, Dak.Semantics.Session,
+  Dak.RadStudio.Locator, Dak.RemoveWith.Source, Dak.RootMemberAbsence, Dak.Semantics.Session,
   MaxLogic.StrUtils;
 
 procedure LogRemoveWithSymbolProgress(const aOptions: TAppOptions; const aMessage: string);
@@ -924,6 +928,9 @@ var
   lFacts: TDelphiSemanticProjectWithBindingFacts;
   lModel: TDelphiSemanticUnitModel;
   lRequest: TDelphiSemanticRemoveWithRequest;
+  lNativeOptions: TAppOptions;
+  lNativeGuard: IDakRemoveWithPlanInputGuard;
+  lNativeUsage: IDakRemoveWithNativeProofUsage;
   lStopwatch: TStopwatch;
 begin
   Result := False;
@@ -945,22 +952,42 @@ begin
   end;
   lRequest.RemoveWithOptions.SkipSemanticGraph := True;
   lRequest.BodyAnalysisSourceFileNames := Copy(aBodyAnalysisSourceFileNames);
+  lNativeOptions := aOptions;
+  lNativeOptions.fDprojPath := aProjectModel.ProjectPath;
+  lRequest.Options.ImplicitRootMemberAbsence := TryCreateNativeRootRequestOwner(
+    lNativeOptions, lNativeGuard, lCallError);
+  if lRequest.Options.ImplicitRootMemberAbsence = nil then
+    aInventory.fNativeRootProofDiagnostic := 'native-root-proof-unavailable: ' + lCallError;
   if not TryBuildSemanticFactsAndPlanWithMetrics(lRequest, aPhaseMetrics,
     lCombinedResult, lCallError) then
   begin
-    if lCachePolicy.IsImplicit and
+    if (lNativeGuard <> nil) and
+      Supports(lNativeGuard, IDakRemoveWithNativeProofUsage, lNativeUsage) and
+      (not lNativeUsage.ProofWasUsed) and
+      (ContainsText(lCallError, 'native-request-source-profile-unsupported') or
+      ContainsText(lCallError, 'native-semantic-source-profile-mismatch')) then
+    begin
+      // Unsupported optional proof leaves ordinary source-backed planning
+      // available. Drift and owner failures never use this fallback.
+      aInventory.fNativeRootProofDiagnostic := 'native-root-proof-unavailable: ' + lCallError;
+      lRequest.Options.ImplicitRootMemberAbsence := nil;
+      lNativeGuard := nil;
+
+    end else if lCachePolicy.IsImplicit and
       (lRequest.Options.Cache.SqliteCacheFileName <> '') and
       IsSemanticCacheFailure(lCallError, lCachePolicy.FileName) then
     begin
       EmitSemanticCacheFallbackDiagnostic(lCachePolicy, lCallError);
       lRequest.Options.Cache.SqliteCacheFileName := '';
-      if not TryBuildSemanticFactsAndPlanWithMetrics(lRequest, aPhaseMetrics,
-        lCombinedResult, lCallError) then
-      begin
-        aError := 'DelphiSemantics project facts/plan failed: ' + lCallError;
-        Exit(False);
-      end;
+
     end else begin
+      aError := 'DelphiSemantics project facts/plan failed: ' + lCallError;
+      Exit(False);
+    end;
+    // Both supported recovery policies share one accumulating retry boundary.
+    if not TryBuildSemanticFactsAndPlanWithMetrics(lRequest, aPhaseMetrics,
+      lCombinedResult, lCallError) then
+    begin
       aError := 'DelphiSemantics project facts/plan failed: ' + lCallError;
       Exit(False);
     end;
@@ -972,6 +999,14 @@ begin
     Exit(False);
   end;
   lFacts := lCombinedResult.CombinedResult.Facts;
+  if not FinalizeNativeRootProof(lNativeGuard, aInventory.fNativeRootProofFingerprint,
+    aInventory.fNativeRootProofProvenance, lCallError) then
+  begin
+    aError := lCallError;
+    Exit(False);
+  end;
+  if aInventory.fNativeRootProofFingerprint <> '' then
+    aInventory.fNativeRootInputGuard := lNativeGuard;
   aInventory.fDelphiSemanticRemoveWithPlan := lCombinedResult.CombinedResult.Plan;
   aPhaseMetrics.fSemanticModelExtractionMs :=
     lCombinedResult.CombinedResult.Metrics.Facts.ModelExtractionMilliseconds;

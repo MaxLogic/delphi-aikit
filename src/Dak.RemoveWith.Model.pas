@@ -8,6 +8,22 @@ uses
   Dak.Types;
 
 type
+  IDakRemoveWithPlanInputGuard = interface
+    ['{B55FA768-75C0-448C-883E-AD883F4998B0}']
+    function ProofFingerprint: string;
+    function ValidateInputs(const aExpectedFingerprint: string; out aReason: string): Boolean;
+  end;
+
+  IDakRemoveWithNativeProofUsage = interface
+    ['{091BFD32-044D-4A28-A8CF-297003510412}']
+    function ProofWasUsed: Boolean;
+  end;
+
+  IDakRemoveWithNativeProofProvenance = interface
+    ['{689051FA-E82C-4A8A-B9EB-87B05D4E48EC}']
+    function ProvenanceJson: string;
+  end;
+
   TRemoveWithModelRange = record
     fStartLine: Integer;
     fStartColumn: Integer;

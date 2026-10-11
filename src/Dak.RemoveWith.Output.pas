@@ -1,4 +1,4 @@
-﻿unit Dak.RemoveWith.Output;
+unit Dak.RemoveWith.Output;
 
 interface
 
@@ -1112,6 +1112,15 @@ begin
   try
     lRoot.AddPair('schemaVersion', TJSONNumber.Create(cRemoveWithSchemaVersion));
     lRoot.AddPair('operation', 'remove-with');
+    if aPlanResult.fNativeRootProofDiagnostic <> '' then
+      lRoot.AddPair('nativeRootProofDiagnostic', aPlanResult.fNativeRootProofDiagnostic);
+    if aPlanResult.fNativeRootProofFingerprint <> '' then
+    begin
+      lRoot.AddPair('nativeRootProofSchema', 'native-implicit-root-absence-v1');
+      lRoot.AddPair('nativeRootProofFingerprint', aPlanResult.fNativeRootProofFingerprint);
+      if aPlanResult.fNativeRootProofProvenance <> '' then
+        lRoot.AddPair('nativeRootProof', TJSONObject.ParseJSONValue(aPlanResult.fNativeRootProofProvenance));
+    end;
     lRoot.AddPair('status', BuildRootStatus(aOptions, aTransactionResult));
     lRoot.AddPair('mode', RemoveWithModeToText(aOptions.fRemoveWithMode));
     lRoot.AddPair('format', RemoveWithFormatToText(aOptions.fRemoveWithFormat));

@@ -4,7 +4,8 @@ interface
 
 uses
   DelphiSemantics.Api.RemoveWith.Compatibility,
-  Dak.RemoveWith.Discovery, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy;
+  Dak.RemoveWith.Discovery, Dak.RemoveWith.Model, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
+  Dak.RemoveWith.TempPolicy;
 
 type
   TRemoveWithPlannedTextEdit = record
@@ -33,6 +34,10 @@ type
 
   TRemoveWithPlanResult = record
     fStatements: TArray<TRemoveWithPlannedStatement>;
+    fNativeRootProofFingerprint: string;
+    fNativeRootProofDiagnostic: string;
+    fNativeRootProofProvenance: string;
+    fNativeRootInputGuard: IDakRemoveWithPlanInputGuard;
     fElapsedPlanningMs: Integer;
     fSemanticPlan: TDelphiSemanticRemoveWithPlan;
     fSemanticParityReport: TDelphiSemanticRemoveWithPlanParityReport;
@@ -2343,10 +2348,26 @@ var
 begin
   aPlanResult := Default(TRemoveWithPlanResult);
   aPlanResult.fSemanticPlan := aSemanticPlan;
+  aPlanResult.fNativeRootProofFingerprint := aInventory.fNativeRootProofFingerprint;
+  aPlanResult.fNativeRootProofDiagnostic := aInventory.fNativeRootProofDiagnostic;
+  aPlanResult.fNativeRootProofProvenance := aInventory.fNativeRootProofProvenance;
+  aPlanResult.fNativeRootInputGuard := aInventory.fNativeRootInputGuard;
   aError := '';
   if SameText(aSemanticPlan.Operation, 'remove-with') and
     (Length(aSemanticPlan.FinalStatements) > 0) then
-    Exit(SemanticFinalDtoPlanResult(aSemanticPlan, aPlanResult, aError));
+  begin
+    Result := SemanticFinalDtoPlanResult(aSemanticPlan, aPlanResult, aError);
+    if Result then
+    begin
+      // The DTO adapter initializes its out record; retain our request owner
+      // after adaptation so native evidence cannot lose its apply guard.
+      aPlanResult.fNativeRootProofFingerprint := aInventory.fNativeRootProofFingerprint;
+      aPlanResult.fNativeRootProofDiagnostic := aInventory.fNativeRootProofDiagnostic;
+      aPlanResult.fNativeRootProofProvenance := aInventory.fNativeRootProofProvenance;
+      aPlanResult.fNativeRootInputGuard := aInventory.fNativeRootInputGuard;
+    end;
+    Exit;
+  end;
 
   Result := False;
   lContext := nil;

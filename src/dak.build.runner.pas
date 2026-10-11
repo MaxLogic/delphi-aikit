@@ -4,7 +4,10 @@ interface
 
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils,
-  Dak.Build.Types, Dak.Types;
+  Dak.Build.NativeContext, Dak.Build.Types, Dak.Types;
+
+function TryReadNativeCompilerContext(const aOptions: TAppOptions;
+  out aContext: IDakNativeCompilerContext; out aError: string): Boolean;
 
 function TryRunBuildInternal(const aOptions: TAppOptions; out aExitCode: Integer; out aError: string): Boolean; overload;
 function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
@@ -21,7 +24,7 @@ uses
   System.Character, System.Classes, System.JSON, System.RegularExpressions, System.StrUtils,
   System.Win.Registry,
   Winapi.Windows,
-  maxLogic.StrUtils,
+  maxLogic.ioutils, maxLogic.StrUtils,
   SimpleParser.Lexer, SimpleParser.Lexer.Types,
   Dak.Build.Enrichment, Dak.Build.Summary, Dak.DfmCheck,
   Dak.Diagnostics, Dak.ExternalToolProcess, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.MacroExpander, Dak.Messages,
@@ -2643,6 +2646,88 @@ begin
       aError := E.Message;
       Result := False;
     end;
+  end;
+end;
+
+function TryReadNativeCompilerContext(const aOptions: TAppOptions;
+  out aContext: IDakNativeCompilerContext; out aError: string): Boolean;
+var
+  lBdsRoot: string;
+  lCompilerName: string;
+  lEnvVars: TDictionary<string, string>;
+  lExtraProps: TArray<TMsBuildProperty>;
+  lInvocation: TDakNativeCompilerInvocation;
+  lMsBuildProps: TArray<TMsBuildProperty>;
+  lNormalizedOptions: TAppOptions;
+  lProjectInfo: TBuildProjectInfo;
+  lRsVarsEnvironment: TRsVarsEnvironment;
+  lRunner: IBuildProcessRunner;
+  lSettings: TDakBuildSettings;
+  lSkippedNames: TArray<string>;
+begin
+  Result := False;
+  aContext := nil;
+  aError := '';
+  if not NormalizeBuildOptions(aOptions, lNormalizedOptions, aError) then
+    Exit;
+  lEnvVars := CaptureEnvironment;
+  try
+    // Share the native build's settings, rsvars, environment.proj and override services.
+    LoadBuildSettings(lNormalizedOptions.fDprojPath, lNormalizedOptions, lEnvVars, lSettings);
+    if lNormalizedOptions.fBuildBackend <> TBuildBackend.bbDelphi then
+    begin
+      aError := 'Root evidence requires a native Delphi target';
+      Exit;
+    end;
+    if SameText(lNormalizedOptions.fPlatform, 'Win32') then
+      lCompilerName := 'dcc32.exe'
+    else if SameText(lNormalizedOptions.fPlatform, 'Win64') then
+      lCompilerName := 'dcc64.exe'
+    else begin
+      aError := 'Root evidence requires a Windows target';
+      Exit;
+    end;
+    if not TryLoadRsVars(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath,
+      nil, lRsVarsEnvironment, aError) then
+      Exit;
+    lInvocation := Default(TDakNativeCompilerInvocation);
+    lInvocation.fEnvironmentBlock := lRsVarsEnvironment.ToEnvironmentBlock;
+    FreeAndNil(lEnvVars);
+    lEnvVars := lRsVarsEnvironment.ToDictionary;
+    LoadBuildSettings(lNormalizedOptions.fDprojPath, lNormalizedOptions, lEnvVars, lSettings);
+    lBdsRoot := ResolveBdsRoot(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath,
+      lRsVarsEnvironment.ValueOrDefault('BDS'));
+    if not TryFindMsBuild(lBdsRoot, lInvocation.fMsBuildFileName) then
+    begin
+      aError := cMsBuildNotFound;
+      Exit;
+    end;
+    ApplyEnvironmentProjProps(BuildEnvironmentProjPath(lNormalizedOptions.fDelphiVersion, lBdsRoot),
+      lEnvVars, lExtraProps, lSkippedNames);
+    if Length(lSkippedNames) <> 0 then
+    begin
+      aError := 'Native environment properties could not be forwarded';
+      Exit;
+    end;
+    lProjectInfo := BuildProjectInfo(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
+      lNormalizedOptions.fPlatform, lEnvVars, IfThen(lNormalizedOptions.fHasBuildTestOutputDir,
+      lNormalizedOptions.fBuildTestOutputDir, ''), lNormalizedOptions.fBuildDefines,
+      lNormalizedOptions.fBuildUnitSearchPath, lBdsRoot, aError);
+    if aError <> '' then
+      Exit;
+    lMsBuildProps := BuildMsBuildOverrideProperties(lNormalizedOptions, lProjectInfo, lExtraProps);
+    lInvocation.fPropertyArguments := RenderMsBuildProperties(
+      BuildMsBuildSelectionProperties(lNormalizedOptions) + lMsBuildProps, TMsBuildArgumentsView.avProcess);
+    lInvocation.fProjectFileName := lNormalizedOptions.fDprojPath;
+    lInvocation.fSdkRoot := lBdsRoot;
+    lInvocation.fCompilerFileName := CombinePath([lBdsRoot, 'bin', lCompilerName]);
+    lInvocation.fWorkRoot := CombinePath([TPath.GetDirectoryName(lInvocation.fProjectFileName), '.dak',
+      TPath.GetFileNameWithoutExtension(lInvocation.fProjectFileName), 'native-root-context']);
+    lRunner := TBuildProcessRunner.Create;
+    aContext := TryCaptureNativeCompilerContext(lInvocation, lRunner, aError);
+    Result := aContext <> nil;
+  finally
+    lEnvVars.Free;
   end;
 end;
 
