@@ -53,12 +53,44 @@ type
     [TestCase('Inherited', 'inherited,dfm.ancestry-unavailable')]
     [Category('RefactoringLightConsistency')]
     procedure UnsupportedDfmIsExplicitlyIncomplete(const aShape, aReason: string);
+    [Test]
+    [TestCase('Direct VCL', 'direct,dfm.resource-ancestry-unknown')]
+    [TestCase('Custom base VCL', 'custom,dfm.resource-only-unsupported')]
+    [TestCase('Missing custom base', 'missing-base,dfm.resource-ancestry-unknown')]
+    [TestCase('Cyclic base', 'cycle,dfm.resource-ancestry-unknown')]
+    [TestCase('Forward class', 'forward,dfm.resource-ancestry-unknown')]
+    [TestCase('Forward and full custom VCL class', 'forward-full,dfm.resource-ancestry-unknown')]
+    [Category('RefactoringLightConsistency')]
+    procedure ResourceOnlyFormIsExplicitlyIncomplete(const aShape, aReason: string);
+
+    [Test]
+    [TestCase('Implementation imported homonym', 'impl-homonym,incomplete')]
+    // Characterization: implementation-local lookup remains incomplete; proving it is DS-727.
+    [TestCase('Implementation without imported homonym', 'impl-no-homonym,incomplete')]
+    [TestCase('Implementation imports affect implementation class', 'impl-uses,incomplete')]
+    [TestCase('Implementation imports do not affect interface class', 'interface-uses,ok')]
+    [Category('RefactoringLightConsistency')]
+    procedure ResourceAncestryRequiresInspectedDeclaration(const aShape, aStatus: string);
+    [Test]
+    [TestCase('Unqualified homonym', 'unqualified')]
+    [TestCase('Qualified homonym', 'qualified')]
+    [TestCase('Indexed homonym last after VCL import', 'indexed-last')]
+    [TestCase('Local homonym with VCL import', 'local-with-vcl')]
+    [TestCase('Indexed homonym with VCL import', 'later-Vcl.Forms')]
+    [TestCase('Indexed homonym with unscoped Forms import', 'later-Forms')]
+    [TestCase('Indexed homonym with later unknown import', 'later-UnknownUnit')]
+    [Category('RefactoringLightConsistency')]
+    procedure UnrelatedTFormResourceDoesNotClaimVclForm(const aShape: string);
+    [Test]
+    [Category('RefactoringLightConsistency')]
+    procedure ProgramResourceDoesNotHideTextDfmBindings;
   end;
 
 implementation
 
 uses
   System.Classes, System.Hash, System.IOUtils, System.JSON, System.SysUtils,
+  AutoFree,
   Test.Support;
 
 type
@@ -347,7 +379,8 @@ begin
   try
     for lFileName in TDirectory.GetFiles(aDirectory) do
       if SameText(ExtractFileExt(lFileName), '.pas') or SameText(ExtractFileExt(lFileName), '.dfm') or
-        SameText(ExtractFileExt(lFileName), '.dpr') or SameText(ExtractFileExt(lFileName), '.dproj') then
+        SameText(ExtractFileExt(lFileName), '.dpr') or SameText(ExtractFileExt(lFileName), '.dproj') or
+        SameText(ExtractFileExt(lFileName), '.res') then
         lFiles.Add(lFileName + '=' + THashSHA2.GetHashStringFromFile(lFileName));
     lFiles.Sort;
     Result := lFiles.Text;
@@ -372,6 +405,7 @@ end;
 procedure TConsistencyTests.ReportsInheritedDfmBindings(const aShape, aHandler: string;
   const aCount: Integer);
 var
+  lResourceCount: Integer;
   lFixture: TReportFixture;
   lExit: Cardinal;
   lRoot: TJSONObject;
@@ -398,6 +432,16 @@ begin
     if aHandler = 'blocked' then
     begin
       AssertIncompleteAncestry(lRoot, lExit);
+      if aShape = 'middle-missing' then
+      begin
+        lResourceCount := 0;
+        for lItem in (lRoot.GetValue('diagnostics') as TJSONArray) do
+          if (lItem.GetValue<string>('reason') = 'dfm.resource-unavailable') and
+            SameText(lItem.GetValue<string>('fileName'),
+              TPath.Combine(lFixture.fDirectory, 'MiddleForm.dfm')) then
+            Inc(lResourceCount);
+        Assert.AreEqual(1, lResourceCount, lRoot.ToJSON);
+      end;
       Exit;
     end;
     Assert.AreEqual(Cardinal(0), lExit, lRoot.ToJSON);
@@ -535,6 +579,284 @@ begin
   finally
     lRoot.Free;
   end;
+end;
+
+procedure TConsistencyTests.ResourceOnlyFormIsExplicitlyIncomplete(const aShape, aReason: string);
+var
+  g: TGarbos;
+  lFixture: TReportFixture;
+  lSource: string;
+  lDpr: string;
+  lProject: string;
+  lSourceHash: string;
+  lExit: Cardinal;
+  lRoot: TJSONObject;
+  lItem: TJSONValue;
+  lFound: Boolean;
+begin
+  lFixture := Default(TReportFixture);
+  lFixture.fDirectory := EvidenceDirectory;
+  lFixture.fProject := TPath.Combine(lFixture.fDirectory, 'Binding.dproj');
+  lFixture.fSource := TPath.Combine(lFixture.fDirectory, 'BindingForm.pas');
+  lFixture.fDfm := ChangeFileExt(lFixture.fSource, '.dfm');
+  WriteBindingFixture(lFixture, 'match', 'OnData');
+  lSource := TFile.ReadAllText(lFixture.fSource, TEncoding.UTF8);
+  if (aShape = 'custom') or (aShape = 'forward-full') then
+  begin
+    TFile.WriteAllText(TPath.Combine(lFixture.fDirectory, 'BaseForm.pas'),
+      'unit BaseForm;'#13#10'interface'#13#10'uses Vcl.Forms;'#13#10 +
+      'type TBaseForm = class(Vcl.Forms.TForm) end;'#13#10 +
+      'implementation'#13#10'end.'#13#10, TEncoding.UTF8);
+    lSource := lSource.Replace('unit BindingForm;'#13#10'interface',
+      'unit BindingForm;'#13#10'interface'#13#10'uses BaseForm;').Replace(
+      'TBindingForm = class', 'TBindingForm = class(TBaseForm)');
+    lDpr := TPath.Combine(lFixture.fDirectory, 'Binding.dpr');
+    TFile.WriteAllText(lDpr, TFile.ReadAllText(lDpr, TEncoding.UTF8).Replace(
+      'uses BindingForm', 'uses BaseForm in ''BaseForm.pas'', BindingForm'), TEncoding.UTF8);
+    lProject := TFile.ReadAllText(lFixture.fProject, TEncoding.UTF8).Replace(
+      '<DCCReference Include="BindingForm.pas"/>',
+      '<DCCReference Include="BaseForm.pas"/><DCCReference Include="BindingForm.pas"/>');
+    TFile.WriteAllText(lFixture.fProject, lProject, TEncoding.UTF8);
+  end else if aShape = 'forward' then
+    lSource := lSource.Replace('  TBindingForm = class'#13#10'  published'#13#10 +
+      '    procedure HandleData(aValue: TValue);'#13#10'  end;', '  TBindingForm = class;').Replace(
+      'procedure TBindingForm.HandleData(aValue: TValue);'#13#10'begin end;'#13#10, '')
+  else if aShape = 'cycle' then
+    lSource := lSource.Replace('TBindingForm = class', 'TBindingForm = class(TBindingForm)')
+  else if aShape = 'missing-base' then
+    lSource := lSource.Replace('TBindingForm = class',
+      'TBindingForm = class(TMissingBase)')
+  else
+    lSource := lSource.Replace('unit BindingForm;'#13#10'interface',
+      'unit BindingForm;'#13#10'interface'#13#10'uses Vcl.Forms;').Replace(
+      'TBindingForm = class', 'TBindingForm = class(TForm)');
+  lSource := lSource.Replace('implementation'#13#10,
+    'implementation'#13#10'{$R Forms.res}'#13#10);
+  if aShape = 'forward-full' then
+    // DS HasCompleteClassDeclaration refuses the forward/full pair before ancestry; see DS-727.
+    lSource := lSource.Replace('  TBindingForm = class(TBaseForm)',
+      '  TBindingForm = class;'#13#10'  TBindingForm = class(TBaseForm)');
+  TFile.WriteAllText(lFixture.fSource, lSource, TEncoding.UTF8);
+  TFile.Delete(lFixture.fDfm);
+  TFile.WriteAllBytes(TPath.Combine(lFixture.fDirectory, 'Forms.res'), [0, 0, 0, 0]);
+  lSourceHash := BindingFixtureHash(lFixture.fDirectory);
+  lFixture.fLog := TPath.Combine(lFixture.fDirectory, 'report.json');
+  Assert.IsTrue(RunResolverProcess('consistency --project ' + QuoteArg(lFixture.fProject) +
+    ' --config Debug --platform Win64 --delphi 23.0', lFixture.fDirectory, lFixture.fLog, lExit));
+  Assert.AreEqual(lSourceHash, BindingFixtureHash(lFixture.fDirectory));
+  lRoot := TJSONObject.ParseJSONValue(ReadUtf8TextFile(lFixture.fLog)) as TJSONObject;
+  GC(lRoot, g);
+  Assert.IsNotNull(lRoot);
+  Assert.AreEqual(Cardinal(3), lExit, lRoot.ToJSON);
+  Assert.AreEqual('incomplete', lRoot.GetValue<string>('status'), lRoot.ToJSON);
+  Assert.IsFalse((lRoot.FindValue('scope.complete') as TJSONBool).AsBoolean);
+  Assert.AreEqual(0, (lRoot.GetValue('events') as TJSONArray).Count, lRoot.ToJSON);
+  lFound := False;
+  for lItem in (lRoot.GetValue('diagnostics') as TJSONArray) do
+    if lItem.GetValue<string>('reason') = aReason then
+    begin
+      lFound := True;
+      Assert.AreEqual(lFixture.fSource, lItem.GetValue<string>('fileName'));
+      Assert.IsTrue(Pos('Forms.res', lItem.GetValue<string>('message')) > 0);
+    end;
+  Assert.IsTrue(lFound, lRoot.ToJSON);
+end;
+
+procedure TConsistencyTests.ResourceAncestryRequiresInspectedDeclaration(const aShape, aStatus: string);
+var
+  g: TGarbos;
+  lFixture: TReportFixture;
+  lSource, lWrongSource, lProject, lDpr, lSourceHash: string;
+  lExit: Cardinal;
+  lRoot: TJSONObject;
+  lItem: TJSONValue;
+  lFound: Boolean;
+begin
+  lFixture := Default(TReportFixture);
+  lFixture.fDirectory := EvidenceDirectory;
+  lFixture.fProject := TPath.Combine(lFixture.fDirectory, 'Binding.dproj');
+  lFixture.fSource := TPath.Combine(lFixture.fDirectory, 'BindingForm.pas');
+  lFixture.fDfm := ChangeFileExt(lFixture.fSource, '.dfm');
+  WriteBindingFixture(lFixture, 'match', 'OnData');
+  lWrongSource := 'unit WrongUnit;'#13#10'interface'#13#10 +
+    'type TForm = class end;'#13#10;
+  if aShape = 'impl-homonym' then
+    lWrongSource := lWrongSource + '  TBindingForm = class end;'#13#10;
+  TFile.WriteAllText(TPath.Combine(lFixture.fDirectory, 'WrongUnit.pas'),
+    lWrongSource + 'implementation'#13#10'end.'#13#10, TEncoding.UTF8);
+  lSource := 'unit BindingForm;'#13#10'interface'#13#10;
+  if (aShape = 'impl-homonym') or (aShape = 'impl-no-homonym') then
+    lSource := lSource + 'uses WrongUnit, Vcl.Forms;'#13#10 +
+      'implementation'#13#10'type TBindingForm = class(Vcl.Forms.TForm) end;'#13#10
+  else begin
+    lSource := lSource + 'uses WrongUnit;'#13#10;
+    if aShape = 'interface-uses' then
+      lSource := lSource + 'type TBindingForm = class(TForm) end;'#13#10;
+    lSource := lSource + 'implementation'#13#10'uses Vcl.Forms;'#13#10;
+    if aShape = 'impl-uses' then
+      lSource := lSource + 'type TBindingForm = class(TForm) end;'#13#10;
+  end;
+  TFile.WriteAllText(lFixture.fSource, lSource + '{$R Forms.res}'#13#10'end.'#13#10, TEncoding.UTF8);
+  TFile.Delete(lFixture.fDfm);
+  TFile.WriteAllBytes(TPath.Combine(lFixture.fDirectory, 'Forms.res'), [0, 0, 0, 0]);
+  lDpr := TPath.Combine(lFixture.fDirectory, 'Binding.dpr');
+  TFile.WriteAllText(lDpr, TFile.ReadAllText(lDpr, TEncoding.UTF8).Replace(
+    'uses BindingForm', 'uses WrongUnit in ''WrongUnit.pas'', BindingForm'), TEncoding.UTF8);
+  lProject := TFile.ReadAllText(lFixture.fProject, TEncoding.UTF8).Replace(
+    '<DCCReference Include="BindingForm.pas"/>',
+    '<DCCReference Include="WrongUnit.pas"/><DCCReference Include="BindingForm.pas"/>');
+  TFile.WriteAllText(lFixture.fProject, lProject, TEncoding.UTF8);
+  lSourceHash := BindingFixtureHash(lFixture.fDirectory);
+  lFixture.fLog := TPath.Combine(lFixture.fDirectory, 'report.json');
+  Assert.IsTrue(RunResolverProcess('consistency --project ' + QuoteArg(lFixture.fProject) +
+    ' --config Debug --platform Win64 --delphi 23.0', lFixture.fDirectory, lFixture.fLog, lExit));
+  Assert.AreEqual(lSourceHash, BindingFixtureHash(lFixture.fDirectory));
+  lRoot := TJSONObject.ParseJSONValue(ReadUtf8TextFile(lFixture.fLog)) as TJSONObject;
+  GC(lRoot, g);
+  Assert.IsNotNull(lRoot);
+  Assert.AreEqual(aStatus, lRoot.GetValue<string>('status'), lRoot.ToJSON);
+  Assert.AreEqual(0, (lRoot.GetValue('events') as TJSONArray).Count, lRoot.ToJSON);
+  if aStatus = 'ok' then
+  begin
+    Assert.AreEqual(Cardinal(0), lExit, lRoot.ToJSON);
+    Assert.IsTrue((lRoot.FindValue('scope.complete') as TJSONBool).AsBoolean);
+    Assert.AreEqual(0, (lRoot.GetValue('diagnostics') as TJSONArray).Count, lRoot.ToJSON);
+    Exit;
+  end;
+  Assert.AreEqual(Cardinal(3), lExit, lRoot.ToJSON);
+  Assert.IsFalse((lRoot.FindValue('scope.complete') as TJSONBool).AsBoolean);
+  lFound := False;
+  for lItem in (lRoot.GetValue('diagnostics') as TJSONArray) do
+    if lItem.GetValue<string>('reason') = 'dfm.resource-ancestry-unknown' then
+    begin
+      lFound := True;
+      Assert.AreEqual(lFixture.fSource, lItem.GetValue<string>('fileName'));
+      Assert.AreEqual('Forms.res', lItem.GetValue<string>('message'));
+    end;
+  Assert.IsTrue(lFound, lRoot.ToJSON);
+end;
+
+procedure TConsistencyTests.UnrelatedTFormResourceDoesNotClaimVclForm(const aShape: string);
+var
+  g: TGarbos;
+  lFound: Boolean;
+  lFixture: TReportFixture;
+  lSource: string;
+  lDpr: string;
+  lProject: string;
+  lSourceHash: string;
+  lExit: Cardinal;
+  lRoot: TJSONObject;
+begin
+  lFixture := Default(TReportFixture);
+  lFixture.fDirectory := EvidenceDirectory;
+  lFixture.fProject := TPath.Combine(lFixture.fDirectory, 'Binding.dproj');
+  lFixture.fSource := TPath.Combine(lFixture.fDirectory, 'BindingForm.pas');
+  lFixture.fDfm := ChangeFileExt(lFixture.fSource, '.dfm');
+  WriteBindingFixture(lFixture, 'match', 'OnData');
+  if aShape <> 'local-with-vcl' then
+    TFile.WriteAllText(TPath.Combine(lFixture.fDirectory, 'WrongUnit.pas'),
+      'unit WrongUnit;'#13#10'interface'#13#10 +
+      'type TForm = class end;'#13#10'implementation'#13#10'end.'#13#10, TEncoding.UTF8);
+  lSource := TFile.ReadAllText(lFixture.fSource, TEncoding.UTF8);
+  if aShape = 'local-with-vcl' then
+    lSource := lSource.Replace('unit BindingForm;'#13#10'interface',
+      'unit BindingForm;'#13#10'interface'#13#10'uses Vcl.Forms;').Replace(
+      '  TValue = class end;', '  TForm = class end;'#13#10'  TValue = class end;')
+  else if aShape = 'indexed-last' then
+    lSource := lSource.Replace('unit BindingForm;'#13#10'interface',
+      'unit BindingForm;'#13#10'interface'#13#10'uses Vcl.Forms, WrongUnit;')
+  else if aShape.StartsWith('later-') then
+    lSource := lSource.Replace('unit BindingForm;'#13#10'interface',
+      'unit BindingForm;'#13#10'interface'#13#10'uses WrongUnit, ' + Copy(aShape, 7, MaxInt) + ';')
+  else
+    lSource := lSource.Replace('unit BindingForm;'#13#10'interface',
+      'unit BindingForm;'#13#10'interface'#13#10'uses WrongUnit;');
+  if aShape = 'qualified' then
+    lSource := lSource.Replace('TBindingForm = class', 'TBindingForm = class(WrongUnit.TForm)')
+  else
+    lSource := lSource.Replace('TBindingForm = class', 'TBindingForm = class(TForm)');
+  lSource := lSource.Replace('implementation'#13#10,
+    'implementation'#13#10'{$R Forms.res}'#13#10);
+  TFile.WriteAllText(lFixture.fSource, lSource, TEncoding.UTF8);
+  TFile.Delete(lFixture.fDfm);
+  TFile.WriteAllBytes(TPath.Combine(lFixture.fDirectory, 'Forms.res'), [0, 0, 0, 0]);
+  if aShape <> 'local-with-vcl' then
+  begin
+    lDpr := TPath.Combine(lFixture.fDirectory, 'Binding.dpr');
+    TFile.WriteAllText(lDpr, TFile.ReadAllText(lDpr, TEncoding.UTF8).Replace(
+      'uses BindingForm', 'uses WrongUnit in ''WrongUnit.pas'', BindingForm'), TEncoding.UTF8);
+    lProject := TFile.ReadAllText(lFixture.fProject, TEncoding.UTF8).Replace(
+      '<DCCReference Include="BindingForm.pas"/>',
+      '<DCCReference Include="WrongUnit.pas"/><DCCReference Include="BindingForm.pas"/>');
+    TFile.WriteAllText(lFixture.fProject, lProject, TEncoding.UTF8);
+  end;
+  lSourceHash := BindingFixtureHash(lFixture.fDirectory);
+  lFixture.fLog := TPath.Combine(lFixture.fDirectory, 'report.json');
+  Assert.IsTrue(RunResolverProcess('consistency --project ' + QuoteArg(lFixture.fProject) +
+    ' --config Debug --platform Win64 --delphi 23.0', lFixture.fDirectory, lFixture.fLog, lExit));
+  Assert.AreEqual(lSourceHash, BindingFixtureHash(lFixture.fDirectory));
+  lRoot := TJSONObject.ParseJSONValue(ReadUtf8TextFile(lFixture.fLog)) as TJSONObject;
+  GC(lRoot, g);
+  Assert.IsNotNull(lRoot);
+  if aShape.StartsWith('later-') then
+  begin
+    Assert.AreEqual(Cardinal(3), lExit, lRoot.ToJSON);
+    Assert.AreEqual('incomplete', lRoot.GetValue<string>('status'), lRoot.ToJSON);
+    Assert.IsFalse((lRoot.FindValue('scope.complete') as TJSONBool).AsBoolean);
+    lFound := False;
+    for var lItem in (lRoot.GetValue('diagnostics') as TJSONArray) do
+      if lItem.GetValue<string>('reason') = 'dfm.resource-ancestry-unknown' then
+      begin
+        lFound := True;
+        Assert.AreEqual(lFixture.fSource, lItem.GetValue<string>('fileName'));
+        Assert.AreEqual('Forms.res', lItem.GetValue<string>('message'));
+      end;
+    Assert.IsTrue(lFound, lRoot.ToJSON);
+    Exit;
+  end;
+  Assert.AreEqual(Cardinal(0), lExit, lRoot.ToJSON);
+  Assert.AreEqual('ok', lRoot.GetValue<string>('status'), lRoot.ToJSON);
+  Assert.IsTrue((lRoot.FindValue('scope.complete') as TJSONBool).AsBoolean);
+  Assert.AreEqual(0, (lRoot.GetValue('diagnostics') as TJSONArray).Count, lRoot.ToJSON);
+end;
+
+procedure TConsistencyTests.ProgramResourceDoesNotHideTextDfmBindings;
+var
+  g: TGarbos;
+  lFixture: TReportFixture;
+  lDpr: string;
+  lSourceHash: string;
+  lExit: Cardinal;
+  lRoot: TJSONObject;
+  lEvents: TJSONArray;
+begin
+  lFixture := Default(TReportFixture);
+  lFixture.fDirectory := EvidenceDirectory;
+  lFixture.fProject := TPath.Combine(lFixture.fDirectory, 'Binding.dproj');
+  lFixture.fSource := TPath.Combine(lFixture.fDirectory, 'BindingForm.pas');
+  lFixture.fDfm := ChangeFileExt(lFixture.fSource, '.dfm');
+  WriteBindingFixture(lFixture, 'match', 'OnData');
+  lDpr := TPath.Combine(lFixture.fDirectory, 'Binding.dpr');
+  TFile.WriteAllText(lDpr, TFile.ReadAllText(lDpr, TEncoding.UTF8).Replace(
+    'begin end.', '{$R App.res}'#13#10'begin end.'), TEncoding.UTF8);
+  TFile.WriteAllBytes(TPath.Combine(lFixture.fDirectory, 'App.res'), [0, 0, 0, 0]);
+  lSourceHash := BindingFixtureHash(lFixture.fDirectory);
+  lFixture.fLog := TPath.Combine(lFixture.fDirectory, 'report.json');
+  Assert.IsTrue(RunResolverProcess('consistency --project ' + QuoteArg(lFixture.fProject) +
+    ' --config Debug --platform Win64 --delphi 23.0', lFixture.fDirectory, lFixture.fLog, lExit));
+  Assert.AreEqual(lSourceHash, BindingFixtureHash(lFixture.fDirectory));
+  lRoot := TJSONObject.ParseJSONValue(ReadUtf8TextFile(lFixture.fLog)) as TJSONObject;
+  GC(lRoot, g);
+  Assert.IsNotNull(lRoot);
+  Assert.AreEqual(Cardinal(0), lExit, lRoot.ToJSON);
+  Assert.AreEqual('ok', lRoot.GetValue<string>('status'), lRoot.ToJSON);
+  Assert.IsTrue((lRoot.FindValue('scope.complete') as TJSONBool).AsBoolean);
+  Assert.AreEqual(0, (lRoot.GetValue('diagnostics') as TJSONArray).Count, lRoot.ToJSON);
+  lEvents := lRoot.GetValue('events') as TJSONArray;
+  Assert.AreEqual(1, lEvents.Count, lRoot.ToJSON);
+  Assert.AreEqual('match', lEvents.Items[0].GetValue<string>('status'));
+  Assert.AreEqual(lFixture.fDfm, lEvents.Items[0].GetValue<string>('fileName'));
 end;
 
 initialization

@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- `consistency` now reports a named incomplete result for a `.res`-only form or a source class whose resource ancestry cannot be proved, including unproved declaration identity and uses-order bindings, while ordinary program icon/version resources remain accepted. Identical DFM unknown diagnostics (same file, reason and message) are reported once.
 - Symbol Map indexing keeps routine-local types, consts, vars and local enum values out of the top-level declaration inventory and the `index-unit` symbol counts, using the semantic model's routine scope facts.
 - Refactor transactions report `transaction.busy` only when another process holds the project lock; any other failure to open the lock file now reports `transaction.lock-failed` with the OS error code and message.
 - Refactor transactions now create their lock directory and read their journals beyond the Windows path limit, so a project nested deeper than 260 characters can reach lock, journal, staging and recovery (the build verification still needs a path within the limit).

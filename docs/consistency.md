@@ -86,6 +86,32 @@ The following have explicit incomplete dispositions:
   evidence: `dfm.ancestry-unavailable`. Semantic class ancestry alone does not
   establish the full streamed form state.
 - Missing standard DFM resource: `dfm.resource-unavailable`.
+- A source-declared form, frame or data module with a `.res` directive and
+  no sibling text DFM and proved standard-root identity:
+  `dfm.resource-only-unsupported`. The diagnostic names
+  the source unit and resource directive. Ordinary DPR icon/version `.res`
+  directives do not imply a form resource.
+- A `.res`-only source class whose ancestry is unavailable, ambiguous, cyclic
+  or incomplete: `dfm.resource-ancestry-unknown`. This can include an ordinary
+  helper class when its ancestry cannot be proved; a complete source-backed
+  non-form class is accepted. Source-backed custom bases are followed with
+  identity and cycle guards. A same-name class in another unit is not treated
+  as a VCL form by name alone.
+  An unqualified `class(TForm)` with `uses Vcl.Forms` and no indexed VCL
+  declaration reports `dfm.resource-ancestry-unknown`. Import order also
+  matters: `uses WrongUnit, Vcl.Forms` (or `WrongUnit, Forms`) cannot prove
+  an indexed `WrongUnit.TForm` is the base, because the later import wins
+  when it declares that name. A later non-indexed unit likewise leaves the
+  edge unproved. `uses Vcl.Forms, WrongUnit` accepts a proved non-form
+  `WrongUnit.TForm`. Ancestry is accepted only when its first identity matches
+  the inspected declaration's unit, section, source file and declaration
+  coordinates. A lookup that selects an imported homonym is unknown.
+  Implementation-local declarations can remain unknown when semantic lookup
+  cannot establish that starting identity; proving it is tracked by DS-727.
+  When the identity is established,
+  implementation imports participate in the import-order guard only for
+  declarations in that section, after interface imports. Local and qualified
+  identities do not depend on import order.
 - Nonstandard resource layout: `dfm.resource-layout-unsupported`.
 - Included source whose resource mapping has not been proved:
   `dfm.include-resource-coverage-unknown`.

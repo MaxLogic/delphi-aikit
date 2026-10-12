@@ -99,8 +99,15 @@ procedure AddDfmUnknown(const aDiagnostics: TJSONArray; const aFileName, aReason
   out aComplete: Boolean);
 var
   lJson: TJSONObject;
+  lExisting: TJSONValue;
 begin
   aComplete := False;
+  // Ancestor traversal and the main model loop can discover the same gap.
+  for lExisting in aDiagnostics do
+    if SameText(lExisting.GetValue<string>('fileName'), aFileName) and
+      (lExisting.GetValue<string>('reason') = aReason) and
+      (lExisting.GetValue<string>('message') = aMessage) then
+      Exit;
   lJson := TJSONObject.Create;
   aDiagnostics.AddElement(lJson);
   lJson.AddPair('reason', aReason);
@@ -108,11 +115,185 @@ begin
   lJson.AddPair('message', aMessage);
 end;
 
+type
+  TResourceFormDisposition = (rfdNone, rfdResourceOnly, rfdAncestryUnknown);
+
+function RootUnitForType(const aName: string): string;
+begin
+  Result := '';
+  if SameText(aName, 'TForm') or SameText(aName, 'TCustomForm') or
+    SameText(aName, 'TFrame') or SameText(aName, 'TCustomFrame') then
+    Result := 'Vcl.Forms'
+  else if SameText(aName, 'TDataModule') then
+    Result := 'System.Classes';
+end;
+
+function ModelIndexForUnit(const aModels: TArray<TDelphiSemanticUnitModel>;
+  const aUnitName: string): Integer;
+var
+  i: Integer;
+begin
+  Result := -1;
+  for i := 0 to High(aModels) do
+    if SameText(aModels[i].UnitName, aUnitName) then
+    begin
+      if Result >= 0 then
+        Exit(-1);
+      Result := i;
+    end;
+end;
+
+function ResourceEdgeImportOrderUnproved(const aModels: TArray<TDelphiSemanticUnitModel>;
+  const aClass, aBase: TDelphiSemanticTypeIdentity): Boolean;
+var
+  lModelIndex, lInterfaceCount, lImportCount: Integer;
+  lRootUnit, lImport: string;
+  lResolvedSeen: Boolean;
+  i: Integer;
+begin
+  Result := False;
+  // Qualified names and declarations in the same unit do not use import order.
+  lRootUnit := RootUnitForType(aClass.BaseTypeName);
+  if (lRootUnit = '') or SameText(aBase.UnitName, lRootUnit) or
+    SameText(aClass.UnitName, aBase.UnitName) then
+    Exit;
+  lModelIndex := ModelIndexForUnit(aModels, aClass.UnitName);
+  if lModelIndex < 0 then
+    Exit(True);
+  lInterfaceCount := Length(aModels[lModelIndex].InterfaceUses);
+  lImportCount := lInterfaceCount;
+  // Implementation imports are visible only to implementation declarations;
+  // they take precedence over interface imports, in their own clause order.
+  if SameText(aClass.SectionKind, 'implementation') then
+    Inc(lImportCount, Length(aModels[lModelIndex].ImplementationUses));
+  lResolvedSeen := False;
+  for i := 0 to lImportCount - 1 do
+  begin
+    if i < lInterfaceCount then
+      lImport := aModels[lModelIndex].InterfaceUses[i]
+    else
+      lImport := aModels[lModelIndex].ImplementationUses[i - lInterfaceCount];
+    if SameText(lImport, aBase.UnitName) then
+    begin
+      lResolvedSeen := True;
+      Result := False;
+    end else if lResolvedSeen and
+      (SameText(lImport, lRootUnit) or
+      SameText(lImport, Copy(lRootUnit, LastDelimiter('.', lRootUnit) + 1, MaxInt)) or
+      (ModelIndexForUnit(aModels, lImport) < 0)) then
+      Result := True;
+  end;
+  // An imported identity absent from the clause cannot prove this edge either.
+  Result := Result or not lResolvedSeen;
+end;
+
+function ResourceAncestryStartsAtDeclaration(const aModel: TDelphiSemanticUnitModel;
+  const aDeclaration: TDelphiSemanticDeclaration;
+  const aIdentity: TDelphiSemanticTypeIdentity): Boolean;
+var
+  lFileName: string;
+begin
+  lFileName := aDeclaration.FileName;
+  if lFileName = '' then
+    lFileName := aModel.FileName;
+  Result := SameText(aIdentity.UnitName, aModel.UnitName) and
+    SameText(aIdentity.Name, aDeclaration.Name) and
+    SameText(aIdentity.SectionKind, aDeclaration.SectionKind) and
+    SameText(aIdentity.SourceRange.FileName, lFileName) and
+    (aDeclaration.Offset > 0) and (aIdentity.SourceRange.Offset = aDeclaration.Offset) and
+    (aDeclaration.Line > 0) and (aIdentity.SourceRange.Line = aDeclaration.Line) and
+    (aDeclaration.Column > 0) and (aIdentity.SourceRange.Column = aDeclaration.Column);
+end;
+
+function ResourceFormDisposition(const aModel: TDelphiSemanticUnitModel;
+  const aModels: TArray<TDelphiSemanticUnitModel>;
+  const aTypes: TDelphiSemanticTypeIdentityIndex): TResourceFormDisposition;
+var
+  lDeclaration: TDelphiSemanticDeclaration;
+  lAncestry: TDelphiSemanticClassAncestry;
+  lClass: TDelphiSemanticTypeIdentity;
+  lBaseName, lRootUnit: string;
+  lModelIndex: Integer;
+  lImport: string;
+  lImported: Boolean;
+  lUnproved: Boolean;
+  i: Integer;
+begin
+  Result := TResourceFormDisposition.rfdNone;
+  for lDeclaration in aModel.Declarations do
+  begin
+    if not SameText(lDeclaration.Kind, 'type') or
+      not SameText(lDeclaration.TypeName, 'class') or
+      (not SameText(lDeclaration.DeclarationRole, 'declaration') and
+      not SameText(lDeclaration.DeclarationRole, 'forward')) then
+      Continue;
+    lAncestry := TDelphiSemanticEventBindingResolver.InspectClassAncestry(
+      aModels, aTypes, aModel.UnitName, lDeclaration.Name);
+    // Unqualified lookup can bind an imported homonym instead of this declaration.
+    // Do not accept either complete ancestry or an external-root tail for that class.
+    if Length(lAncestry.Classes) = 0 then
+    begin
+      Result := TResourceFormDisposition.rfdAncestryUnknown;
+      Continue;
+    end;
+    if not ResourceAncestryStartsAtDeclaration(aModel, lDeclaration, lAncestry.Classes[0]) then
+    begin
+      Result := TResourceFormDisposition.rfdAncestryUnknown;
+      Continue;
+    end;
+    if lAncestry.Complete then
+    begin
+      lUnproved := False;
+      for i := 0 to High(lAncestry.Classes) - 1 do
+        lUnproved := lUnproved or ResourceEdgeImportOrderUnproved(
+          aModels, lAncestry.Classes[i], lAncestry.Classes[i + 1]);
+      if lUnproved then
+      begin
+        Result := TResourceFormDisposition.rfdAncestryUnknown;
+        Continue;
+      end;
+      for lClass in lAncestry.Classes do
+        if (RootUnitForType(lClass.Name) <> '') and
+          SameText(RootUnitForType(lClass.Name), lClass.UnitName) then
+          Exit(TResourceFormDisposition.rfdResourceOnly);
+      // Every resolved class and import edge is proved; none is a standard root.
+      Continue;
+    end;
+    Result := TResourceFormDisposition.rfdAncestryUnknown;
+    if (lAncestry.Reason <> 'ancestry.type-unresolved') or (Length(lAncestry.Classes) = 0) then
+      Continue;
+    // Only the final unresolved edge may refer to an external VCL root.
+    // Earlier edges have already bound to the next source identity.
+    lClass := lAncestry.Classes[High(lAncestry.Classes)];
+    lModelIndex := ModelIndexForUnit(aModels, lClass.UnitName);
+    if lModelIndex < 0 then
+      Continue;
+    lBaseName := lClass.BaseTypeName;
+    if Pos('.', lBaseName) > 0 then
+    begin
+      lRootUnit := Copy(lBaseName, 1, LastDelimiter('.', lBaseName) - 1);
+      lBaseName := Copy(lBaseName, LastDelimiter('.', lBaseName) + 1, MaxInt);
+    end else
+      lRootUnit := '';
+    if (RootUnitForType(lBaseName) = '') or
+      ((lRootUnit <> '') and not SameText(lRootUnit, RootUnitForType(lBaseName))) then
+      Continue;
+    lImported := False;
+    for lImport in aModels[lModelIndex].InterfaceUses do
+      lImported := lImported or SameText(lImport, RootUnitForType(lBaseName));
+    if lImported and (lRootUnit <> '') then
+      Exit(TResourceFormDisposition.rfdResourceOnly);
+  end;
+end;
+
 procedure CheckResourceCoverage(const aModel: TDelphiSemanticUnitModel;
+  const aModels: TArray<TDelphiSemanticUnitModel>;
+  const aTypes: TDelphiSemanticTypeIdentityIndex;
   const aDiagnostics: TJSONArray; var aComplete: Boolean);
 var
   lMatch: TMatch;
   lResource, lPath: string;
+  lDisposition: TResourceFormDisposition;
 begin
   // This is a conservative discovery guard, not a second preprocessor. Includes
   // and nonstandard resource layouts remain explicit unknowns until mapped.
@@ -123,7 +304,22 @@ begin
     '(?is)(?:\{\$|\(\*\$)\s*(?:R|RESOURCE)\s+(.+?)(?:\}|\*\))') do
   begin
     lResource := Trim(lMatch.Groups[1].Value).Trim(['''', '"']);
-    if SameText(ExtractFileExt(lResource), '.res') or SameText(ExtractFileExt(lResource), '.dcr') then
+    if SameText(ExtractFileExt(lResource), '.res') then
+    begin
+      lPath := ChangeFileExt(aModel.FileName, '.dfm');
+      if not FileExists(lPath) then
+      begin
+        lDisposition := ResourceFormDisposition(aModel, aModels, aTypes);
+        if lDisposition = TResourceFormDisposition.rfdResourceOnly then
+          AddDfmUnknown(aDiagnostics, aModel.FileName, 'dfm.resource-only-unsupported',
+            lResource, aComplete)
+        else if lDisposition = TResourceFormDisposition.rfdAncestryUnknown then
+          AddDfmUnknown(aDiagnostics, aModel.FileName, 'dfm.resource-ancestry-unknown',
+            lResource, aComplete);
+      end;
+      Continue;
+    end;
+    if SameText(ExtractFileExt(lResource), '.dcr') then
       Continue;
     lPath := ChangeFileExt(aModel.FileName, '.dfm');
     if not SameText(lResource, '*.dfm') and not SameText(lResource, ExtractFileName(lPath)) then
@@ -176,7 +372,7 @@ begin
     if SameText(lModel.UnitName, aUnitName) then
     begin
       Result := True;
-      CheckResourceCoverage(lModel, aDiagnostics, Result);
+      CheckResourceCoverage(lModel, aContext.fModels, aContext.fTypes, aDiagnostics, Result);
       Exit;
     end;
 end;
@@ -399,7 +595,7 @@ begin
     lTypes := TDelphiSemanticTypeResolver.BuildIndex(lGraph);
     for lModel in aModels do
     begin
-      CheckResourceCoverage(lModel, aDiagnostics, aComplete);
+      CheckResourceCoverage(lModel, aModels, lTypes, aDiagnostics, aComplete);
       lFileName := ChangeFileExt(lModel.FileName, '.dfm');
       if FileExists(lFileName) then
         InspectDfm(lModel, aModels, lTypes, lFileName, aEvents, aDiagnostics, aComplete);
