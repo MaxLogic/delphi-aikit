@@ -54,6 +54,36 @@ type
     [Test]
     procedure PlanQualifiesTypeConstantsShadowingOuterDeclarations;
     [Test]
+    [Category('DAK418')]
+    procedure PlanTypeConstantsWithoutNativeProofRefusesClass;
+    [TestCase('RemoveWithInheritedOverrideFixture 93', '0')]
+    [TestCase('RemoveWithInheritedOverrideFixture 108', '1')]
+    [TestCase('RemoveWithInterfaceResolverFixture 67', '2')]
+    [TestCase('RemoveWithPrecedenceFixture 200', '3')]
+    [TestCase('RemoveWithUnitModelFixture 103', '4')]
+    [TestCase('RemoveWithUnitModelFixture 110', '5')]
+    [TestCase('RemoveWithNestedControlledRewriteFixture 37', '6')]
+    [TestCase('RemoveWithNestedRewriteFixture 41', '7')]
+    [Category('DAK418')]
+    procedure NativeRootCensusMatchesDs742Design(const aCase: Integer);
+    [Test]
+    [Category('DAK418Fix1b')]
+    procedure NativeNamedRootsUseImportedContextAndRefuseHomonyms;
+
+    // Characterization: the include profile cannot supply positive root proof.
+    [TestCase('Closed include refuses without proof', 'True')]
+    [TestCase('Closed no-include plans with proof', 'False')]
+    [Category('DAK418Fix5e')]
+    procedure ClosedImplicitRootNativeProfileCharacterization(const aInclude: Boolean);
+    [TestCase('constructor', 'constructor')]
+    [TestCase('overloaded-constructor', 'overloaded-constructor')]
+    [TestCase('component-constructor', 'component-constructor')]
+    [TestCase('generic', 'generic')]
+    [TestCase('nested', 'nested')]
+    [TestCase('class-helper', 'class-helper')]
+    [Category('DAK418Fix2Consumer')]
+    procedure NativeRootFalseAbsenceRegressions(const aShape: string);
+    [Test]
     procedure LegacySymbolParserIsNotCompiled;
     [Test]
     procedure RemoveWithSymbolMapBridgeIsRetired;
@@ -639,6 +669,9 @@ type
     [Test]
     procedure RealRequestOwnerDriftRefusesApply;
     [Test]
+    [Category('DAK418Fix2Apply')]
+    procedure NewShadowInvalidatesNamedPlanAtApply;
+    [Test]
     procedure ApplyRefusesWhenSemanticEditExpectedSourceIsStale;
     [Test]
     procedure ApplyRefusesWhenReportOnlyAndApplyStatementIdsDiverge;
@@ -931,7 +964,7 @@ implementation
 uses
   System.Threading,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.ProjectContext,
-  DelphiSemantics.RootMemberAbsence, DelphiSemantics.Source,
+  DelphiSemantics.RemoveWithPlan, DelphiSemantics.RootMemberAbsence, DelphiSemantics.Source,
   Dak.Build.NativeContext, Dak.Build.Runner, Dak.RootMemberAbsence,
   Winapi.Windows,
   AutoFree, DelphiAST, DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer, maxLogic.ioutils;
@@ -1314,6 +1347,559 @@ begin
     'Plan mode must not edit the fixture.');
 end;
 
+procedure TRemoveWithCommandTests.NativeRootCensusMatchesDs742Design(const aCase: Integer);
+var
+  g: TGarbos;
+  lRoot: TJSONObject;
+  lValue: TJSONValue;
+  lFixture, lProject, lStatementId, lExpected, lDirectory, lText, lLogPath: string;
+  lExit: Cardinal;
+  lFound: Boolean;
+begin
+  case aCase of
+    0:
+    begin
+      lFixture := 'RemoveWithInheritedOverrideFixture';
+      lProject := 'RemoveWithInheritedOverrideFixture.dproj';
+      lStatementId := 'with-2';
+      lExpected := '  lWithGrandGolden := lGrand;' + #13#10 +
+        '  begin' + #13#10 +
+        '    lWithGrandGolden.BaseField := '''';' + #13#10 +
+        '    lWithGrandGolden.BaseProp := '''';' + #13#10 +
+        '    lWithGrandGolden.BaseOnly;' + #13#10 +
+        '    lWithGrandGolden.BaseCount := 1;' + #13#10 +
+        '    lWithGrandGolden.BaseLimit;' + #13#10 +
+        '    lWithGrandGolden.DerivedField := '''';' + #13#10 +
+        '    lWithGrandGolden.DerivedProp := '''';' + #13#10 +
+        '    lWithGrandGolden.DerivedOnly;' + #13#10 +
+        '    lWithGrandGolden.HiddenProp := '''';' + #13#10 +
+        '    lWithGrandGolden.OverrideMe;' + #13#10 +
+        '    MissingMember := '''';' + #13#10 +
+        '  end;';
+    end;
+    1:
+    begin
+      lFixture := 'RemoveWithInheritedOverrideFixture';
+      lProject := 'RemoveWithInheritedOverrideFixture.dproj';
+      lStatementId := 'with-3';
+      lExpected := '  lWithExternalGolden := lExternal;' + #13#10 +
+        '  begin' + #13#10 +
+        '    Count := 1;' + #13#10 +
+        '  end;';
+    end;
+    2:
+    begin
+      lFixture := 'RemoveWithInterfaceResolverFixture';
+      lProject := 'RemoveWithInterfaceResolverFixture.dproj';
+      lStatementId := 'with-1';
+      lExpected := '  lWithIChildContact := lInterface;' + #13#10 +
+        '  begin' + #13#10 +
+        '    lWithIChildContact.BaseTouch;' + #13#10 +
+        '    lWithIChildContact.ChildTouch;' + #13#10 +
+        '    lSink := lWithIChildContact.BaseName;' + #13#10 +
+        '    lSink := lWithIChildContact.ChildName;' + #13#10 +
+        '    ConcreteOnly;' + #13#10 +
+        '  end;';
+    end;
+    3:
+    begin
+      lFixture := 'RemoveWithPrecedenceFixture';
+      lProject := 'RemoveWithPrecedenceFixture.dproj';
+      lStatementId := 'with-12';
+      lExpected := '    lWithDescendantClass := lDescendant;' + #13#10 +
+        '  Emit(''inherited-member='' + lWithDescendantClass.id);';
+    end;
+    4:
+    begin
+      lFixture := 'RemoveWithUnitModelFixture';
+      lProject := 'RemoveWithUnitModelFixture.dproj';
+      lStatementId := 'with-1';
+      lExpected := '    lWithUnitModelRecordPtr := @lRecord;' + #13#10 +
+        '    lWithUnitModelClass := lClass;' + #13#10 +
+        '    begin' + #13#10 +
+        '      lWithUnitModelRecordPtr^.FieldName := lWithUnitModelRecordPtr^.Caption;' + #13#10 +
+        '      lWithUnitModelClass.Reset;' + #13#10 +
+        '    end;';
+    end;
+    5:
+    begin
+      lFixture := 'RemoveWithUnitModelFixture';
+      lProject := 'RemoveWithUnitModelFixture.dproj';
+      lStatementId := 'with-2';
+      lExpected := '    lWithUnitModelRecordPtr := @lPtr^;' + #13#10 +
+        '    begin' + #13#10 +
+        '        lWithUnitModelRecordPtr1 := @lRecord;' + #13#10 +
+        '        begin' + #13#10 +
+        '          lWithUnitModelClass := lClass;' + #13#10 +
+        '          lWithUnitModelClass.RecordValue := lRecord;' + #13#10 +
+        '        end;' + #13#10 +
+        '      end;';
+    end;
+    6:
+    begin
+      lFixture := 'RemoveWithNestedControlledRewriteFixture';
+      lProject := 'RemoveWithNestedControlledRewriteFixture.dproj';
+      lStatementId := 'with-1';
+      lExpected := '    lWithNestedControlledOuter := lOuter;' + #13#10 +
+        '    begin' + #13#10 +
+        '      if lCondition then' + #13#10 +
+        '        begin' + #13#10 +
+        '          lWithNestedControlledInner := lInner;' + #13#10 +
+        '          lWithNestedControlledInner.Shared := ''controlled'';' + #13#10 +
+        '        end;' + #13#10 +
+        '      lWithNestedControlledOuter.OuterOnly := ''outer'';' + #13#10 +
+        '    end;';
+    end;
+    7:
+    begin
+      lFixture := 'RemoveWithNestedRewriteFixture';
+      lProject := 'RemoveWithNestedRewriteFixture.dproj';
+      lStatementId := 'with-1';
+      lExpected := '    lWithNestedOuter := lOuter;' + #13#10 +
+        '    begin' + #13#10 +
+        '      lWithNestedOuter.Shared := lMarker;' + #13#10 +
+        '      lMarker := ''between'';' + #13#10 +
+        '      lWithNestedInner := lInner;' + #13#10 +
+        '      begin' + #13#10 +
+        '        lWithNestedInner.Shared := lMarker;' + #13#10 +
+        '        lWithNestedInner.InnerOnly := lWithNestedInner.Shared;' + #13#10 +
+        '        lWithNestedOuter.OuterOnly := ''outer-from-inner'';' + #13#10 +
+        '      end;' + #13#10 +
+        '      lMarker := ''after-inner'';' + #13#10 +
+        '      lWithNestedOuter.OuterOnly := lMarker;' + #13#10 +
+        '    end;';
+    end;
+  else
+    Assert.Fail('Unknown census case.');
+  end;
+  CopyFixtureToTemp(lFixture, 'dak418-census-' + IntToStr(aCase), lProject, lDirectory);
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'dak418-census-' + IntToStr(aCase) + '.json');
+  Assert.IsTrue(RunResolverProcess('remove-with --project ' + QuoteArg(lProject) +
+    ' --all --mode plan --format json --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lLogPath, lExit), 'Failed to start native-root census process.');
+  lText := ReadUtf8TextFile(lLogPath);
+  Assert.AreEqual<Cardinal>(0, lExit, lText);
+  lRoot := ParseJsonObject(lText);
+  GC(lRoot, g);
+  if MatchText(IntToStr(aCase), ['0', '1', '2', '4']) then
+  begin
+    // Fix packet 1b preserves minimal projects without native targets. Pin their
+    // unavailable context and zero-edit refusal rather than changing the inputs.
+    Assert.IsTrue(StartsText('native-root-proof-unavailable:',
+      lRoot.GetValue<string>('nativeRootProofDiagnostic', '')), lText);
+    for lValue in lRoot.GetValue<TJSONArray>('plannedEdits') do
+      Assert.AreNotEqual(lStatementId, (lValue as TJSONObject).GetValue<string>('statementId'));
+    lFound := False;
+    for lValue in lRoot.GetValue<TJSONArray>('skipped') do
+      if (lValue as TJSONObject).GetValue<string>('statementId') = lStatementId then
+      begin
+        Assert.AreEqual('receiver-member-not-found', (lValue as TJSONObject).GetValue<string>('reason'));
+        lFound := True;
+      end;
+    Assert.IsTrue(lFound, lFixture + ': ' + lStatementId);
+    Exit;
+  end;
+  if aCase <> 5 then
+    Assert.AreEqual('', lRoot.GetValue<string>('nativeRootProofDiagnostic', ''), lText);
+  lFound := False;
+  for lValue in lRoot.GetValue<TJSONArray>('plannedEdits') do
+    if (lValue as TJSONObject).GetValue<string>('statementId') = lStatementId then
+    begin
+      Assert.AreNotEqual(1, aCase, 'TStringList.Count must refuse.');
+      Assert.AreEqual(lExpected, (lValue as TJSONObject).GetValue<string>('replacementText'));
+      lFound := True;
+    end;
+  if aCase = 1 then
+    for lValue in lRoot.GetValue<TJSONArray>('skipped') do
+      if (lValue as TJSONObject).GetValue<string>('statementId') = lStatementId then
+      begin
+        Assert.AreEqual('receiver-member-not-found', (lValue as TJSONObject).GetValue<string>('reason'));
+        lFound := True;
+      end;
+  Assert.IsTrue(lFound, lFixture + ': ' + lStatementId);
+end;
+
+procedure TRemoveWithCommandTests.NativeRootFalseAbsenceRegressions(const aShape: string);
+var
+  g: TGarbos;
+  lJson: TJSONObject;
+  lProject, lDirectory, lLogPath, lText, lSource: string;
+  lExit: Cardinal;
+  lExpected: Integer;
+begin
+  CopyFixtureToTemp('RemoveWithNamedRootContextFixture', 'dak418-fix2-' + aShape,
+    lProject, lDirectory);
+  lExpected := 1;
+  if aShape = 'constructor' then
+  begin
+    lSource := 'unit NamedRootContext;'#13#10 +
+      'interface'#13#10 +
+      'uses System.Classes;'#13#10 +
+      'type TFoo = class(TStringList) public X: Integer; end;'#13#10 +
+      'procedure Run;'#13#10 +
+      'implementation'#13#10 +
+      'procedure Create;'#13#10 +
+      'begin WriteLn(''GLOBAL''); end;'#13#10 +
+      'procedure Run;'#13#10 +
+      'var lFoo: TFoo;'#13#10 +
+      'begin'#13#10 +
+      ' lFoo := TFoo.Create;'#13#10 +
+      ' try'#13#10 +
+      '  with lFoo do Create;'#13#10 +
+      ' finally'#13#10 +
+      '  lFoo.Free;'#13#10 +
+      ' end;'#13#10 +
+      'end;'#13#10;
+  end else if aShape = 'overloaded-constructor' then
+  begin
+    lSource := 'unit NamedRootContext;'#13#10 +
+      'interface'#13#10 +
+      'uses System.Classes;'#13#10 +
+      'type TFoo = class(TStringList) public X: Integer; end;'#13#10 +
+      'procedure Run;'#13#10 +
+      'implementation'#13#10 +
+      'procedure Create(aOwns: Boolean);'#13#10 +
+      'begin WriteLn(''GLOBAL''); end;'#13#10 +
+      'procedure Run;'#13#10 +
+      'var lFoo: TFoo;'#13#10 +
+      'begin'#13#10 +
+      ' lFoo := TFoo.Create;'#13#10 +
+      ' try'#13#10 +
+      '  with lFoo do Create(True);'#13#10 +
+      ' finally'#13#10 +
+      '  lFoo.Free;'#13#10 +
+      ' end;'#13#10 +
+      'end;'#13#10;
+  end else if aShape = 'component-constructor' then
+  begin
+    lSource := 'unit NamedRootContext;'#13#10 +
+      'interface'#13#10 +
+      'uses System.Classes;'#13#10 +
+      'type TFoo = class(TComponent) public X: Integer; end;'#13#10 +
+      'procedure Run;'#13#10 +
+      'implementation'#13#10 +
+      'procedure Create(aOwner: TComponent);'#13#10 +
+      'begin WriteLn(''GLOBAL''); end;'#13#10 +
+      'procedure Run;'#13#10 +
+      'var lFoo: TFoo;'#13#10 +
+      'begin'#13#10 +
+      ' lFoo := TFoo.Create(nil);'#13#10 +
+      ' try'#13#10 +
+      '  with lFoo do Create(nil);'#13#10 +
+      ' finally'#13#10 +
+      '  lFoo.Free;'#13#10 +
+      ' end;'#13#10 +
+      'end;'#13#10;
+  end else if aShape = 'generic' then
+  begin
+    lSource := 'unit NamedRootContext;'#13#10 +
+      'interface'#13#10 +
+      'uses System.Classes, System.Generics.Collections;'#13#10 +
+      'procedure Run;'#13#10 +
+      'type'#13#10 +
+      ' TL = class(TList<Integer>)'#13#10 +
+      '  public'#13#10 +
+      '   X: Integer;'#13#10 +
+      ' end;'#13#10 +
+      'implementation'#13#10 +
+      'var lFlag: Boolean;'#13#10 +
+      'function Contains(const aValue: Integer): Boolean;'#13#10 +
+      'begin'#13#10 +
+      ' Result := False;'#13#10 +
+      'end;'#13#10 +
+      'procedure Run;'#13#10 +
+      'var L: TL;'#13#10 +
+      'begin'#13#10 +
+      ' L := TL.Create;'#13#10 +
+      ' L.Add(1);'#13#10 +
+      ' with L do lFlag := Contains(1);'#13#10 +
+      ' Writeln(lFlag);'#13#10 +
+      'end;'#13#10;
+  end else if aShape = 'nested' then
+  begin
+    lExpected := 2;
+    lSource := 'unit NamedRootContext;'#13#10 +
+      'interface'#13#10 +
+      'uses System.Classes;'#13#10 +
+      'procedure Run;'#13#10 +
+      'type'#13#10 +
+      ' TFoo = class(TComponent)'#13#10 +
+      '  public'#13#10 +
+      '   X: Integer;'#13#10 +
+      ' end;'#13#10 +
+      ' TBar = class(TComponent)'#13#10 +
+      '  public'#13#10 +
+      '   Y: Integer;'#13#10 +
+      ' end;'#13#10 +
+      'var'#13#10 +
+      '  Foo: TFoo;'#13#10 +
+      '  Bar: TBar;'#13#10 +
+      'implementation'#13#10 +
+      'procedure Run;'#13#10 +
+      'begin'#13#10 +
+      ' Foo := TFoo.Create(nil);'#13#10 +
+      ' Foo.Tag := 5;'#13#10 +
+      ' Bar := TBar.Create(nil);'#13#10 +
+      ' Bar.Tag := 9;'#13#10 +
+      ' with Foo do'#13#10 +
+      '  with Bar do'#13#10 +
+      '   Y := Tag;'#13#10 +
+      ' Writeln(Bar.Y);'#13#10 +
+      'end;'#13#10;
+  end else begin
+    // The helper is imported only by an intermediate class's unit.
+    TFile.WriteAllText(TPath.Combine(lDirectory, 'RootBase.pas'),
+      'unit RootBase; interface uses System.Classes; '#13#10 +
+      'type TBase = class(TComponent) public X: Integer; end; implementation end.', TEncoding.ASCII);
+    TFile.WriteAllText(TPath.Combine(lDirectory, 'RootHelper.pas'),
+      'unit RootHelper; interface uses System.Classes; '#13#10 +
+      'type THelper = class helper for TComponent function Probe: Integer; end;'#13#10 +
+      'implementation function THelper.Probe: Integer; begin Result := 9; end; end.', TEncoding.ASCII);
+    TFile.WriteAllText(TPath.Combine(lDirectory, 'RootChild.pas'),
+      'unit RootChild; interface uses RootBase, RootHelper;'#13#10 +
+      'type TChild = class(TBase) end; implementation end.', TEncoding.ASCII);
+    lSource := 'unit NamedRootContext;'#13#10'interface'#13#10'uses RootChild;'#13#10 +
+      'procedure Run;'#13#10'implementation'#13#10 +
+      'function Probe: Integer; begin Result := 5; end;'#13#10 +
+      'procedure Run;'#13#10'var Foo: TChild;'#13#10'begin'#13#10 +
+      ' Foo := TChild.Create(nil);'#13#10' with Foo do X := Probe;'#13#10 +
+      ' Writeln(Foo.X); Foo.Free;'#13#10'end;'#13#10;
+  end;
+  lSource := lSource + 'end.'#13#10;
+  TFile.WriteAllText(TPath.Combine(lDirectory, 'NamedRootContext.pas'), lSource, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.ChangeExtension(lProject, '.dpr'),
+    'program RemoveWithNamedRootContextFixture; uses NamedRootContext; begin Run; end.', TEncoding.ASCII);
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'dak418-fix2-' + aShape + '.json');
+  Assert.IsTrue(RunResolverProcess('remove-with --project ' + QuoteArg(lProject) +
+    ' --all --mode plan --format json --delphi 23.0 --platform Win64 --config Debug',
+    RepoRoot, lLogPath, lExit));
+  lText := ReadUtf8TextFile(lLogPath);
+  Assert.AreEqual<Cardinal>(0, lExit, lText);
+  lJson := ParseJsonObject(lText);
+  GC(lJson, g);
+  Assert.AreEqual(0, lJson.GetValue<TJSONArray>('plannedEdits').Count, aShape + ': ' + lText);
+  Assert.AreEqual(lExpected, lJson.GetValue<TJSONArray>('skipped').Count, aShape + ': ' + lText);
+  Assert.AreEqual(lSource, TFile.ReadAllText(TPath.Combine(lDirectory, 'NamedRootContext.pas')));
+end;
+
+procedure TRemoveWithCommandTests.ClosedImplicitRootNativeProfileCharacterization(
+  const aInclude: Boolean);
+var
+  g: TGarbos;
+  lRoot, lStatement: TJSONObject;
+  lDirectory, lProject, lLogPath, lText, lSource, lUnit2: string;
+  lExit: Cardinal;
+begin
+  lDirectory := TPath.Combine(TempRoot, 'dak418-closed-' + BoolToStr(aInclude, True));
+  TDirectory.CreateDirectory(lDirectory);
+  lProject := TPath.Combine(lDirectory, 'P.dproj');
+  TFile.WriteAllText(TPath.Combine(lDirectory, 'P.dproj'),
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <ProjectGuid>{74241800-0000-4000-8000-0000000000AB}</ProjectGuid>' + #13#10 +
+    '    <MainSource>P.dpr</MainSource>' + #13#10 +
+    '    <ProjectName>P</ProjectName>' + #13#10 +
+    '    <Config Condition="''$(Config)''==''''">Debug</Config>' + #13#10 +
+    '    <Platform Condition="''$(Platform)''==''''">Win64</Platform>' + #13#10 +
+    '    <AppType>Console</AppType>' + #13#10 +
+    '    <FrameworkType>None</FrameworkType>' + #13#10 +
+    '    <Base>True</Base>' + #13#10 +
+    '    <DCC_ExeOutput>.\bin</DCC_ExeOutput>' + #13#10 +
+    '    <DCC_DcuOutput>$(DCC_ExeOutput)</DCC_DcuOutput>' + #13#10 +
+    '    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + #13#10 +
+    '    <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi;Vcl;System.Win;$(DCC_Namespace)</DCC_Namespace>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '  <ItemGroup>' + #13#10 +
+    '    <DelphiCompile Include="$(MainSource)"><MainSource>MainSource</MainSource></DelphiCompile>' + #13#10 +
+    '    <DCCReference Include="Unit2.pas"/>' + #13#10 +
+    '    <DCCReference Include="Unit3.pas"/>' + #13#10 +
+    '    <DCCReference Include="Unit1.pas"/>' + #13#10 +
+    '  </ItemGroup>' + #13#10 +
+    '  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>' + #13#10 +
+    '</Project>' + #13#10, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lDirectory, 'P.dpr'),
+    'program P;' + #13#10 +
+    '{$APPTYPE CONSOLE}' + #13#10 +
+    'uses Unit2 in ''Unit2.pas'', Unit3 in ''Unit3.pas'', Unit1 in ''Unit1.pas'';' + #13#10 +
+    'begin Run; end.' + #13#10, TEncoding.ASCII);
+  lSource :=
+    'unit Unit1;' + #13#10 +
+    'interface' + #13#10 +
+    'uses Unit3;' + #13#10 +
+    'function Foo: Integer;' + #13#10 +
+    'procedure Run;' + #13#10 +
+    'implementation' + #13#10 +
+    'function Foo: Integer;' + #13#10 +
+    'begin' + #13#10 +
+    ' Result := 77;' + #13#10 +
+    'end;' + #13#10 +
+    'procedure Run;' + #13#10 +
+    'var C: TC;' + #13#10 +
+    'begin' + #13#10 +
+    ' C := TC.Create;' + #13#10 +
+    ' with C do Y := Foo;' + #13#10 +
+    ' Writeln(C.Y);' + #13#10 +
+    'end;' + #13#10 +
+    'end.' + #13#10;
+  TFile.WriteAllText(TPath.Combine(lDirectory, 'Unit1.pas'), lSource, TEncoding.ASCII);
+  lUnit2 :=
+    'unit Unit2; {$I opts.inc}' + #13#10 +
+    'interface' + #13#10 +
+    'type' + #13#10 +
+    ' TB = class' + #13#10 +
+    '  public' + #13#10 +
+    '   X: Integer;' + #13#10 +
+    ' end;' + #13#10 +
+    'implementation' + #13#10 +
+    'end.' + #13#10;
+  if not aInclude then
+  begin
+    lUnit2 := StringReplace(lUnit2, ' {$I opts.inc}', '', []);
+  end;
+  TFile.WriteAllText(TPath.Combine(lDirectory, 'Unit2.pas'), lUnit2, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lDirectory, 'Unit3.pas'),
+    'unit Unit3;' + #13#10 +
+    'interface' + #13#10 +
+    'uses Unit2;' + #13#10 +
+    'type' + #13#10 +
+    ' TC = class(TB)' + #13#10 +
+    '  public' + #13#10 +
+    '   Y: Integer;' + #13#10 +
+    ' end;' + #13#10 +
+    'implementation' + #13#10 +
+    'end.' + #13#10, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lDirectory, 'opts.inc'),
+    '{$DEFINE X_OPTS}' + #13#10, TEncoding.ASCII);
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(lDirectory, 'plan.json');
+  Assert.IsTrue(RunResolverProcess('remove-with --project ' + QuoteArg(lProject) +
+    ' --all --mode plan --format json --delphi 23.0 --platform Win64 --config Debug',
+    RepoRoot, lLogPath, lExit));
+  lText := ReadUtf8TextFile(lLogPath);
+  Assert.AreEqual<Cardinal>(0, lExit, lText);
+  lRoot := ParseJsonObject(lText);
+  GC(lRoot, g);
+  Assert.AreEqual(1, lRoot.GetValue<TJSONObject>('summary').GetValue<Integer>('withStatements'), lText);
+  if aInclude then
+  begin
+    Assert.AreEqual(0, lRoot.GetValue<TJSONArray>('plannedEdits').Count, lText);
+    Assert.AreEqual(1, lRoot.GetValue<TJSONArray>('skipped').Count, lText);
+    lStatement := lRoot.GetValue<TJSONArray>('skipped').Items[0] as TJSONObject;
+    Assert.AreEqual('with-1', lStatement.GetValue<string>('statementId'), lText);
+    Assert.AreEqual('receiver-member-not-found', lStatement.GetValue<string>('reason'), lText);
+    Assert.AreEqual('receiver-member-not-found', lStatement.GetValue<string>('detailedReason'), lText);
+    Assert.AreEqual('native-root-proof-unavailable: REMOVE_WITH_COMBINED_BUILD_EXCEPTION: ' +
+      'MODEL_SOURCE_VALIDATION_FAILED: native-request-source-profile-unsupported (' + lProject + ')',
+      lRoot.GetValue<string>('nativeRootProofDiagnostic', ''), lText);
+  end else begin
+    Assert.AreEqual('', lRoot.GetValue<string>('nativeRootProofDiagnostic', ''), lText);
+    Assert.AreNotEqual('', lRoot.GetValue<string>('nativeRootProofFingerprint', ''), lText);
+    Assert.AreEqual(0, lRoot.GetValue<TJSONArray>('skipped').Count, lText);
+    Assert.AreEqual(1, lRoot.GetValue<TJSONArray>('plannedEdits').Count, lText);
+    lStatement := lRoot.GetValue<TJSONArray>('plannedEdits').Items[0] as TJSONObject;
+    Assert.AreEqual('with-1', lStatement.GetValue<string>('statementId'), lText);
+    Assert.AreEqual(' lWithC := C;'#13#10' lWithC.Y := Foo;',
+      lStatement.GetValue<string>('replacementText'), lText);
+    Assert.AreEqual(1, lStatement.GetValue<TJSONArray>('temps').Count, lText);
+    Assert.AreEqual(2, lStatement.GetValue<TJSONArray>('edits').Count, lText);
+  end;
+  Assert.AreEqual(lSource, TFile.ReadAllText(TPath.Combine(lDirectory, 'Unit1.pas')));
+  Assert.AreEqual(lUnit2, TFile.ReadAllText(TPath.Combine(lDirectory, 'Unit2.pas')));
+end;
+
+procedure TRemoveWithCommandTests.NativeNamedRootsUseImportedContextAndRefuseHomonyms;
+var
+  g: TGarbos;
+  lRoot, lStatement: TJSONObject;
+  lValue: TJSONValue;
+  lProject, lDirectory, lLogPath, lText, lId: string;
+  lExit: Cardinal;
+  lSeen: Integer;
+begin
+  CopyFixtureToTemp('RemoveWithNamedRootContextFixture', 'dak418-native-context',
+    lProject, lDirectory);
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'dak418-native-context.json');
+  Assert.IsTrue(RunResolverProcess('remove-with --project ' + QuoteArg(lProject) +
+    ' --all --mode plan --format json --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lLogPath, lExit));
+  lText := ReadUtf8TextFile(lLogPath);
+  Assert.AreEqual<Cardinal>(0, lExit, lText);
+  lRoot := ParseJsonObject(lText);
+  GC(lRoot, g);
+  Assert.AreEqual('', lRoot.GetValue<string>('nativeRootProofDiagnostic', ''), lText);
+  Assert.AreNotEqual('', lRoot.GetValue<string>('nativeRootProofFingerprint', ''), lText);
+  Assert.AreEqual(2, lRoot.GetValue<TJSONArray>('plannedEdits').Count, lText);
+  Assert.AreEqual(4, lRoot.GetValue<TJSONArray>('skipped').Count, lText);
+  lSeen := 0;
+  for lValue in lRoot.GetValue<TJSONArray>('plannedEdits') do
+  begin
+    lStatement := lValue as TJSONObject;
+    lId := lStatement.GetValue<string>('statementId');
+    if lId = 'with-1' then
+    begin
+      Assert.AreEqual('    lWithComponentReceiver := lReceiver;'#13#10'    begin'#13#10'      lWithComponentReceiver.Own := aInput + GlobalValue;'#13#10'      lOutput := lWithComponentReceiver.Own;'#13#10'    end;', lStatement.GetValue<string>('replacementText'));
+      Inc(lSeen, 1);
+    end else if lId = 'with-2' then
+    begin
+      Assert.AreEqual('    lWithInterfaceReceiver := lReceiver;'#13#10'    begin'#13#10'      lWithInterfaceReceiver.Own := aInput + GlobalValue;'#13#10'      lOutput := lWithInterfaceReceiver.Own;'#13#10'    end;', lStatement.GetValue<string>('replacementText'));
+      Inc(lSeen, 2);
+    end else
+      Assert.Fail('Unexpected planned homonym: ' + lId);
+  end;
+  Assert.AreEqual(3, lSeen);
+  lSeen := 0;
+  for lValue in lRoot.GetValue<TJSONArray>('skipped') do
+  begin
+    lStatement := lValue as TJSONObject;
+    lId := lStatement.GetValue<string>('statementId');
+    Assert.IsTrue(MatchText(lId, ['with-3', 'with-4', 'with-5', 'with-6']), lId);
+    Assert.AreEqual('receiver-member-not-found', lStatement.GetValue<string>('reason'), lId);
+    Inc(lSeen);
+  end;
+  Assert.AreEqual(4, lSeen);
+end;
+
+procedure TRemoveWithCommandTests.PlanTypeConstantsWithoutNativeProofRefusesClass;
+var
+  g: TGarbos;
+  lJson, lSkipped: TJSONObject;
+  lOptions: TDelphiSemanticApiOptions;
+  lFacts: TDelphiSemanticProjectWithBindingFacts;
+  lPlan: TDelphiSemanticRemoveWithPlan;
+  lRoot, lLogPath: string;
+  lExitCode: Cardinal;
+begin
+  PlanQualifiesTypeConstantsShadowingOuterDeclarations;
+  lRoot := TPath.Combine(TempRoot, 'remove-with-type-constants');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-type-constants-providerless.json');
+  Assert.IsTrue(RunResolverProcess('remove-with --project ' +
+    QuoteArg(TPath.Combine(lRoot, 'TypeConstProject.dproj')) + ' --unit ' +
+    QuoteArg(TPath.Combine(lRoot, 'TypeConstUnit.pas')) + ' --mode plan --format json',
+    RepoRoot, lLogPath, lExitCode));
+  Assert.AreEqual(Cardinal(0), lExitCode, lLogPath);
+  lJson := TJSONObject.ParseJSONValue(ReadUtf8TextFile(lLogPath)) as TJSONObject;
+  GC(lJson, g);
+  Assert.IsNotNull(lJson);
+  Assert.AreEqual(3, lJson.GetValue<TJSONArray>('plannedEdits').Count);
+  Assert.AreEqual(1, lJson.GetValue<TJSONArray>('skipped').Count);
+  lSkipped := lJson.GetValue<TJSONArray>('skipped').Items[0] as TJSONObject;
+  Assert.AreEqual('with-4', lSkipped.GetValue<string>('statementId'));
+  Assert.AreEqual('receiver-member-not-found', lSkipped.GetValue<string>('reason'));
+  lOptions := Default(TDelphiSemanticApiOptions);
+  lOptions.ProjectFileName := TPath.Combine(lRoot, 'TypeConstProject.dproj');
+  lFacts := TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFacts(lOptions);
+  lPlan := TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(lFacts);
+  Assert.AreEqual<Integer>(4, Length(lPlan.FinalStatements));
+  Assert.AreEqual('receiver-member-not-found', lPlan.FinalStatements[3].Reason);
+  Assert.AreEqual('OWNER_INHERITED_MEMBERS_UNVERIFIED', lPlan.FinalStatements[3].SafetyReason);
+  Assert.AreEqual('', lPlan.FinalStatements[3].ReplacementText);
+  Assert.AreEqual<Integer>(0, Length(lPlan.FinalStatements[3].Edits));
+  Assert.AreEqual<Integer>(0, Length(lPlan.FinalStatements[3].Temps));
+end;
+
 procedure TRemoveWithCommandTests.PlanQualifiesTypeConstantsShadowingOuterDeclarations;
 const
   // One expected statement body per with, in source order; %0:s is that statement's qualifier.
@@ -1374,12 +1960,29 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-type-constants-plan.json');
 
   Assert.IsTrue(RunResolverProcess('remove-with --project ' + QuoteArg(lDprojPath) +
-    ' --unit ' + QuoteArg(lUnitPath) + ' --mode plan --format json', RepoRoot, lLogPath,
+    ' --unit ' + QuoteArg(lUnitPath) + ' --mode plan --format json --delphi 23.0 --platform Win32 --config Debug', RepoRoot, lLogPath,
     lExitCode), 'Failed to start remove-with plan.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan to succeed. See: ' + lLogPath);
   lJson := TJSONObject.ParseJSONValue(ReadUtf8TextFile(lLogPath)) as TJSONObject;
   GC(lJson, g);
   Assert.IsNotNull(lJson, 'Expected a JSON plan. See: ' + lLogPath);
+  if lJson.GetValue<string>('nativeRootProofDiagnostic', '') <> '' then
+  begin
+    TFile.WriteAllText(lDprojPath, TFile.ReadAllText(TPath.Combine(RepoRoot,
+      'tests\fixtures\RemoveWithNestedControlledRewriteFixture\RemoveWithNestedControlledRewriteFixture.dproj'),
+      TEncoding.UTF8).Replace('RemoveWithNestedControlledRewriteFixture.dpr', 'TypeConstProject.dpr').Replace(
+      'NestedControlledUnit.pas', 'TypeConstUnit.pas'), TEncoding.UTF8);
+    Assert.IsTrue(RunResolverProcess('remove-with --project ' + QuoteArg(lDprojPath) +
+      ' --unit ' + QuoteArg(lUnitPath) +
+      ' --mode plan --format json --delphi 23.0 --platform Win32 --config Debug',
+      RepoRoot, lLogPath, lExitCode));
+    Assert.AreEqual(Cardinal(0), lExitCode, lLogPath);
+    lJson := TJSONObject.ParseJSONValue(ReadUtf8TextFile(lLogPath)) as TJSONObject;
+    GC(lJson, g);
+    Assert.IsNotNull(lJson);
+    WriteLn('DAK-418: type-constant fixture used the D6.3 native dproj fallback.');
+  end;
+  Assert.AreEqual('', lJson.GetValue<string>('nativeRootProofDiagnostic', ''), lLogPath);
   lPlanned := lJson.GetValue<TJSONArray>('plannedEdits');
   Assert.AreEqual(Length(cExpected), lPlanned.Count, 'Every with statement must be planned. See: ' +
     lLogPath);
@@ -12630,6 +13233,76 @@ begin
   lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
   // The changed observed file is outside planned source hashes; only the real owner catches it.
   TFile.AppendAllText(lObservedPath, sLineBreak + '// consumed source drift', TEncoding.ASCII);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\real-owner-drift');
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+    lPlanResult, lApplyContext, lTransactionResult, lError));
+  Assert.IsTrue(lError.Contains('native-request-inputs-changed'), lError);
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)));
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath), 'Real owner refusal must preserve bytes');
+end;
+
+procedure TRemoveWithApplyCompileGateTests.NewShadowInvalidatesNamedPlanAtApply;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lContext: IDakNativeCompilerContext;
+  lGuard: IDakRemoveWithPlanInputGuard;
+  lObservation: TDelphiSemanticModelObservation;
+  lOwner: IDelphiSemanticModelObservationOwner;
+  lProfileOwner: IDelphiSemanticProjectProfileValidator;
+  lProject: TDelphiSemanticProjectInfo;
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lNamed: IDelphiSemanticNamedRootMemberAbsence;
+  lRoot: TDelphiSemanticQualifiedRootType;
+  lSource: TDelphiSemanticSourceLoadResult;
+  lProfile: TDakNativeCompilerSourceProfile;
+  lDprojPath, lUnitPath, lObservedPath, lError, lWorkspaceRoot, lDefine: string;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lTransactionResult: TRemoveWithTransactionResult;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'named-owner-shadow-apply',
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+  lObservedPath := TPath.Combine(TPath.GetDirectoryName(lDprojPath), 'Observed.pas');
+  TFile.WriteAllText(lObservedPath, 'unit Observed; interface implementation end.', TEncoding.ASCII);
+  Assert.IsTrue(TryReadNativeCompilerContext(lOptions, lContext, lError), lError);
+  lProfile := lContext.SourceProfile;
+  lProvider := TryCreateNativeRootRequestOwner(lOptions, lGuard, lError);
+  Assert.IsTrue(lProvider <> nil, lError);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticProjectProfileValidator, lProfileOwner));
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticModelObservationOwner, lOwner));
+  lProject := Default(TDelphiSemanticProjectInfo);
+  lProject.Platform := lProfile.fPlatform;
+  lProject.Configuration := lProfile.fConfiguration;
+  lProject.ContextFingerprint := 'named-owner-shadow-control';
+  lProject.Defines := TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(lProfile.fPlatform);
+  for lDefine in lProfile.fDefines.Split([';', #13, #10], TStringSplitOptions.ExcludeEmpty) do
+    lProject.Defines := lProject.Defines + [lDefine];
+  Assert.IsTrue(lProfileOwner.ValidateProjectProfile(lProject, lError), lError);
+  lSource := TDelphiSemanticSourceLoader.LoadFile(lObservedPath);
+  Assert.IsTrue(lSource.Success);
+  lObservation := Default(TDelphiSemanticModelObservation);
+  lObservation.ProjectContextFingerprint := lProject.ContextFingerprint;
+  lObservation.ModelFileName := lObservedPath;
+  lObservation.SourceObservations := lSource.SourceObservations;
+  Assert.IsTrue(lOwner.ValidateModelSources(lObservation, lError), lError);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticNamedRootMemberAbsence, lNamed));
+  lRoot := Default(TDelphiSemanticQualifiedRootType);
+  lRoot.Kind := 'class';
+  lRoot.TypeName := 'System.Classes.TComponent';
+  lRoot.LookupUnits := ['System.Classes'];
+  Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'DAK_UnownedName_414'));
+  lPlanResult.fNativeRootProofFingerprint := lGuard.ProofFingerprint;
+  Assert.IsTrue(lPlanResult.fNativeRootProofFingerprint <> '');
+  Assert.IsTrue(lGuard.ValidateInputs(lPlanResult.fNativeRootProofFingerprint, lError), lError);
+  lApplyContext.fNativeRootInputGuard := lGuard;
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  // The changed observed file is outside planned source hashes; only the real owner catches it.
+  TFile.WriteAllText(TPath.Combine(TPath.GetDirectoryName(lDprojPath), 'System.Classes.pas'),
+    'unit System.Classes; interface type TComponent = class public DAK_UnownedName_414: Integer; end; ' +
+    'implementation end.', TEncoding.ASCII);
   lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
     '.dak\RemoveWithApplyFixture\remove-with\real-owner-drift');
   Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,

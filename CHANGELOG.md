@@ -5,6 +5,14 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- `remove-with` retains zero-edit refusals for RTL-rooted statements needing native root-member proof when a source profile with conditional or include directives is rejected.
+- Named-root WITH proofs retain declaration-time helper methods in a separate structural probe and preserve helper order across equivalent namespace or alias spellings.
+- Named-root WITH proofs preserve the final site position of repeated helper units.
+- Named-root WITH proofs refuse inherited constructors, include class lookup helpers, and invalidate when a shadowing unit appears in any compiler lookup directory.
+
+- Named-root WITH proof reuses SDK unit-selection checks within each provider lifetime while retaining per-request input validation.
+- Named-root WITH absence proof requires native project context from `CodeGear.Delphi.Targets`; minimal projects without native context retain zero-edit refusals.
+- `remove-with` refuses unproved bare or outer-qualified names under RTL-rooted receivers. With a Delphi toolchain, native named-root evidence preserves plans for names absent from SDK classes and IInterface, including site helper visibility and ordered unit lookup. Root members still require qualification or a refusal.
 - `consistency` now reports a named incomplete result for a `.res`-only form or a source class whose resource ancestry cannot be proved, including unproved declaration identity and uses-order bindings, while ordinary program icon/version resources remain accepted. Identical DFM unknown diagnostics (same file, reason and message) are reported once.
 - Symbol Map indexing keeps routine-local types, consts, vars and local enum values out of the top-level declaration inventory and the `index-unit` symbol counts, using the semantic model's routine scope facts.
 - Refactor transactions report `transaction.busy` only when another process holds the project lock; any other failure to open the lock file now reports `transaction.lock-failed` with the OS error code and message.

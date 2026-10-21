@@ -36,6 +36,11 @@ type
   end;
 
 type
+  IDakNativeRootSelectionPaths = interface
+    ['{E8E4D89E-3207-4DBC-8870-043E50CB7622}']
+    function RootSelectionPaths: TArray<string>;
+  end;
+
   IDakNativeCompilerContextObservation = interface
     ['{467EFC4C-8826-4C63-B88B-545C736ED414}']
     function CapturedFingerprint: string;
@@ -72,7 +77,7 @@ type
   end;
 
   TNativeCompilerContext = class(TInterfacedObject, IDakNativeCompilerContext,
-    IDakNativeCompilerContextObservation)
+    IDakNativeCompilerContextObservation, IDakNativeRootSelectionPaths)
   private
     fInvocation: TDakNativeCompilerInvocation;
     fRunRoot: string;
@@ -101,6 +106,7 @@ type
     procedure CaptureSourceReferences(const aFileName: string; const aIdentity: TStringBuilder);
     procedure Capture;
     function RootSelectionIsCurrent: Boolean;
+    function RootSelectionPaths: TArray<string>;
   public
     constructor Create(const aInvocation: TDakNativeCompilerInvocation; const aRunner: IBuildProcessRunner);
     destructor Destroy; override;
@@ -646,9 +652,9 @@ begin
     fSourceProfile.fUnitAliases := ReadProperty('UnitAliases');
     fSourceProfile.fUnitScopeNames := ReadProperty('DCC_Namespace');
     for lLine in fSourceProfile.fUnitScopeNames.Split([#13, #10], TStringSplitOptions.ExcludeEmpty) do
-      if (Trim(lLine) <> '') and (not SameText(Trim(lLine), 'System')) and
-        (not SameText(Trim(lLine), 'System.Win')) then
-        raise EInvalidOpException.Create('Custom root lookup namespaces are unsupported');
+      if not TRegEx.IsMatch(Trim(lLine),
+        '^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$') then
+        raise EInvalidOpException.Create('Invalid root lookup namespace');
     for lAlias in ReadProperty('UnitAliases').Split([#13, #10], TStringSplitOptions.ExcludeEmpty) do
       if TRegEx.IsMatch(lAlias, '^\s*(System|SysInit)\s*=', [roIgnoreCase]) then
         raise EInvalidOpException.Create('Native root unit aliases are unsupported');
@@ -748,6 +754,11 @@ end;
 function TNativeCompilerContext.RootLibraryDirectory: string;
 begin
   Result := fLibraryDirectory;
+end;
+
+function TNativeCompilerContext.RootSelectionPaths: TArray<string>;
+begin
+  Result := Copy(fPaths);
 end;
 
 function TNativeCompilerContext.UnitSearchPaths: TArray<string>;

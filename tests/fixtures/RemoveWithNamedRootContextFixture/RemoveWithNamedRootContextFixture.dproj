@@ -1,0 +1,21 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{74241800-0000-4000-8000-00000000001B}</ProjectGuid>
+    <MainSource>RemoveWithNamedRootContextFixture.dpr</MainSource>
+    <ProjectName>RemoveWithNamedRootContextFixture</ProjectName>
+    <Config Condition="'$(Config)'==''">Debug</Config>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+    <AppType>Console</AppType>
+    <FrameworkType>None</FrameworkType>
+    <Base>True</Base>
+    <DCC_ExeOutput>.\bin</DCC_ExeOutput>
+    <DCC_DcuOutput>$(DCC_ExeOutput)</DCC_DcuOutput>
+    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi;Vcl;System.Win;$(DCC_Namespace)</DCC_Namespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)"><MainSource>MainSource</MainSource></DelphiCompile>
+    <DCCReference Include="NamedRootContext.pas"/>
+  </ItemGroup>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>
+</Project>

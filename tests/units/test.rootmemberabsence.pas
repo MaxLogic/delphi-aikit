@@ -9,6 +9,102 @@ type
   [TestFixture]
   TRootMemberAbsenceTests = class
   public
+    [TestCase('win32 component G', 'win32,dcc32.exe,component,G,True')]
+    [TestCase('win32 component lCondition', 'win32,dcc32.exe,component,lCondition,True')]
+    [TestCase('win32 component FTag', 'win32,dcc32.exe,component,FTag,True')]
+    [TestCase('win32 component Tag', 'win32,dcc32.exe,component,Tag,False')]
+    [TestCase('win32 component Name', 'win32,dcc32.exe,component,Name,False')]
+    [TestCase('win32 component Owner', 'win32,dcc32.exe,component,Owner,False')]
+    [TestCase('win32 component ClassName', 'win32,dcc32.exe,component,ClassName,False')]
+    [TestCase('win32 component DestroyComponents', 'win32,dcc32.exe,component,DestroyComponents,False')]
+    [TestCase('win32 component Loaded', 'win32,dcc32.exe,component,Loaded,False')]
+    [TestCase('win32 component FComponentStyle', 'win32,dcc32.exe,component,FComponentStyle,False')]
+    [TestCase('win32 component TComponentAsyncResult', 'win32,dcc32.exe,component,TComponentAsyncResult,False')]
+    [TestCase('win32 interfaced G', 'win32,dcc32.exe,interfaced,G,True')]
+    [TestCase('win32 interfaced FieldName', 'win32,dcc32.exe,interfaced,FieldName,True')]
+    [TestCase('win32 interfaced Caption', 'win32,dcc32.exe,interfaced,Caption,True')]
+    [TestCase('win32 interfaced GetRefCount', 'win32,dcc32.exe,interfaced,GetRefCount,True')]
+    [TestCase('win32 interfaced RefCount', 'win32,dcc32.exe,interfaced,RefCount,False')]
+    [TestCase('win32 interfaced FRefCount', 'win32,dcc32.exe,interfaced,FRefCount,False')]
+    [TestCase('win32 interfaced QueryInterface', 'win32,dcc32.exe,interfaced,QueryInterface,False')]
+    [TestCase('win32 interfaced ClassName', 'win32,dcc32.exe,interfaced,ClassName,False')]
+    [TestCase('win32 interface G', 'win32,dcc32.exe,interface,G,True')]
+    [TestCase('win32 interface ClassName', 'win32,dcc32.exe,interface,ClassName,True')]
+    [TestCase('win32 interface QueryInterface', 'win32,dcc32.exe,interface,QueryInterface,False')]
+    [TestCase('win32 interface _AddRef', 'win32,dcc32.exe,interface,_AddRef,False')]
+    [TestCase('win32 object G', 'win32,dcc32.exe,object,G,True')]
+    [TestCase('win32 object ClassName', 'win32,dcc32.exe,object,ClassName,False')]
+    [TestCase('win32 explicit-object ClassName', 'win32,dcc32.exe,explicit-object,ClassName,False')]
+    [TestCase('win32 exception Message', 'win32,dcc32.exe,exception,Message,False')]
+    [TestCase('win32 stringlist Count', 'win32,dcc32.exe,stringlist,Count,False')]
+    [TestCase('win32 form Caption', 'win32,dcc32.exe,form,Caption,False')]
+    [TestCase('win32 attribute FValue', 'win32,dcc32.exe,attribute,FValue,False')]
+    [TestCase('win64 component G', 'win64,dcc64.exe,component,G,True')]
+    [TestCase('win64 component lCondition', 'win64,dcc64.exe,component,lCondition,True')]
+    [TestCase('win64 component FTag', 'win64,dcc64.exe,component,FTag,True')]
+    [TestCase('win64 component Tag', 'win64,dcc64.exe,component,Tag,False')]
+    [TestCase('win64 component Name', 'win64,dcc64.exe,component,Name,False')]
+    [TestCase('win64 component Owner', 'win64,dcc64.exe,component,Owner,False')]
+    [TestCase('win64 component ClassName', 'win64,dcc64.exe,component,ClassName,False')]
+    [TestCase('win64 component DestroyComponents', 'win64,dcc64.exe,component,DestroyComponents,False')]
+    [TestCase('win64 component Loaded', 'win64,dcc64.exe,component,Loaded,False')]
+    [TestCase('win64 component FComponentStyle', 'win64,dcc64.exe,component,FComponentStyle,False')]
+    [TestCase('win64 component TComponentAsyncResult', 'win64,dcc64.exe,component,TComponentAsyncResult,False')]
+    [TestCase('win64 interfaced G', 'win64,dcc64.exe,interfaced,G,True')]
+    [TestCase('win64 interfaced FieldName', 'win64,dcc64.exe,interfaced,FieldName,True')]
+    [TestCase('win64 interfaced Caption', 'win64,dcc64.exe,interfaced,Caption,True')]
+    [TestCase('win64 interfaced GetRefCount', 'win64,dcc64.exe,interfaced,GetRefCount,True')]
+    [TestCase('win64 interfaced RefCount', 'win64,dcc64.exe,interfaced,RefCount,False')]
+    [TestCase('win64 interfaced FRefCount', 'win64,dcc64.exe,interfaced,FRefCount,False')]
+    [TestCase('win64 interfaced QueryInterface', 'win64,dcc64.exe,interfaced,QueryInterface,False')]
+    [TestCase('win64 interfaced ClassName', 'win64,dcc64.exe,interfaced,ClassName,False')]
+    [TestCase('win64 interface G', 'win64,dcc64.exe,interface,G,True')]
+    [TestCase('win64 interface ClassName', 'win64,dcc64.exe,interface,ClassName,True')]
+    [TestCase('win64 interface QueryInterface', 'win64,dcc64.exe,interface,QueryInterface,False')]
+    [TestCase('win64 interface _AddRef', 'win64,dcc64.exe,interface,_AddRef,False')]
+    [TestCase('win64 object G', 'win64,dcc64.exe,object,G,True')]
+    [TestCase('win64 object ClassName', 'win64,dcc64.exe,object,ClassName,False')]
+    [TestCase('win64 explicit-object ClassName', 'win64,dcc64.exe,explicit-object,ClassName,False')]
+    [TestCase('win64 exception Message', 'win64,dcc64.exe,exception,Message,False')]
+    [TestCase('win64 stringlist Count', 'win64,dcc64.exe,stringlist,Count,False')]
+    [TestCase('win64 form Caption', 'win64,dcc64.exe,form,Caption,False')]
+    [TestCase('win64 attribute FValue', 'win64,dcc64.exe,attribute,FValue,False')]
+    [TestCase('win64 stringlist Create', 'win64,dcc64.exe,stringlist,Create,False')]
+    [TestCase('win64 component Create', 'win64,dcc64.exe,component,Create,False')]
+    [TestCase('win64 class-unit helper', 'win64,dcc64.exe,skia,ToSkImage,False')]
+    [Category('DAK418')]
+    procedure NamedRootWitnessProtectsVisibleMembers(const aPlatform, aCompilerName, aShape, aName: string;
+      const aAbsent: Boolean);
+
+    [TestCase('win32 helper', 'win32,dcc32.exe,helper')]
+    [TestCase('win64 helper', 'win64,dcc64.exe,helper')]
+    [TestCase('win32 lookup', 'win32,dcc32.exe,lookup')]
+    [TestCase('win64 lookup', 'win64,dcc64.exe,lookup')]
+    [TestCase('win32 guard', 'win32,dcc32.exe,guard')]
+    [TestCase('win64 guard', 'win64,dcc64.exe,guard')]
+    [TestCase('win32 selection', 'win32,dcc32.exe,selection')]
+    [TestCase('win64 selection', 'win64,dcc64.exe,selection')]
+    [TestCase('win64 site helper precedence', 'win64,dcc64.exe,precedence')]
+    [TestCase('captured DBX method', 'win64,dcc64.exe,captured')]
+    [TestCase('captured DBX method repeated', 'win64,dcc64.exe,captured-repeat')]
+    [TestCase('capture absent control', 'win64,dcc64.exe,capture-control')]
+    [TestCase('namespace long short', 'win64,dcc64.exe,alias-long-short')]
+    [TestCase('namespace short long', 'win64,dcc64.exe,alias-short-long')]
+    [TestCase('win32 memo', 'win32,dcc32.exe,memo')]
+    [TestCase('win64 memo', 'win64,dcc64.exe,memo')]
+    [Category('DAK418')]
+    procedure NamedRootBoundaries(const aPlatform, aCompilerName, aShape: string);
+    [TestCase('Captured private getter property', 'win64,dcc64.exe,captured-property')]
+    [TestCase('Site private getter property', 'win64,dcc64.exe,site-property')]
+    [TestCase('Scope long short identity', 'win64,dcc64.exe,scope-long-short')]
+    [TestCase('Scope short long identity', 'win64,dcc64.exe,scope-short-long')]
+    [Category('DS742Fix5Native')]
+    procedure NamedRootScopeRegressions(const aPlatform, aCompilerName, aShape: string);
+    [TestCase('Declaration then site', 'False')]
+    [TestCase('Site then declaration', 'True')]
+    [Category('DS742Fix6Native')]
+    procedure NamedRootMemoKeepsDeclarationAndSiteScopes(const aSiteFirst: Boolean);
+
     [Test]
     [TestCase('Win32 Halt0', 'win32,dcc32.exe,halt')]
     [TestCase('Win64 Halt0', 'win64,dcc64.exe,halt')]
@@ -21,6 +117,24 @@ type
     procedure ConsumerRefusesIncompleteOrFailedWitness(const aPlatform, aCompilerName, aMode: string);
     [Test]
     procedure ProviderCleanupPreservesUnknownFiles;
+    [TestCase('win32 halt', 'win32,dcc32.exe,halt')]
+    [TestCase('win32 exit', 'win32,dcc32.exe,exit')]
+    [TestCase('win32 write-failure', 'win32,dcc32.exe,write-failure')]
+    [TestCase('win32 flush-failure', 'win32,dcc32.exe,flush-failure')]
+    [TestCase('win32 large-dependencies', 'win32,dcc32.exe,large-dependencies')]
+    [TestCase('win32 large-runtime', 'win32,dcc32.exe,large-runtime')]
+    [TestCase('win64 halt', 'win64,dcc64.exe,halt')]
+    [TestCase('win64 exit', 'win64,dcc64.exe,exit')]
+    [TestCase('win64 write-failure', 'win64,dcc64.exe,write-failure')]
+    [TestCase('win64 flush-failure', 'win64,dcc64.exe,flush-failure')]
+    [TestCase('win64 large-dependencies', 'win64,dcc64.exe,large-dependencies')]
+    [TestCase('win64 large-runtime', 'win64,dcc64.exe,large-runtime')]
+    [Category('DAK418')]
+    procedure NamedConsumerRefusesIncompleteWitness(const aPlatform, aCompilerName, aMode: string);
+    [TestCase('Win32', 'win32,dcc32.exe')]
+    [TestCase('Win64', 'win64,dcc64.exe')]
+    [Category('DAK418')]
+    procedure NamedRootClosureDriftInvalidatesEvidence(const aPlatform, aCompilerName: string);
     [Test]
     [TestCase('Win32', 'win32,dcc32.exe')]
     [TestCase('Win64', 'win64,dcc64.exe')]
@@ -38,7 +152,7 @@ type
 implementation
 
 uses
-  System.Classes, System.IOUtils, System.SysUtils,
+  System.Classes, System.IOUtils, System.StrUtils, System.SysUtils,
   Winapi.Windows,
   maxLogic.ioutils,
   Dak.RootMemberAbsence, DelphiSemantics.RootMemberAbsence,
@@ -46,6 +160,313 @@ uses
 
 const
   cStudioRoot = 'C:\Program Files (x86)\Embarcadero\Studio\23.0';
+
+procedure TRootMemberAbsenceTests.NamedRootClosureDriftInvalidatesEvidence(
+  const aPlatform, aCompilerName: string);
+var
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lNamed: IDelphiSemanticNamedRootMemberAbsence;
+  lRoot: TDelphiSemanticQualifiedRootType;
+  lDirectory, lFirst, lSecond, lAlias, lName, lReason: string;
+  lExit: Cardinal;
+begin
+  lDirectory := UniqueTempPath('named-closure-drift');
+  lFirst := TPath.Combine(lDirectory, 'first');
+  lSecond := TPath.Combine(lDirectory, 'second');
+  lAlias := TPath.Combine(lDirectory, 'sdk');
+  TDirectory.CreateDirectory(lFirst);
+  TDirectory.CreateDirectory(lSecond);
+  // Both SDK copies belong to this test. All unchanged DCUs have the same
+  // file identity across the retarget; only the named closure input changes.
+  for lName in ['System.Classes.dcu', 'System.Rtti.dcu', 'System.SyncObjs.dcu', 'System.Diagnostics.dcu', 'System.TimeSpan.dcu', 'System.Generics.Collections.dcu', 'System.Generics.Defaults.dcu', 'System.Math.dcu', 'System.Hash.dcu', 'Winapi.ActiveX.dcu', 'Winapi.Messages.dcu', 'System.Variants.dcu', 'System.VarUtils.dcu', 'System.SysUtils.dcu', 'System.Internal.ExcUtils.dcu', 'System.Character.dcu', 'System.RTLConsts.dcu', 'Winapi.PsAPI.dcu', 'Winapi.SHFolder.dcu', 'Winapi.ImageHlp.dcu', 'System.SysConst.dcu', 'Winapi.Windows.dcu', 'Winapi.Windows.PkgHelper.dcu', 'System.UITypes.dcu', 'System.Types.dcu', 'System.TypInfo.dcu', 'SysInit.dcu', 'System.dcu'] do
+  begin
+    TFile.Copy(CombinePath([cStudioRoot, 'lib', aPlatform, 'release', lName]),
+      TPath.Combine(lFirst, lName));
+    if SameText(lName, 'System.Classes.dcu') then
+      TFile.WriteAllText(TPath.Combine(lSecond, lName), 'changed named closure', TEncoding.ASCII)
+    else
+      Assert.IsTrue(CreateHardLink(PChar(TPath.Combine(lSecond, lName)),
+        PChar(TPath.Combine(lFirst, lName)), nil));
+  end;
+  Assert.IsTrue(RunProcess(GetEnvironmentVariable('COMSPEC'),
+    '/d /c mklink /J "' + lAlias + '" "' + lFirst + '"', lDirectory,
+    TPath.Combine(lDirectory, 'link-first.log'), lExit));
+  Assert.AreEqual<Cardinal>(0, lExit);
+  lProvider := TryCreateNativeImplicitRootMemberAbsence(
+    TPath.Combine(cStudioRoot, 'bin\' + aCompilerName), lAlias, lDirectory, lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticNamedRootMemberAbsence, lNamed));
+  lRoot := Default(TDelphiSemanticQualifiedRootType);
+  lRoot.Kind := 'class';
+  lRoot.TypeName := 'TComponent';
+  lRoot.LookupUnits := ['System.Classes'];
+  Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'DAK418_NoMember'));
+  Assert.AreNotEqual('', lProvider.EvidenceFingerprint);
+  Assert.IsTrue(MoveFile(PChar(lAlias), PChar(TPath.Combine(lDirectory, 'previous-sdk'))));
+  Assert.IsTrue(RunProcess(GetEnvironmentVariable('COMSPEC'),
+    '/d /c mklink /J "' + lAlias + '" "' + lSecond + '"', lDirectory,
+    TPath.Combine(lDirectory, 'link-second.log'), lExit));
+  Assert.AreEqual<Cardinal>(0, lExit);
+  Assert.AreEqual('', lProvider.EvidenceFingerprint,
+    'The base compiler, System and SysInit identities are unchanged; the named closure drifted.');
+  Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'DAK418_NoMember'));
+end;
+
+procedure TRootMemberAbsenceTests.NamedRootScopeRegressions(
+  const aPlatform, aCompilerName, aShape: string);
+begin
+  NamedRootBoundaries(aPlatform, aCompilerName, aShape);
+end;
+
+procedure TRootMemberAbsenceTests.NamedRootBoundaries(
+  const aPlatform, aCompilerName, aShape: string);
+var
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lNamed: IDelphiSemanticNamedRootMemberAbsence;
+  lLookup: TDakNativeRootLookup;
+  lRoot: TDelphiSemanticQualifiedRootType;
+  lReason, lWork, lSdk, lShadow: string;
+begin
+  lWork := UniqueTempPath('named-boundary-' + aShape);
+  TDirectory.CreateDirectory(lWork);
+  lSdk := CombinePath([cStudioRoot, 'lib', aPlatform, 'release']);
+  lLookup := Default(TDakNativeRootLookup);
+  lLookup.fUnitScopeNames := ['System', 'System.Win', 'Winapi', 'Vcl'];
+  if MatchText(aShape, ['alias-long-short', 'alias-short-long', 'scope-long-short', 'scope-short-long']) then
+    lLookup.fUnitScopeNames := ['FireDAC'] + lLookup.fUnitScopeNames;
+  if aShape = 'selection' then
+  begin
+    lShadow := TPath.Combine(lWork, 'shadow');
+    TDirectory.CreateDirectory(lShadow);
+    TFile.WriteAllText(TPath.Combine(lShadow, 'Classes.pas'),
+      'unit Classes; interface implementation end.', TEncoding.ASCII);
+    lLookup.fUnitPaths := [lShadow, lSdk];
+    lLookup.fSdkLibRoot := TPath.Combine(cStudioRoot, 'lib');
+  end;
+  lProvider := TryCreateNativeRootMemberAbsence(TPath.Combine(cStudioRoot, 'bin\' + aCompilerName),
+    lSdk, lWork, lLookup, CreateNativeWitnessIO, lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticNamedRootMemberAbsence, lNamed));
+  lRoot := Default(TDelphiSemanticQualifiedRootType);
+  lRoot.Kind := 'class';
+  lRoot.TypeName := 'TListColumn';
+  lRoot.LookupUnits := ['Vcl.ComCtrls'];
+  if MatchText(aShape, ['captured-property', 'site-property']) then
+  begin
+    lRoot.TypeName := 'TFDCustomConnection';
+    lRoot.LookupUnits := ['FireDAC.Comp.Client', 'FireDAC.ADO.Migrate'];
+    if aShape = 'captured-property' then
+      Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'ConnectionTimeout'),
+        'The private-getter helper property is not captured by the descendant.');
+    if aShape = 'site-property' then
+    begin
+      lRoot.LookupUnits := ['FireDAC.Comp.Client'];
+      Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.ADO.Migrate'], 'ProbeMissing742'), 'The same site context must prove genuine absence.');
+      Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.ADO.Migrate'], 'ConnectionTimeout'), 'The site helper property is visible.');
+    end;
+  end else if MatchText(aShape, ['scope-long-short', 'scope-short-long']) then
+  begin
+    lRoot.TypeName := 'TFDConnection';
+    lRoot.LookupUnits := ['FireDAC.Comp.Client'];
+    if aShape = 'scope-long-short' then
+    begin
+      Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.ADO.Migrate', 'FireDAC.DBX.Migrate', 'ADO.Migrate'], 'ProbeMissing742'));
+      Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.ADO.Migrate', 'FireDAC.DBX.Migrate', 'ADO.Migrate'], 'ConnectionTimeout'));
+    end else begin
+      Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['ADO.Migrate', 'FireDAC.DBX.Migrate', 'FireDAC.ADO.Migrate'], 'ProbeMissing742'));
+      Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['ADO.Migrate', 'FireDAC.DBX.Migrate', 'FireDAC.ADO.Migrate'], 'ConnectionTimeout'));
+    end;
+  end else if MatchText(aShape, ['captured', 'captured-repeat', 'capture-control']) then
+  begin
+    lRoot.TypeName := 'TFDCustomConnection';
+    lRoot.LookupUnits := ['FireDAC.Comp.Client', 'FireDAC.DBX.Migrate'];
+    if aShape = 'capture-control' then
+      lRoot.LookupUnits := ['FireDAC.Comp.Client', 'FireDAC.ADO.Migrate'];
+    Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot,
+      ['FireDAC.ADO.Migrate'], 'ProbeMissing742'), 'Genuine absence must remain provable.');
+    if aShape = 'captured-repeat' then
+      Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.DBX.Migrate', 'FireDAC.ADO.Migrate'], 'GetLoginUsername'))
+    else
+      Assert.AreEqual(aShape = 'capture-control', lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.ADO.Migrate'], 'GetLoginUsername'));
+  end else if MatchText(aShape, ['alias-long-short', 'alias-short-long']) then
+  begin
+    lRoot.TypeName := 'TFDConnection';
+    if aShape = 'alias-long-short' then
+    begin
+      lRoot.LookupUnits := ['FireDAC.Comp.Client', 'FireDAC.ADO.Migrate'];
+      Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.DBX.Migrate', 'ADO.Migrate'], 'ProbeMissing742'));
+      Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.DBX.Migrate', 'ADO.Migrate'], 'ConnectionTimeout'));
+    end else begin
+      lRoot.LookupUnits := ['FireDAC.Comp.Client', 'ADO.Migrate'];
+      Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.DBX.Migrate', 'FireDAC.ADO.Migrate'], 'ProbeMissing742'));
+      Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot,
+        ['FireDAC.DBX.Migrate', 'FireDAC.ADO.Migrate'], 'ConnectionTimeout'));
+    end;
+  end else if aShape = 'precedence' then
+  begin
+    lRoot.TypeName := 'TFDConnection';
+    lRoot.LookupUnits := ['FireDAC.Comp.Client', 'FireDAC.ADO.Migrate'];
+    Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot,
+      ['FireDAC.DBX.Migrate', 'FireDAC.ADO.Migrate'], 'ProbeMissing742'),
+      'The competing-helper context must support a real absence query.');
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot,
+      ['FireDAC.DBX.Migrate', 'FireDAC.ADO.Migrate'], 'ConnectionTimeout'),
+      'The site ADO helper must win over the DBX helper even when ADO is repeated.');
+  end else if MatchText(aShape, ['helper', 'memo']) then
+  begin
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'OrderTag'),
+      'Class lookup units must retain helpers from the declaring context.');
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, ['Vcl.ComCtrls'], 'OrderTag'),
+      'The site helper is a visible member.');
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'ordertag'));
+    Assert.AreEqual<Integer>(0, Length(TDirectory.GetDirectories(lWork, 'run-*', TSearchOption.soAllDirectories)),
+      'Named probes must be cleaned immediately, including memo hits.');
+    TFile.WriteAllText(TPath.Combine(lWork, 'unknown.txt'), 'keep', TEncoding.ASCII);
+    lNamed := nil;
+    lProvider := nil;
+    Assert.AreEqual('keep', TFile.ReadAllText(TPath.Combine(lWork, 'unknown.txt')));
+  end else if aShape = 'lookup' then
+  begin
+    lRoot.TypeName := 'TBitmap';
+    lRoot.LookupUnits := ['Winapi.Windows', 'Vcl.Graphics'];
+    Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'G'), lRoot.TypeName);
+    lRoot.LookupUnits := ['Vcl.Graphics', 'Winapi.Windows'];
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'G'),
+      'The last uses entry selects a record, which cannot be a class root.');
+    lRoot.TypeName := 'Classes.TComponent';
+    lRoot.LookupUnits := ['Classes'];
+    Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'G'), lRoot.TypeName);
+    lRoot.TypeName := 'TComponent';
+    lRoot.LookupUnits := nil;
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'G'));
+    lRoot.Kind := 'interface';
+    lRoot.TypeName := 'IUnknown';
+    lRoot.LookupUnits := ['System.Classes'];
+    Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'G'), lRoot.TypeName);
+  end else if aShape = 'selection' then
+  begin
+    lRoot.TypeName := 'Classes.TComponent';
+    lRoot.LookupUnits := ['Classes'];
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'G'));
+    Assert.AreEqual<Integer>(0, Length(TDirectory.GetDirectories(lWork, 'run-*', TSearchOption.soAllDirectories)));
+    lRoot.TypeName := 'System.TObject';
+    lRoot.LookupUnits := nil;
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, ['Foreign.UnitName'], 'G'));
+  end else begin
+    for var lTypeName in ['TObject^', '&TObject', 'TObject;Halt(0)'] do
+    begin
+      lRoot.TypeName := lTypeName;
+      Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'G'));
+    end;
+    lRoot.TypeName := 'System.TObject';
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, ['Bad;Unit'], 'G'));
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'G.X'));
+    lRoot.Kind := 'record';
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'G'));
+    Assert.AreEqual<Integer>(0, Length(TDirectory.GetDirectories(lWork, 'run-*', TSearchOption.soAllDirectories)));
+  end;
+end;
+
+procedure TRootMemberAbsenceTests.NamedRootWitnessProtectsVisibleMembers(
+  const aPlatform, aCompilerName, aShape, aName: string; const aAbsent: Boolean);
+var
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lNamed: IDelphiSemanticNamedRootMemberAbsence;
+  lReason: string;
+  lRoot: TDelphiSemanticQualifiedRootType;
+begin
+  lProvider := TryCreateNativeImplicitRootMemberAbsence(
+    TPath.Combine(cStudioRoot, 'bin\' + aCompilerName),
+    CombinePath([cStudioRoot, 'lib', aPlatform, 'release']),
+    UniqueTempPath('named-root-' + aShape + '-' + aName), lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticNamedRootMemberAbsence, lNamed),
+    'The native provider must offer the optional named-root witness.');
+  lRoot := Default(TDelphiSemanticQualifiedRootType);
+  lRoot.Kind := 'class';
+  lRoot.TypeName := 'System.TObject';
+  if aShape = 'component' then
+  begin
+    lRoot.TypeName := 'TComponent';
+    lRoot.LookupUnits := ['System.Classes'];
+  end else if aShape = 'interfaced' then
+    lRoot.TypeName := 'System.TInterfacedObject'
+  else if aShape = 'explicit-object' then
+    lRoot.TypeName := 'TObject'
+  else if aShape = 'exception' then
+  begin
+    lRoot.TypeName := 'Exception';
+    lRoot.LookupUnits := ['System.SysUtils'];
+  end else if aShape = 'stringlist' then
+  begin
+    lRoot.TypeName := 'TStringList';
+    lRoot.LookupUnits := ['System.Classes'];
+  end else if aShape = 'form' then
+  begin
+    lRoot.TypeName := 'TForm';
+    lRoot.LookupUnits := ['Vcl.Forms'];
+  end else if aShape = 'skia' then
+  begin
+    lRoot.TypeName := 'TBitmap';
+    lRoot.LookupUnits := ['Vcl.Graphics', 'Vcl.Skia'];
+  end else if aShape = 'attribute' then
+  begin
+    lRoot.TypeName := 'TDefaultAttributeBase';
+    lRoot.LookupUnits := ['System.Classes'];
+  end else if aShape = 'interface' then
+  begin
+    lRoot.Kind := 'interface';
+    lRoot.TypeName := 'System.IInterface';
+  end;
+  Assert.AreEqual(aAbsent, lNamed.IsNamedRootMemberAbsent(lRoot, [], aName),
+    aShape + '.' + aName);
+  Assert.AreNotEqual('', lProvider.EvidenceFingerprint);
+end;
+
+procedure TRootMemberAbsenceTests.NamedRootMemoKeepsDeclarationAndSiteScopes(const aSiteFirst: Boolean);
+var
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lNamed: IDelphiSemanticNamedRootMemberAbsence;
+  lRoot: TDelphiSemanticQualifiedRootType;
+  lSiteUnits: TArray<string>;
+  lReason: string;
+  lSite: Boolean;
+begin
+  lProvider := TryCreateNativeImplicitRootMemberAbsence(
+    TPath.Combine(cStudioRoot, 'bin\dcc64.exe'),
+    CombinePath([cStudioRoot, 'lib', 'Win64', 'release']),
+    UniqueTempPath('named-declaration-site-memo'), lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticNamedRootMemberAbsence, lNamed));
+  lRoot := Default(TDelphiSemanticQualifiedRootType);
+  lRoot.Kind := 'class';
+  lRoot.TypeName := 'TFDCustomConnection';
+  // Both requests share a provider lifetime and the same combined unit set.
+  // Only the boundary between captured declaration and site scopes changes.
+  for var i := 0 to 1 do
+  begin
+    lSite := (i = 0) = aSiteFirst;
+    lRoot.LookupUnits := ['FireDAC.Comp.Client'];
+    lSiteUnits := nil;
+    if lSite then
+      lSiteUnits := ['FireDAC.ADO.Migrate']
+    else
+      lRoot.LookupUnits := lRoot.LookupUnits + ['FireDAC.ADO.Migrate'];
+    Assert.AreEqual(not lSite, lNamed.IsNamedRootMemberAbsent(lRoot, lSiteUnits, 'ConnectionTimeout'),
+      'The private-getter property is visible only at the helper-bearing site.');
+  end;
+end;
 
 procedure TRootMemberAbsenceTests.NativeWitnessDistinguishesExactNames(
   const aPlatform, aCompilerName: string);
@@ -245,6 +666,13 @@ begin
   lText := aText;
   if SameText(TPath.GetExtension(aFileName), '.dpr') then
   begin
+    if lText.Contains('begin if ') then
+    begin
+      if fMode = 'halt' then
+        lText := StringReplace(lText, 'begin if ', 'begin Halt(0); if ', [])
+      else if fMode = 'exit' then
+        lText := StringReplace(lText, 'begin if ', 'begin Exit; if ', []);
+    end;
     if fMode = 'halt' then
       lText := StringReplace(lText, '  lProbe := TProbe.Create;',
         '  Halt(0);' + sLineBreak + '  lProbe := TProbe.Create;', [])
@@ -267,6 +695,30 @@ end;
 function TWitnessFailureIO.FlushOutput(const aHandle: NativeUInt): Boolean;
 begin
   Result := fInner.FlushOutput(aHandle) and (fMode <> 'flush-failure');
+end;
+
+procedure TRootMemberAbsenceTests.NamedConsumerRefusesIncompleteWitness(
+  const aPlatform, aCompilerName, aMode: string);
+var
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lNamed: IDelphiSemanticNamedRootMemberAbsence;
+  lRoot: TDelphiSemanticQualifiedRootType;
+  lReason, lWork: string;
+begin
+  lWork := UniqueTempPath('named-io-' + aMode);
+  TDirectory.CreateDirectory(lWork);
+  lProvider := TryCreateNativeImplicitRootMemberAbsence(
+    TPath.Combine(cStudioRoot, 'bin\' + aCompilerName),
+    CombinePath([cStudioRoot, 'lib', aPlatform, 'release']), lWork,
+    TWitnessFailureIO.Create(aMode), lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticNamedRootMemberAbsence, lNamed));
+  lRoot := Default(TDelphiSemanticQualifiedRootType);
+  lRoot.Kind := 'class';
+  lRoot.TypeName := 'System.TObject';
+  Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, [], 'DAK418_NoMember'));
+  Assert.AreEqual<Integer>(0, Length(TDirectory.GetDirectories(lWork, 'run-*',
+    TSearchOption.soAllDirectories)), 'Failed named probes also clean immediately.');
 end;
 
 procedure TRootMemberAbsenceTests.ConsumerRefusesIncompleteOrFailedWitness(

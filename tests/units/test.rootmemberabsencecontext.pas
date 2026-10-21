@@ -36,6 +36,24 @@ type
   public
     [Test]
     procedure StandardFixtureMatchesNativePathsAndReleaseRoot;
+    [TestCase('Win32', 'Win32')]
+    [TestCase('Win64', 'Win64')]
+    [Category('DAK418')]
+    procedure NamedProofExtendsFingerprintAndProvenance(const aPlatform: string);
+    [TestCase('Win32', 'Win32')]
+    [TestCase('Win64', 'Win64')]
+    [Category('DAK418')]
+    procedure NamedSelectionMemoReusesChecksAndRejectsChangedInput(const aPlatform: string);
+    [TestCase('Win64 cached', 'Win64,cached,project')]
+    [TestCase('Win64 fresh', 'Win64,fresh,project')]
+    [TestCase('Win64 finalization', 'Win64,finalize,project')]
+    [TestCase('Win64 main directory', 'Win64,cached,main')]
+    [TestCase('Win64 dcu directory', 'Win64,cached,dcu')]
+    [TestCase('Win64 reference directory', 'Win64,cached,reference')]
+    [TestCase('Win64 lookup directory', 'Win64,cached,lookup')]
+    [Category('DAK418Fix2')]
+    procedure NamedSelectionRejectsNewShadow(const aPlatform, aMode, aLocation: string);
+
     [Test]
     procedure ExplicitDebugDcusSelectTheNativeDebugRoot;
     [Test]
@@ -84,7 +102,8 @@ type
 implementation
 
 uses
-  System.Classes, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
+  System.Classes, System.IOUtils, System.JSON, System.RegularExpressions, System.StrUtils, System.SysUtils,
+  AutoFree,
   maxLogic.ioutils,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.ProjectContext,
   DelphiSemantics.RootMemberAbsence, DelphiSemantics.Source,
@@ -119,6 +138,247 @@ begin
     '<DCC_Namespace>System;System.Win</DCC_Namespace>' + aProperties + '</PropertyGroup>' +
     aExtraTargets + '<Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" />' +
     '</Project>', TEncoding.ASCII);
+end;
+
+procedure TRootMemberAbsenceContextTests.NamedProofExtendsFingerprintAndProvenance(
+  const aPlatform: string);
+var
+  lOptions: TAppOptions;
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lNamed: IDelphiSemanticNamedRootMemberAbsence;
+  lGuard: IDakRemoveWithPlanInputGuard;
+  lProfile: IDelphiSemanticProjectProfileValidator;
+  lProject: TDelphiSemanticProjectInfo;
+  lOwner: IDelphiSemanticModelObservationOwner;
+  lObservation: TDelphiSemanticModelObservation;
+  lSource: TDelphiSemanticSourceLoadResult;
+  lFileName: string;
+  lRoot: TDelphiSemanticQualifiedRootType;
+  lReason, lBefore, lAfter, lProvenance: string;
+begin
+  lOptions := ContextOptions(WriteContextProject(
+    '<DCC_Namespace>System;System.Win;Winapi;Vcl;Vcl.Imaging;Data</DCC_Namespace>', ''));
+  lOptions.fPlatform := aPlatform;
+  lProvider := TryCreateNativeRootRequestOwner(lOptions, lGuard, lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticNamedRootMemberAbsence, lNamed));
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticProjectProfileValidator, lProfile));
+  lProject := Default(TDelphiSemanticProjectInfo);
+  lProject.Platform := aPlatform;
+  lProject.Configuration := 'Debug';
+  lProject.Defines := TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(aPlatform);
+  lProject.ContextFingerprint := 'dak418-named-context';
+  Assert.IsTrue(lProfile.ValidateProjectProfile(lProject, lReason), lReason);
+  lFileName := TPath.Combine(TPath.GetDirectoryName(lOptions.fDprojPath), 'Observed.pas');
+  TFile.WriteAllText(lFileName, 'unit Observed; interface implementation end.', TEncoding.ASCII);
+  lSource := TDelphiSemanticSourceLoader.LoadFile(lFileName);
+  Assert.IsTrue(lSource.Success);
+  lObservation := Default(TDelphiSemanticModelObservation);
+  lObservation.ProjectContextFingerprint := lProject.ContextFingerprint;
+  lObservation.ModelFileName := lFileName;
+  lObservation.SourceObservations := lSource.SourceObservations;
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticModelObservationOwner, lOwner));
+  Assert.IsTrue(lOwner.ValidateModelSources(lObservation, lReason), lReason);
+  lBefore := lProvider.EvidenceFingerprint;
+  Assert.AreNotEqual('', lBefore);
+  lRoot := Default(TDelphiSemanticQualifiedRootType);
+  lRoot.Kind := 'class';
+  lRoot.TypeName := 'Classes.TComponent';
+  lRoot.LookupUnits := ['Classes'];
+  Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, ['System.Classes'], 'DAK418_NoMember'),
+    'Default VCL namespaces must reach the named compiler probe.');
+  Assert.IsTrue(FinalizeNativeRootProof(lGuard, lAfter, lProvenance, lReason), lReason);
+  Assert.AreNotEqual(lBefore, lAfter, 'Named closure inputs extend the evidence identity.');
+  Assert.IsTrue(lProvenance.Contains('namedRootQueryCount'));
+  Assert.IsTrue(lProvenance.Contains('namedRootQueryMilliseconds'));
+  Assert.IsTrue(lProvenance.Contains('absentNamedRootMembers'));
+  Assert.IsTrue(lProvenance.Contains('sdkDependencies'));
+  TFile.AppendAllText(lFileName,
+    sLineBreak + '// named-proof drift', TEncoding.ASCII);
+  Assert.IsFalse(FinalizeNativeRootProof(lGuard, lAfter, lProvenance, lReason));
+  Assert.AreEqual('native-request-inputs-changed', lReason);
+end;
+
+procedure TRootMemberAbsenceContextTests.NamedSelectionMemoReusesChecksAndRejectsChangedInput(
+  const aPlatform: string);
+var
+  g: TGarbos;
+  lJson: TJSONObject;
+  lChecks: Integer;
+  lOptions: TAppOptions;
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lNamed: IDelphiSemanticNamedRootMemberAbsence;
+  lGuard: IDakRemoveWithPlanInputGuard;
+  lProfile: IDelphiSemanticProjectProfileValidator;
+  lProject: TDelphiSemanticProjectInfo;
+  lOwner: IDelphiSemanticModelObservationOwner;
+  lObservation: TDelphiSemanticModelObservation;
+  lSource: TDelphiSemanticSourceLoadResult;
+  lFileName: string;
+  lRoot: TDelphiSemanticQualifiedRootType;
+  lReason, lBefore, lAfter, lProvenance: string;
+begin
+  lOptions := ContextOptions(WriteContextProject(
+    '<DCC_Namespace>System;System.Win;Winapi;Vcl;Vcl.Imaging;Data</DCC_Namespace>', ''));
+  lOptions.fPlatform := aPlatform;
+  lProvider := TryCreateNativeRootRequestOwner(lOptions, lGuard, lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticNamedRootMemberAbsence, lNamed));
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticProjectProfileValidator, lProfile));
+  lProject := Default(TDelphiSemanticProjectInfo);
+  lProject.Platform := aPlatform;
+  lProject.Configuration := 'Debug';
+  lProject.Defines := TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(aPlatform);
+  lProject.ContextFingerprint := 'dak418-named-context';
+  Assert.IsTrue(lProfile.ValidateProjectProfile(lProject, lReason), lReason);
+  lFileName := TPath.Combine(TPath.GetDirectoryName(lOptions.fDprojPath), 'Observed.pas');
+  TFile.WriteAllText(lFileName, 'unit Observed; interface implementation end.', TEncoding.ASCII);
+  lSource := TDelphiSemanticSourceLoader.LoadFile(lFileName);
+  Assert.IsTrue(lSource.Success);
+  lObservation := Default(TDelphiSemanticModelObservation);
+  lObservation.ProjectContextFingerprint := lProject.ContextFingerprint;
+  lObservation.ModelFileName := lFileName;
+  lObservation.SourceObservations := lSource.SourceObservations;
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticModelObservationOwner, lOwner));
+  Assert.IsTrue(lOwner.ValidateModelSources(lObservation, lReason), lReason);
+  lBefore := lProvider.EvidenceFingerprint;
+  Assert.AreNotEqual('', lBefore);
+  lRoot := Default(TDelphiSemanticQualifiedRootType);
+  lRoot.Kind := 'class';
+  lRoot.TypeName := 'Classes.TComponent';
+  lRoot.LookupUnits := ['Classes'];
+  Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, ['System.Classes'], 'DAK418_NoMember'),
+    'Default VCL namespaces must reach the named compiler probe.');
+  Assert.IsTrue(FinalizeNativeRootProof(lGuard, lAfter, lProvenance, lReason), lReason);
+  Assert.AreNotEqual(lBefore, lAfter, 'Named closure inputs extend the evidence identity.');
+  Assert.IsTrue(lProvenance.Contains('namedRootQueryCount'));
+  Assert.IsTrue(lProvenance.Contains('namedRootQueryMilliseconds'));
+  Assert.IsTrue(lProvenance.Contains('absentNamedRootMembers'));
+  Assert.IsTrue(lProvenance.Contains('sdkDependencies'));
+  GC(lJson, TJSONObject.ParseJSONValue(lProvenance) as TJSONObject, g);
+  Assert.IsTrue(lJson.TryGetValue<Integer>('unitSelectionChecks', lChecks),
+    'The provider must report its actual selection checks.');
+  Assert.IsTrue(lChecks > 0);
+  Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, ['System.Classes'], 'DAK418_AnotherMissingMember'));
+  Assert.IsTrue(FinalizeNativeRootProof(lGuard, lAfter, lProvenance, lReason), lReason);
+  GC(lJson, TJSONObject.ParseJSONValue(lProvenance) as TJSONObject, g);
+  Assert.AreEqual(lChecks, lJson.GetValue<Integer>('unitSelectionChecks'),
+    'A distinct name with the same unit closure must reuse unit selection.');
+  Assert.IsTrue(lJson.GetValue<Integer>('unitSelectionMemoHits') > 0);
+  TFile.AppendAllText(lFileName,
+    sLineBreak + '// named-proof drift', TEncoding.ASCII);
+  Assert.IsFalse(FinalizeNativeRootProof(lGuard, lAfter, lProvenance, lReason));
+  Assert.AreEqual('native-request-inputs-changed', lReason);
+  Assert.AreEqual('', lProvider.EvidenceFingerprint);
+  Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, ['System.Classes'], 'DAK418_AnotherMissingMember'),
+    'A changed captured source must invalidate even a memoized name and selection.');
+end;
+
+procedure TRootMemberAbsenceContextTests.NamedSelectionRejectsNewShadow(
+  const aPlatform, aMode, aLocation: string);
+var
+  g: TGarbos;
+  lJson: TJSONObject;
+  lChecks: Integer;
+  lOptions: TAppOptions;
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lNamed: IDelphiSemanticNamedRootMemberAbsence;
+  lGuard: IDakRemoveWithPlanInputGuard;
+  lProfile: IDelphiSemanticProjectProfileValidator;
+  lProject: TDelphiSemanticProjectInfo;
+  lOwner: IDelphiSemanticModelObservationOwner;
+  lObservation: TDelphiSemanticModelObservation;
+  lSource: TDelphiSemanticSourceLoadResult;
+  lFileName, lDirectory, lShadowDirectory, lProperties, lExtra: string;
+  lRoot: TDelphiSemanticQualifiedRootType;
+  lReason, lBefore, lAfter, lProvenance: string;
+begin
+  lProperties := '<DCC_Namespace>System;System.Win;Winapi;Vcl;Vcl.Imaging;Data</DCC_Namespace>';
+  lExtra := '';
+  if aLocation = 'dcu' then
+    lProperties := lProperties + '<DCC_DcuOutput>new-dcu</DCC_DcuOutput>';
+  if aLocation = 'reference' then
+    lExtra := '<ItemGroup><DCCReference Include="refs\RefUnit.pas"/></ItemGroup>';
+  lOptions := ContextOptions(WriteContextProject(lProperties, lExtra));
+  lOptions.fPlatform := aPlatform;
+  lDirectory := TPath.GetDirectoryName(lOptions.fDprojPath);
+  lShadowDirectory := lDirectory;
+  if aLocation = 'main' then
+  begin
+    lShadowDirectory := TPath.Combine(lDirectory, 'main');
+    TDirectory.CreateDirectory(lShadowDirectory);
+    TFile.Move(TPath.Combine(lDirectory, 'ContextProbe.dpr'),
+      TPath.Combine(lShadowDirectory, 'ContextProbe.dpr'));
+    TFile.WriteAllText(lOptions.fDprojPath, StringReplace(TFile.ReadAllText(lOptions.fDprojPath),
+      '<MainSource>ContextProbe.dpr</MainSource>', '<MainSource>main\ContextProbe.dpr</MainSource>', []),
+      TEncoding.ASCII);
+  end else if aLocation = 'dcu' then
+    lShadowDirectory := TPath.Combine(lDirectory, 'new-dcu')
+  else if aLocation = 'reference' then
+  begin
+    lShadowDirectory := TPath.Combine(lDirectory, 'refs');
+    TDirectory.CreateDirectory(lShadowDirectory);
+    TFile.WriteAllText(TPath.Combine(lShadowDirectory, 'RefUnit.pas'),
+      'unit RefUnit; interface implementation end.', TEncoding.ASCII);
+  end else if aLocation = 'lookup' then
+    lShadowDirectory := TPath.Combine(lDirectory, 'lookup');
+  TDirectory.CreateDirectory(lShadowDirectory);
+  lProvider := TryCreateNativeRootRequestOwner(lOptions, lGuard, lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticNamedRootMemberAbsence, lNamed));
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticProjectProfileValidator, lProfile));
+  lProject := Default(TDelphiSemanticProjectInfo);
+  lProject.Platform := aPlatform;
+  lProject.Configuration := 'Debug';
+  lProject.Defines := TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(aPlatform);
+  lProject.ContextFingerprint := 'dak418-named-context';
+  Assert.IsTrue(lProfile.ValidateProjectProfile(lProject, lReason), lReason);
+  lFileName := TPath.Combine(TPath.GetDirectoryName(lOptions.fDprojPath), 'Observed.pas');
+  TFile.WriteAllText(lFileName, 'unit Observed; interface implementation end.', TEncoding.ASCII);
+  lSource := TDelphiSemanticSourceLoader.LoadFile(lFileName);
+  Assert.IsTrue(lSource.Success);
+  lObservation := Default(TDelphiSemanticModelObservation);
+  lObservation.ProjectContextFingerprint := lProject.ContextFingerprint;
+  lObservation.ModelFileName := lFileName;
+  lObservation.SourceObservations := lSource.SourceObservations;
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticModelObservationOwner, lOwner));
+  Assert.IsTrue(lOwner.ValidateModelSources(lObservation, lReason), lReason);
+  lBefore := lProvider.EvidenceFingerprint;
+  Assert.AreNotEqual('', lBefore);
+  lRoot := Default(TDelphiSemanticQualifiedRootType);
+  lRoot.Kind := 'class';
+  lRoot.TypeName := 'Classes.TComponent';
+  lRoot.LookupUnits := ['Classes'];
+  Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, ['System.Classes'], 'DAK418_NoMember'),
+    'Default VCL namespaces must reach the named compiler probe.');
+  Assert.IsTrue(FinalizeNativeRootProof(lGuard, lAfter, lProvenance, lReason), lReason);
+  Assert.AreNotEqual(lBefore, lAfter, 'Named closure inputs extend the evidence identity.');
+  Assert.IsTrue(lProvenance.Contains('namedRootQueryCount'));
+  Assert.IsTrue(lProvenance.Contains('namedRootQueryMilliseconds'));
+  Assert.IsTrue(lProvenance.Contains('absentNamedRootMembers'));
+  Assert.IsTrue(lProvenance.Contains('sdkDependencies'));
+  GC(lJson, TJSONObject.ParseJSONValue(lProvenance) as TJSONObject, g);
+  Assert.IsTrue(lJson.TryGetValue<Integer>('unitSelectionChecks', lChecks),
+    'The provider must report its actual selection checks.');
+  Assert.IsTrue(lChecks > 0);
+  Assert.IsTrue(lNamed.IsNamedRootMemberAbsent(lRoot, ['System.Classes'], 'DAK418_AnotherMissingMember'));
+  Assert.IsTrue(FinalizeNativeRootProof(lGuard, lAfter, lProvenance, lReason), lReason);
+  GC(lJson, TJSONObject.ParseJSONValue(lProvenance) as TJSONObject, g);
+  Assert.AreEqual(lChecks, lJson.GetValue<Integer>('unitSelectionChecks'),
+    'A distinct name with the same unit closure must reuse unit selection.');
+  Assert.IsTrue(lJson.GetValue<Integer>('unitSelectionMemoHits') > 0);
+  TFile.WriteAllText(TPath.Combine(lShadowDirectory, 'System.Classes.pas'),
+    'unit System.Classes; interface type TComponent = class public DAK418_NoMember: Integer; end; ' +
+    'implementation end.', TEncoding.ASCII);
+  if aMode = 'cached' then
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, ['System.Classes'], 'DAK418_NoMember'),
+      'A new shadow must invalidate a memoized name.')
+  else if aMode = 'fresh' then
+    Assert.IsFalse(lNamed.IsNamedRootMemberAbsent(lRoot, ['System.Classes'], 'DAK418_NewName'),
+      'A new shadow must invalidate an uncached name.')
+  else
+    Assert.IsFalse(FinalizeNativeRootProof(lGuard, lAfter, lProvenance, lReason),
+      'A new shadow must invalidate finalization without another query.');
 end;
 
 procedure TRootMemberAbsenceContextTests.StandardFixtureMatchesNativePathsAndReleaseRoot;
