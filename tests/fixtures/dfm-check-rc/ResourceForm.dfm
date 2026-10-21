@@ -1,0 +1,2 @@
+object ResourceForm: TResourceForm
+end

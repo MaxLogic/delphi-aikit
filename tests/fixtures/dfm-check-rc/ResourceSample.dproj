@@ -1,0 +1,21 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MainSource>ResourceSample.dpr</MainSource>
+    <Config Condition="'$(Config)'==''">Release</Config>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+    <AppType>Console</AppType>
+    <FrameworkType>VCL</FrameworkType>
+    <DCC_Namespace>System;Winapi;Vcl</DCC_Namespace>
+    <DCC_Define>$(DCC_Define)</DCC_Define>
+    <DCC_UnitSearchPath>$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_ExeOutput>.dak\bin</DCC_ExeOutput>
+    <DCC_DcuOutput>.dak\dcu</DCC_DcuOutput>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)"><MainSource>MainSource</MainSource></DelphiCompile>
+    <DCCReference Include="ResourceForm.pas"/>
+    <DCCReference Include="ResourcePayload.pas"/>
+    <RcCompile Include="Payload.rc"/>
+  </ItemGroup>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>
+</Project>

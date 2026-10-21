@@ -168,6 +168,29 @@ type
     procedure PipelineAllModeUsesProgressWithoutQuietValidator;
     [Test]
     procedure IntegrationWrongEventSignatureProducesDfmFailure;
+    [TestCase('ExistingLongCommand', 'True,True,Default')]
+    [TestCase('RequiredShortCommand', 'False,False,Default')]
+    [TestCase('RequiredLongCommand', 'False,True,Default')]
+    [TestCase('ExistingOutputDir', 'True,True,OutputDir')]
+    [TestCase('MissingOutputDir', 'False,True,OutputDir')]
+    [TestCase('ExistingSuffix', 'True,True,Suffix')]
+    [TestCase('ExistingSourceMacro', 'True,True,SourceMacro')]
+    [TestCase('SubdirectoryDecoy', 'False,False,SubdirDecoy')]
+    [TestCase('SubdirectoryExisting', 'True,True,SubdirExisting')]
+    [TestCase('ConditionalSuffixRelease', 'False,False,ConditionalSuffix')]
+    [TestCase('ManyShortResources', 'False,False,ManyShort')]
+    [TestCase('BelowResponseThreshold', 'False,False,BoundaryBelow')]
+    [TestCase('NearAboveResponseThreshold', 'False,False,BoundaryAbove')]
+    [TestCase('ImportedSuffix', 'False,False,ImportedSuffix')]
+    [TestCase('RepeatedSuffix', 'False,False,RepeatedSuffix')]
+    [TestCase('QuotedResponse', 'False,False,QuotedResponse')]
+    [TestCase('UnrelatedError', 'False,False,UnrelatedError')]
+    [TestCase('NoRcCompile', 'False,False,NoRcCompile')]
+    [TestCase('NonResourceExtension', 'False,True,NonResourceExtension')]
+    [TestCase('InvalidResourceName', 'False,True,InvalidResourceName')]
+    // Characterization: uppercase .RES already retried before the matcher fixes.
+    [TestCase('UppercaseResourceExtension', 'False,False,UppercaseResourceExtension')]
+    procedure IntegrationRcCompile(const aExisting: Boolean; const aLongCommand: Boolean; const aOutputKind: string);
   end;
 
 implementation
@@ -4184,6 +4207,249 @@ begin
   Assert.IsTrue(Pos('FAIL ', lOutputText) > 0, 'Expected FAIL line in dfm-check output.');
   Assert.IsTrue((Pos('OnCreate', lOutputText) > 0) or (Pos('FormCreate', lOutputText) > 0),
     'Expected dfm-check output to mention failing event property/handler.');
+end;
+
+procedure TDfmCheckTests.IntegrationRcCompile(const aExisting: Boolean; const aLongCommand: Boolean;
+  const aOutputKind: string);
+var
+  i: Integer;
+  lArgs: string;
+  lCommandLength: Integer;
+  lCommandPosition: Integer;
+  lLine: string;
+  lPadding: Integer;
+  lDefines: string;
+  lDprojPath: string;
+  lEnvGuard: IInterface;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lOutput: string;
+  lPaths: TDfmCheckPaths;
+  lProjectDir: string;
+  lSearchPath: string;
+  lText: string;
+  lResourcePath: string;
+  lMissingName: string;
+  lGenerationError: string;
+begin
+  EnsureResolverBuilt;
+  lProjectDir := TPath.Combine(TempRoot, 'dfm-check-rc');
+  if TDirectory.Exists(lProjectDir) then
+    TDirectory.Delete(lProjectDir, True);
+  TDirectory.Copy(TPath.Combine(RepoRoot, 'tests\fixtures\dfm-check-rc'), lProjectDir);
+  lDprojPath := TPath.Combine(lProjectDir, 'ResourceSample.dproj');
+  lDefines := 'RELEASE';
+  if not aExisting then
+    lDefines := lDefines + ';NEED_PAYLOAD';
+  lSearchPath := '';
+  if aLongCommand then
+    for i := 1 to 400 do
+      lSearchPath := lSearchPath + ';' + TPath.Combine(lProjectDir, 'unused-search-path-' + IntToStr(i));
+  lText := TFile.ReadAllText(lDprojPath);
+  lText := lText.Replace('$(DCC_Define)</DCC_Define>', lDefines + '</DCC_Define>');
+  lText := lText.Replace('$(DCC_UnitSearchPath)</DCC_UnitSearchPath>', lSearchPath + '</DCC_UnitSearchPath>');
+  lResourcePath := TPath.Combine(lProjectDir, 'Payload.res');
+  if (aOutputKind = 'OutputDir') or (aOutputKind = 'SourceMacro') then
+  begin
+    if aOutputKind = 'SourceMacro' then
+      lText := lText.Replace('<AppType>',
+        '<BRCC_OutputDir>$(MSBuildProjectDirectory)\resources</BRCC_OutputDir><AppType>')
+    else
+      lText := lText.Replace('<AppType>', '<BRCC_OutputDir>resources</BRCC_OutputDir><AppType>');
+    // A default-location decoy must not hide a missing resource in the configured output directory.
+    if aExisting then
+      TFile.WriteAllBytes(lResourcePath, TBytes.Create(0));
+    lResourcePath := TPath.Combine(lProjectDir, 'resources\Payload.res');
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lResourcePath));
+  end else if aOutputKind = 'Suffix' then
+  begin
+    lText := lText.Replace('<RcCompile Include="Payload.rc"/>',
+      '<RcCompile Include="Payload.rc"><Suffix>-custom</Suffix></RcCompile>');
+    lResourcePath := TPath.Combine(lProjectDir, 'Payload-custom.res');
+  end;
+  if StartsText('Subdir', aOutputKind) then
+  begin
+    TDirectory.CreateDirectory(TPath.Combine(lProjectDir, 'rc'));
+    TFile.Move(TPath.Combine(lProjectDir, 'Payload.rc'), TPath.Combine(lProjectDir, 'rc\Payload.rc'));
+    lText := lText.Replace('Include="Payload.rc"', 'Include="rc\Payload.rc"');
+    if aOutputKind = 'SubdirDecoy' then
+      TFile.WriteAllBytes(TPath.Combine(lProjectDir, 'rc\Payload.res'), TBytes.Create(0));
+  end else if aOutputKind = 'ConditionalSuffix' then
+  begin
+    lText := lText.Replace('<RcCompile Include="Payload.rc"/>',
+      '<RcCompile Include="Payload.rc"><Suffix Condition="''$(Config)''==''Debug''">-debug</Suffix></RcCompile>');
+    TFile.WriteAllBytes(TPath.Combine(lProjectDir, 'Payload-debug.res'), TBytes.Create(0));
+  end else if aOutputKind = 'ManyShort' then
+  begin
+    lSearchPath := '<RcCompile Include="Payload.rc"/>';
+    for i := 1 to 249 do
+    begin
+      lResourcePath := 'Resource' + IntToStr(i) + '_' + StringOfChar('x', 60) + '.rc';
+      TFile.WriteAllText(TPath.Combine(lProjectDir, lResourcePath), 'TEST RCDATA { 1, 2, 3 }', TEncoding.ASCII);
+      lSearchPath := lSearchPath + '<RcCompile Include="' + lResourcePath + '"/>';
+    end;
+    lText := lText.Replace('<RcCompile Include="Payload.rc"/>', lSearchPath);
+    lResourcePath := TPath.Combine(lProjectDir, 'Payload.res');
+  end;
+  if (aOutputKind = 'ImportedSuffix') or (aOutputKind = 'RepeatedSuffix') then
+  begin
+    if aOutputKind = 'ImportedSuffix' then
+    begin
+      TFile.WriteAllText(TPath.Combine(lProjectDir, 'resource.props'),
+        '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><ItemDefinitionGroup>' +
+        '<RcCompile><Suffix Condition="''$(Config)''==''Release''">-new</Suffix></RcCompile>' +
+        '</ItemDefinitionGroup></Project>', TEncoding.UTF8);
+      lText := lText.Replace('<ItemGroup>', '<Import Project="resource.props"/><ItemGroup>');
+      TFile.WriteAllBytes(TPath.Combine(lProjectDir, 'Payload.res'), TBytes.Create(0));
+    end else begin
+      lText := lText.Replace('<RcCompile Include="Payload.rc"/>',
+        '<RcCompile Include="Payload.rc"><Suffix>-old</Suffix><Suffix>-new</Suffix></RcCompile>');
+      TFile.WriteAllBytes(TPath.Combine(lProjectDir, 'Payload-old.res'), TBytes.Create(0));
+    end;
+    TFile.WriteAllText(TPath.Combine(lProjectDir, 'PayloadResource.inc'), '{$R Payload-new.res}', TEncoding.ASCII);
+    lResourcePath := TPath.Combine(lProjectDir, 'Payload-new.res');
+  end else if aOutputKind = 'QuotedResponse' then
+  begin
+    TFile.WriteAllText(TPath.Combine(lProjectDir, 'options.rsp'), '-v', TEncoding.UTF8);
+    lText := lText.Replace('<AppType>', '<BRCC_UserSuppliedOptions>"@' +
+      TPath.Combine(lProjectDir, 'options.rsp') + '"</BRCC_UserSuppliedOptions><AppType>');
+  end else if aOutputKind = 'UnrelatedError' then
+  begin
+    lText := lText.Replace('RELEASE;NEED_PAYLOAD', 'RELEASE');
+    lSearchPath := TPath.Combine(lProjectDir, 'ResourceForm.pas');
+    TFile.WriteAllText(lSearchPath, TFile.ReadAllText(lSearchPath).Replace('implementation',
+      'implementation' + #13#10 + 'procedure Broken; begin DAK_UNRELATED_ERROR; end;'), TEncoding.UTF8);
+  end else if aOutputKind = 'NoRcCompile' then
+  begin
+    lText := lText.Replace('<RcCompile Include="Payload.rc"/>', '');
+    lText := lText.Replace('RELEASE;NEED_PAYLOAD', 'RELEASE');
+  end;
+  if (aOutputKind = 'NonResourceExtension') or (aOutputKind = 'InvalidResourceName') then
+  begin
+    lMissingName := 'Missing.res.bin';
+    if aOutputKind = 'InvalidResourceName' then
+      lMissingName := 'Missing|bad.res';
+    TFile.WriteAllText(TPath.Combine(lProjectDir, 'PayloadResource.inc'),
+      '{$R ''' + lMissingName + '''}', TEncoding.ASCII);
+  end else if aOutputKind = 'UppercaseResourceExtension' then
+  begin
+    TFile.Move(TPath.Combine(lProjectDir, 'Payload.rc'), TPath.Combine(lProjectDir, 'X.rc'));
+    lText := lText.Replace('Include="Payload.rc"', 'Include="X.rc"');
+    TFile.WriteAllText(TPath.Combine(lProjectDir, 'PayloadResource.inc'), '{$R X.RES}', TEncoding.ASCII);
+    lResourcePath := TPath.Combine(lProjectDir, 'X.RES');
+  end;
+  if aExisting then
+    TFile.WriteAllBytes(lResourcePath, TBytes.Create(0)); // Intentionally stale and unused by this helper.
+  TFile.WriteAllText(lDprojPath, lText, TEncoding.UTF8);
+  lLogPath := TPath.Combine(lProjectDir, 'result.log');
+  lEnvGuard := SetScopedEnvironmentVariables(['DAK_DFMCHECK_KEEP_ARTIFACTS', '1',
+    'DAK_DFMCHECK_TIMEOUT_MS', '1800000',
+    'DAK_DFMCHECK_MSBUILD', 'C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe']);
+  try
+    lArgs := 'dfm-check --dproj ' + QuoteArg(lDprojPath) +
+      ' --delphi 23.0 --config Release --platform Win32 --dfm TRESOURCEFORM --verbose true';
+    Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+      'Could not start the candidate dfm-check.');
+    lOutput := TFile.ReadAllText(lLogPath);
+    if StartsText('Boundary', aOutputKind) then
+    begin
+      Assert.AreEqual<Cardinal>(0, lExitCode, lOutput);
+      lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+      Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lGenerationError), lGenerationError);
+      TFile.Copy(TPath.Combine(TPath.GetDirectoryName(lPaths.fGeneratedDproj), '_DfmCheckBuild.log'),
+        TPath.Combine(lProjectDir, '.dak\ResourceSample\boundary-baseline.log'), True);
+      lCommandLength := 0;
+      for lLine in TFile.ReadAllLines(TPath.Combine(TPath.GetDirectoryName(lPaths.fGeneratedDproj),
+        '_DfmCheckBuild.log'), TEncoding.Default) do
+      begin
+        lCommandPosition := Pos('brcc32.exe ', LowerCase(lLine));
+        if lCommandPosition > 0 then
+          lCommandLength := Length(lLine) - lCommandPosition - Length('brcc32.exe');
+      end;
+      Assert.IsTrue(lCommandLength > 0, 'Expected the native resource command in the build log.');
+      // The task replaces Payload.rc (10 characters) with tmp<1..4 hex digits>.tmp
+      // (8..11 characters), then restores the source name in its log. The direct log
+      // also adds a separator. These controls stay below/above the whole temporary-name
+      // range, within three characters of the native 31744-character boundary.
+      lPadding := 31742 - lCommandLength;
+      if aOutputKind = 'BoundaryAbove' then
+        Inc(lPadding, 4);
+      Assert.IsTrue(lPadding > 4, 'The baseline command must be below the response threshold.');
+      lText := lText.Replace('<AppType>', '<BRCC_UserSuppliedOptions>-v' +
+        StringOfChar(' ', lPadding - 4) + '-v</BRCC_UserSuppliedOptions><AppType>');
+      TFile.WriteAllText(lDprojPath, lText, TEncoding.UTF8);
+      Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+        'Could not start the threshold control.');
+      lOutput := TFile.ReadAllText(lLogPath);
+    end;
+    if (aOutputKind = 'NonResourceExtension') or (aOutputKind = 'InvalidResourceName') then
+    begin
+      Assert.IsTrue(lExitCode <> 0, lOutput);
+      Assert.IsFalse(lOutput.Contains('EInOutArgumentException'), lOutput);
+      Assert.IsTrue(lOutput.Contains('error E1026: File not found: ''' + lMissingName + ''''), lOutput);
+      Assert.IsFalse(lOutput.Contains('retrying with all RcCompile items restored'), lOutput);
+      Assert.IsFalse(lOutput.Contains('DAK_DFMCHECK_RC_COMMAND_TOO_LONG'), lOutput);
+      Assert.IsFalse(lOutput.Contains('Could not open input file'), lOutput);
+      lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+      Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lGenerationError), lGenerationError);
+      Assert.IsFalse(ReadGeneratedDprojText(lPaths).Contains('<RcCompile '));
+      Assert.IsFalse(FileExists(TPath.Combine(TPath.GetDirectoryName(lPaths.fGeneratedDproj),
+        '_DfmCheckBuild.omitted.log')));
+      for lLine in TFile.ReadAllLines(TPath.Combine(TPath.GetDirectoryName(lPaths.fGeneratedDproj),
+        '_DfmCheckBuild.log')) do
+        if lLine.Contains('E1026') then
+          Assert.IsTrue(lOutput.Contains(Trim(lLine)), 'Native diagnostic changed: ' + lLine);
+    end else if not aExisting and (aLongCommand or (aOutputKind = 'BoundaryAbove')) then
+    begin
+      Assert.IsTrue(lExitCode <> 0, 'Required over-limit resource compilation must fail. ' + lOutput);
+      Assert.IsTrue(lOutput.Contains('DAK_DFMCHECK_RC_COMMAND_TOO_LONG'), lOutput);
+      Assert.IsTrue(lOutput.Contains('Payload.rc'), lOutput);
+      Assert.IsTrue(lOutput.Contains('build the project once'), lOutput);
+      Assert.IsTrue(lOutput.Contains('Could not open input file'), lOutput);
+      Assert.IsTrue(lOutput.Contains('E1026'), lOutput);
+      Assert.IsTrue(lOutput.Contains('retrying with all RcCompile items restored'), lOutput);
+    end else if (aOutputKind = 'QuotedResponse') or (aOutputKind = 'UnrelatedError') then
+    begin
+      Assert.IsTrue(lExitCode <> 0, lOutput);
+      if aOutputKind = 'QuotedResponse' then
+      begin
+        Assert.IsTrue(lOutput.Contains('Could not open input file'), lOutput);
+        Assert.IsTrue(lOutput.Contains('retrying with all RcCompile items restored'), lOutput);
+      end else begin
+        Assert.IsTrue(lOutput.Contains('E2003'), lOutput);
+        Assert.IsTrue(lOutput.Contains('DAK_UNRELATED_ERROR'), lOutput);
+        Assert.IsFalse(lOutput.Contains('retrying with all RcCompile items restored'), lOutput);
+        Assert.IsFalse(lOutput.Contains('DAK_DFMCHECK_RC_COMMAND_TOO_LONG'), lOutput);
+      end;
+    end else begin
+      Assert.AreEqual<Cardinal>(0, lExitCode, lOutput);
+      Assert.IsTrue(lOutput.Contains('streamed=1'), lOutput);
+      lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+      Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lGenerationError), lGenerationError);
+      Assert.AreEqual(not aExisting and (aOutputKind <> 'NoRcCompile'),
+        ReadGeneratedDprojText(lPaths).Contains('<RcCompile '));
+      Assert.AreEqual(not aExisting and (aOutputKind <> 'NoRcCompile'),
+        lOutput.Contains('retrying with all RcCompile items restored'), lOutput);
+      Assert.AreEqual(aExisting or (aOutputKind = 'NoRcCompile'),
+        not FileExists(TPath.Combine(TPath.GetDirectoryName(lPaths.fGeneratedDproj), '_DfmCheckBuild.omitted.log')));
+      if aOutputKind = 'ManyShort' then
+      begin
+        Assert.AreEqual(250, TRegEx.Matches(ReadGeneratedDprojText(lPaths), '<RcCompile ').Count);
+        for i := 1 to 249 do
+          Assert.IsTrue(FileExists(TPath.Combine(TPath.GetDirectoryName(lPaths.fGeneratedDproj),
+            'Resource' + IntToStr(i) + '_' + StringOfChar('x', 60) + '.res')));
+      end;
+      if aExisting then
+        Assert.IsTrue(lOutput.Contains('omitted RcCompile: ' +
+          IfThen(StartsText('Subdir', aOutputKind), 'rc\Payload.rc', 'Payload.rc')), lOutput)
+      else if aOutputKind <> 'NoRcCompile' then
+        Assert.IsTrue(FileExists(TPath.Combine(TPath.GetDirectoryName(lPaths.fGeneratedDproj),
+          TPath.GetFileName(lResourcePath))),
+          'The missing resource must be compiled by the helper.');
+    end;
+  finally
+    lEnvGuard := nil;
+  end;
 end;
 
 initialization

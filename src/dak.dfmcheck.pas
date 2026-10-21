@@ -2435,9 +2435,59 @@ begin
   Result := aDefines + ';' + aSymbol;
 end;
 
-function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDestDprojPath: string;
+function HasMissingResourceBuildFailure(const aBuildLines: TStrings): Boolean;
+var
+  i: Integer;
+  lExtensionPosition: Integer;
+  lFileName: string;
+  lHasUncertainName: Boolean;
+  lLine: string;
+  lMatch: TMatch;
+  lSeparatorPosition: Integer;
+begin
+  // DAK-422: let the compiler establish whether an omitted resource is needed.
+  for lLine in aBuildLines do
+  begin
+    lMatch := TRegEx.Match(lLine, '\bE1026\b[^''"\r\n]*([''"])([^''"\r\n]+)\1', [roIgnoreCase]);
+    if not lMatch.Success then
+      Continue;
+    lFileName := lMatch.Groups[2].Value;
+    // Compiler-rejected names are diagnostic text, not paths for validating RTL APIs.
+    // Decline recovery on doubtful characters; preserve the native error instead.
+    lHasUncertainName := lFileName <> Trim(lFileName);
+    for i := 1 to Length(lFileName) do
+      if CharInSet(lFileName[i], [#0..#31, '"', '<', '>', '|', '?', '*']) or
+        ((lFileName[i] = ':') and ((i <> 2) or not CharInSet(lFileName[1], ['A'..'Z', 'a'..'z']) or
+        ((Copy(lFileName, 3, 1) <> '\') and (Copy(lFileName, 3, 1) <> '/')))) then
+      begin
+        lHasUncertainName := True;
+        Break;
+      end;
+    if lHasUncertainName then
+      Continue;
+    lExtensionPosition := LastDelimiter('.', lFileName);
+    lSeparatorPosition := LastDelimiter('\/', lFileName);
+    if (lExtensionPosition > lSeparatorPosition) and
+      SameText(Copy(lFileName, lExtensionPosition, MaxInt), '.res') then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
+function HasUnreadableResourceInput(const aBuildLines: TStrings): Boolean;
+var
+  lLine: string;
+begin
+  for lLine in aBuildLines do
+    if TRegEx.IsMatch(lLine, '\.rc\b.*\berror\b.*Could not open input file', [roIgnoreCase]) then
+      Exit(True);
+  Result := False;
+end;
+
+function TryCopyDprojWithNewMainSource(const aOmitResources: Boolean;
+  const aSourceDprojPath: string; const aDestDprojPath: string;
   const aSourceMainSource: string; const aGeneratedMainSource: string; const aAdditionalUnitSearchPath: string;
-  out aError: string): Boolean;
+  const aOutput: TDfmCheckOutputProc; out aHadResources: Boolean; out aError: string): Boolean;
 const
   cDfmCheckSymbol = 'DFMCheck';
   cNoLocalizationSymbol = 'NO_LOCALIZATION';
@@ -2558,6 +2608,14 @@ const
     lRootDir: string;
   begin
     Result := False;
+    if LocalNameIs(aNode, 'RcCompile') then
+    begin
+      aHadResources := True;
+      Result := aOmitResources;
+      if Result then
+        EmitLine(aOutput, '[dfm-check] omitted RcCompile: ' + AttributeText(aNode, 'Include'));
+      Exit;
+    end;
     if not LocalNameIs(aNode, 'DCCReference') then
       Exit;
 
@@ -2729,6 +2787,7 @@ var
   lXmlDoc: TXMLDocument;
 begin
   aError := '';
+  aHadResources := False;
   lSourceDprojDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aSourceDprojPath));
 
   try
@@ -3435,7 +3494,8 @@ begin
 end;
 
 function TryGenerateDfmCheckProject(const aOptions: TAppOptions; const aDprojPath, aFilterCsv: string;
-  var aPaths: TDfmCheckPaths; out aError: string): Boolean;
+  var aPaths: TDfmCheckPaths; const aOmitResources: Boolean; const aOutput: TDfmCheckOutputProc;
+  out aHadResources: Boolean; out aError: string): Boolean;
 var
   lContextOptions: TAppOptions;
   lDprojReferenceDirs: TStringList;
@@ -3550,8 +3610,8 @@ begin
     if FileExists(lSourceCfgPath) then
       TFile.Copy(lSourceCfgPath, lGeneratedCfgPath, True);
 
-    if not TryCopyDprojWithNewMainSource(aDprojPath, aPaths.fGeneratedDproj, lMainSourceRaw, lGeneratedDprName,
-      lUnitSearchPath, aError) then
+    if not TryCopyDprojWithNewMainSource(aOmitResources, aDprojPath, aPaths.fGeneratedDproj, lMainSourceRaw,
+      lGeneratedDprName, lUnitSearchPath, aOutput, aHadResources, aError) then
       Exit(False);
   finally
     lUnitSearchDirs.Free;
@@ -4030,6 +4090,8 @@ var
   lBuildCmdPath: string;
   lBuildLogPath: string;
   lBuildVerbosity: string;
+  lBuildAttempt: Integer;
+  lHadResources: Boolean;
   lConfig: string;
   lFailLines: Integer;
   lForcedDcuOutputDir: string;
@@ -4265,7 +4327,7 @@ begin
     end;
 
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Generating DFMCheck project...');
-    if not TryGenerateDfmCheckProject(lEffectiveOptions, lDprojPath, lGeneratorFilterCsv, lPaths, aError) then
+    if not TryGenerateDfmCheckProject(lEffectiveOptions, lDprojPath, lGeneratorFilterCsv, lPaths, True, aOutput, lHadResources, aError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
       Exit(MapDfmCheckExitCode(aCategory, 0));
@@ -4305,7 +4367,7 @@ begin
     lEffectiveDefines := RemoveDefineSymbol(lProjectContext.ParserDefines, 'madExcept');
     lEffectiveDefines := EnsureDefineSymbol(lEffectiveDefines, 'DFMCheck');
     lEffectiveDefines := EnsureDefineSymbol(lEffectiveDefines, 'NO_LOCALIZATION');
-    lBuildVerbosity := '/v:q';
+    lBuildVerbosity := '/v:n';
     lBuildArgs :=
       QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build ' + FormatMsBuildProperty('Config', lConfig) +
       ' ' + FormatMsBuildProperty('Platform', lPlatform) +
@@ -4320,28 +4382,48 @@ begin
       '@echo off' + #13#10 +
       QuoteCmdArg(lBuildExePath) + ' ' + lBuildArgs + ' > ' + QuoteCmdArg(lBuildLogPath) + ' 2>&1' + #13#10 +
       'exit /b %errorlevel%' + #13#10, TEncoding.Default);
-    if not aRunner.Run(lBuildCmdPath, '', lPaths.fGeneratedDir, lRsVarsEnvironmentBlock, nil, lExitCode,
-      lRunnerError) then
+    for lBuildAttempt := 1 to 2 do
     begin
-      lPreserveArtifactsForDiagnostics := lExitCode = WAIT_TIMEOUT;
-      aError := DfmCheckRunnerFailureMessage('MSBuild', lRunnerError, lExitCode);
-      if lPreserveArtifactsForDiagnostics then
-        WriteDfmCheckTimeoutDiagnosticLog(lBuildLogPath, aError);
-      aCategory := TDfmCheckErrorCategory.ecBuildFailed;
-      Exit(MapDfmCheckExitCode(aCategory, 0));
-    end;
-    if FileExists(lBuildLogPath) then
-    begin
-      try
-        lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.UTF8);
-      except
-        on E: EEncodingError do
-          lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.Default);
+      if not aRunner.Run(lBuildCmdPath, '', lPaths.fGeneratedDir, lRsVarsEnvironmentBlock, nil, lExitCode,
+        lRunnerError) then
+      begin
+        lPreserveArtifactsForDiagnostics := lExitCode = WAIT_TIMEOUT;
+        aError := DfmCheckRunnerFailureMessage('MSBuild', lRunnerError, lExitCode);
+        if lPreserveArtifactsForDiagnostics then
+          WriteDfmCheckTimeoutDiagnosticLog(lBuildLogPath, aError);
+        aCategory := TDfmCheckErrorCategory.ecBuildFailed;
+        Exit(MapDfmCheckExitCode(aCategory, 0));
+      end;
+      lBuildLines.Clear;
+      if FileExists(lBuildLogPath) then
+      begin
+        try
+          lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.UTF8);
+        except
+          on E: EEncodingError do
+            lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.Default);
+        end;
+      end;
+      if (lExitCode = 0) or (lBuildAttempt = 2) or not lHadResources or
+        not HasMissingResourceBuildFailure(lBuildLines) then
+        Break;
+      EmitBuildFailureDiagnostics(lBuildLines, aOutput);
+      EmitLine(aOutput, '[dfm-check] Missing .res (E1026); retrying with all RcCompile items restored.');
+      if FileExists(lBuildLogPath) then
+        TFile.Copy(lBuildLogPath, TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckBuild.omitted.log'), True);
+      if not TryGenerateDfmCheckProject(lEffectiveOptions, lDprojPath, lGeneratorFilterCsv, lPaths,
+        False, aOutput, lHadResources, aError) then
+      begin
+        aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
+        Exit(MapDfmCheckExitCode(aCategory, 0));
       end;
     end;
     if lExitCode <> 0 then
     begin
       EmitBuildFailureDiagnostics(lBuildLines, aOutput);
+      if (lBuildAttempt = 2) and HasUnreadableResourceInput(lBuildLines) then
+        EmitLine(aOutput, 'DAK_DFMCHECK_RC_COMMAND_TOO_LONG: The resource command line may exceed the ' +
+          'Windows limit; build the project once so its .res files exist, or shorten the search path.');
       lNativeExitCodeText := FormatExitCodeForDisplay(lExitCode);
       if IsMadExceptBlockerBuildFailure(lBuildLines) then
       begin
