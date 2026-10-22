@@ -85,8 +85,9 @@ var
   lCounts, lSummary, lTarget: TJSONObject;
   lExit: Cardinal;
   lLog: string;
-  lScope: IInterface;
+  lGitScope, lScope: IInterface;
 begin
+  lGitScope := SetScopedGitConfiguration(fRoot);
   lBaseline := TPath.Combine(fRoot, 'accepted-baseline.json');
   TFile.WriteAllText(lBaseline, '{'#13#10'  "version": 1'#13#10'}'#13#10, TEncoding.ASCII);
   lBaselineBytes := TFile.ReadAllBytes(lBaseline);

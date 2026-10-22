@@ -215,7 +215,9 @@ var
   lExit: Cardinal;
   lLog: string;
   lSummary, lTarget: TJSONObject;
+  lGitScope: IInterface;
 begin
+  lGitScope := SetScopedGitConfiguration(fRoot);
   TFile.WriteAllText(TPath.Combine(fRoot, '.gitignore'), 'analyze.log'#10, TEncoding.ASCII);
   RunGit(fRoot, 'init -q');
   RunGit(fRoot, 'add .');

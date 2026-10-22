@@ -73,6 +73,8 @@ function QuoteArg(const aValue: string): string;
 function SetScopedPalCmdMapFixture(const aContent: string; out aMapPath: string): IInterface;
 function SetScopedEnvironmentVariable(const aName, aValue: string): IInterface;
 function SetScopedEnvironmentVariables(const aNameValuePairs: array of string): IInterface;
+// Keep fixture and product Git processes in the same isolated configuration scope.
+function SetScopedGitConfiguration(const aRoot: string): IInterface;
 function ClearScopedEnvironmentVariable(const aName: string): IInterface;
 
 const
@@ -306,6 +308,17 @@ end;
 function SetScopedEnvironmentVariables(const aNameValuePairs: array of string): IInterface;
 begin
   Result := TScopedEnvironmentVariables.Create(aNameValuePairs);
+end;
+
+function SetScopedGitConfiguration(const aRoot: string): IInterface;
+var
+  lConfig: string;
+begin
+  lConfig := TPath.Combine(aRoot, '.git-test-config');
+  TFile.WriteAllText(lConfig, '', TEncoding.ASCII);
+  // The environment also reaches provenance Git calls made inside the product process.
+  Result := SetScopedEnvironmentVariables(['GIT_CONFIG_GLOBAL', lConfig, 'GIT_CONFIG_NOSYSTEM', '1',
+    'GIT_CONFIG_COUNT', '1', 'GIT_CONFIG_KEY_0', 'core.excludesFile', 'GIT_CONFIG_VALUE_0', '']);
 end;
 
 function ClearScopedEnvironmentVariable(const aName: string): IInterface;
