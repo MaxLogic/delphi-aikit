@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- Native root-member proofs use shorter context and witness paths under deep project roots, and report the path length when native outputs cannot fit.
 - `remove-with` retains zero-edit refusals for RTL-rooted statements needing native root-member proof when a source profile with conditional or include directives is rejected.
 - Named-root WITH proofs retain declaration-time helper methods in a separate structural probe and preserve helper order across equivalent namespace or alias spellings.
 - Named-root WITH proofs preserve the final site position of repeated helper units.

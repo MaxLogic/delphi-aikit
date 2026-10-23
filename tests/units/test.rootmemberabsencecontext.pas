@@ -36,6 +36,11 @@ type
   public
     [Test]
     procedure StandardFixtureMatchesNativePathsAndReleaseRoot;
+    [Test]
+    procedure LongProjectPathRetainsNativeRootProof;
+    [TestCase('Context', 'context')]
+    [TestCase('Witness', 'witness')]
+    procedure UnavailablePathReportsLength(const aMode: string);
     [TestCase('Win32', 'Win32')]
     [TestCase('Win64', 'Win64')]
     [Category('DAK418')]
@@ -381,6 +386,58 @@ begin
       'A new shadow must invalidate finalization without another query.');
 end;
 
+procedure TRootMemberAbsenceContextTests.UnavailablePathReportsLength(const aMode: string);
+var
+  lContext: IDakNativeCompilerContext;
+  lInvocation: TDakNativeCompilerInvocation;
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lReason: string;
+  lRoot: string;
+begin
+  lRoot := UniqueTempPath('native-path-limit');
+  lRoot := TPath.Combine(lRoot, StringOfChar('x', 230 - Length(lRoot) - 1));
+  if aMode = 'context' then
+  begin
+    lInvocation := Default(TDakNativeCompilerInvocation);
+    lInvocation.fWorkRoot := lRoot;
+    lContext := TryCaptureNativeCompilerContext(lInvocation, nil, lReason);
+    Assert.IsTrue(lContext = nil);
+  end else begin
+    lProvider := TryCreateNativeImplicitRootMemberAbsence('dcc32.exe', '', lRoot, lReason);
+    Assert.IsTrue(lProvider = nil);
+  end;
+  Assert.IsTrue(lReason.StartsWith('native-root-proof-unavailable:'), lReason);
+  Assert.IsTrue(lReason.Contains('path length '), lReason);
+  Assert.IsFalse(TDirectory.Exists(lRoot), 'Refusal must happen before creating transport.');
+end;
+procedure TRootMemberAbsenceContextTests.LongProjectPathRetainsNativeRootProof;
+var
+  lContext: IDakNativeCompilerContext;
+  lOptions: TAppOptions;
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lProjectFileName: string;
+  lReason: string;
+  lRoot: string;
+begin
+  lProjectFileName := WriteContextProject('', '');
+  lRoot := TPath.GetDirectoryName(lProjectFileName);
+  // The former GUID transport path exceeds MAX_PATH even with a permitted runner root.
+  lRoot := TPath.Combine(lRoot, StringOfChar('x', 150 - Length(lRoot) - 1));
+  TDirectory.CreateDirectory(lRoot);
+  TDirectory.CreateDirectory(TPath.Combine(lRoot, 'lookup'));
+  TFile.Copy(lProjectFileName, TPath.Combine(lRoot, 'ContextProbe.dproj'));
+  TFile.Copy(TPath.ChangeExtension(lProjectFileName, '.dpr'), TPath.Combine(lRoot, 'ContextProbe.dpr'));
+  lOptions := ContextOptions(TPath.Combine(lRoot, 'ContextProbe.dproj'));
+  Assert.IsTrue(Length(CombinePath([lRoot, '.dak', 'ContextProbe', 'native-root-context',
+    'run-{00000000-0000-0000-0000-000000000000}', 'DCC_PreferredToolArchitecture.txt'])) > 260);
+  Assert.IsTrue(TryReadNativeCompilerContext(lOptions, lContext, lReason), lReason);
+  Assert.IsTrue(lContext.InputsAreCurrent, 'Long-path context must revalidate.');
+  lProvider := TryCreateNativeImplicitRootMemberAbsence(lContext.CompilerFileName,
+    lContext.RootLibraryDirectory, CombinePath([lRoot, '.dak', 'ContextProbe']), lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(lProvider.IsNameAbsent('DAK419_NoMember'),
+    'Long-path compiler witness and dependency capture must complete.');
+end;
 procedure TRootMemberAbsenceContextTests.StandardFixtureMatchesNativePathsAndReleaseRoot;
 var
   i: Integer;

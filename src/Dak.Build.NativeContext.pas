@@ -136,7 +136,8 @@ var
   lGuid: TGUID;
 begin
   CreateGUID(lGuid);
-  Result := 'run-' + GUIDToString(lGuid);
+  // Keep 96 random bits without GUID punctuation to preserve the native path budget.
+  Result := 'run-' + Copy(THashSHA2.GetHashString(GUIDToString(lGuid)), 1, 24);
 end;
 
 function ReadContextDirectoryIdentity(const aPath: string;
@@ -297,6 +298,11 @@ begin
   fTransportFiles := TList<string>.Create;
   fFailed := True;
   fRunRoot := TPath.Combine(aInvocation.fWorkRoot, NewRunName);
+  // MSBuild 4 WriteLinesToFile still uses classic Windows file paths.
+  if Length(TPath.Combine(fRunRoot, 'DCC_PreferredToolArchitecture.txt')) >= MAX_PATH then
+    raise EInvalidOpException.CreateFmt(
+      'native-root-proof-unavailable: native context path length %d exceeds %d: %s',
+      [Length(TPath.Combine(fRunRoot, 'DCC_PreferredToolArchitecture.txt')), MAX_PATH - 1, fRunRoot]);
   TDirectory.CreateDirectory(fRunRoot);
   if not ReadContextDirectoryIdentity(fRunRoot, fDirectoryIdentity) then
     raise EInvalidOpException.Create('Native transport directory identity unavailable');

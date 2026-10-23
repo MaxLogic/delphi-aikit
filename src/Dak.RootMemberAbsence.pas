@@ -55,7 +55,7 @@ uses
   System.RegularExpressions, System.StrUtils,
   Winapi.Windows,
   AutoFree,
-  maxLogic.StrUtils,
+  maxLogic.ioutils, maxLogic.StrUtils,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.ProjectContext,
   DelphiSemantics.Source,
   Dak.Build.NativeContext, Dak.Build.Runner, Dak.ExternalToolProcess, Dak.NativeInputLocks;
@@ -261,8 +261,8 @@ var
   lGuid: TGUID;
 begin
   CreateGUID(lGuid);
-  Result := StringReplace(StringReplace(StringReplace(GUIDToString(lGuid),
-    '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]), '-', '', [rfReplaceAll]);
+  // A 96-bit tag bounds both directory and generated unit names.
+  Result := Copy(THashSHA2.GetHashString(GUIDToString(lGuid)), 1, 24);
 end;
 
 function IsPlainIdentifier(const aName: string): Boolean;
@@ -1268,7 +1268,17 @@ function TryCreateNativeRootMemberAbsence(const aCompilerFileName, aSdkLibraryDi
   out aReason: string): IDelphiSemanticImplicitRootMemberAbsence;
 var
   lAlias: string;
+  lLongestPath: string;
 begin
+  // Bound the generated witness before any directory, compiler or executable is opened.
+  lLongestPath := maxLogic.ioutils.CombinePath([TPath.GetFullPath(aWorkRoot), 'root-member-absence',
+    'run-' + StringOfChar('0', 24), 'Witness_' + StringOfChar('0', 24) + '.pas']);
+  if Length(lLongestPath) >= MAX_PATH then
+  begin
+    aReason := Format('native-root-proof-unavailable: witness path length %d exceeds %d: %s',
+      [Length(lLongestPath), MAX_PATH - 1, lLongestPath]);
+    Exit(nil);
+  end;
   if not UnitListIsValid(aLookup.fUnitScopeNames) then
   begin
     aReason := 'invalid-native-unit-scope-names';
