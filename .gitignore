@@ -110,6 +110,8 @@ docs/delphi-dfm-checker/
 /.codex
 .codex/
 .claude/skills/
+.claude/settings.local.json
+.claude/*.lock
 
 # Local Claude Code guidance pointer (loads AGENTS.md)
 CLAUDE.md
