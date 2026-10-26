@@ -95,6 +95,9 @@ type
     fTransportFiles: TList<string>;
     fDirectoryIdentity: TByHandleFileInformation;
     fFailed: Boolean;
+    fRunLease: TFileStream;
+    procedure WriteRunManifest;
+    procedure PruneTransport;
     function TransportFile(const aName: string): string;
     procedure CleanupTransport;
     procedure RetainFailureTransport;
@@ -163,7 +166,10 @@ function TNativeCompilerContext.TransportFile(const aName: string): string;
 begin
   Result := TPath.Combine(fRunRoot, aName);
   if not fTransportFiles.Contains(Result) then
+  begin
     fTransportFiles.Add(Result);
+    WriteRunManifest;
+  end;
 end;
 
 function ContextDirectoryIdentityText(const aInformation: TByHandleFileInformation): string;
@@ -175,14 +181,10 @@ end;
 procedure TNativeCompilerContext.RetainFailureTransport;
 var
   g: TGarbos;
-  lFailedRoots: TList<string>;
-  lRoot, lFileName, lMarker: string;
-  lCurrent: TByHandleFileInformation;
-  lLines: TArray<string>;
+  lFileName, lMarker: string;
   lBytes: TBytes;
   lStream: TFileStream;
   lIdentity: TStringBuilder;
-  i, j: Integer;
 begin
   GC(lIdentity, TStringBuilder.Create, g);
   lIdentity.AppendLine(ContextDirectoryIdentityText(fDirectoryIdentity));
@@ -209,9 +211,43 @@ begin
   finally
     lStream.Free;
   end;
+  PruneTransport;
+end;
+
+procedure TNativeCompilerContext.WriteRunManifest;
+var
+  lFileName: string;
+  lBytes: TBytes;
+  lText: string;
+begin
+  if fRunLease = nil then
+    Exit;
+  lText := ContextDirectoryIdentityText(fDirectoryIdentity) + sLineBreak;
+  for lFileName in fTransportFiles do
+    lText := lText + TPath.GetFileName(lFileName) + sLineBreak;
+  lBytes := TEncoding.UTF8.GetBytes(lText);
+  fRunLease.Size := Length(lBytes);
+  fRunLease.Position := 0;
+  fRunLease.WriteBuffer(lBytes[0], Length(lBytes));
+  if not FlushFileBuffers(fRunLease.Handle) then
+    RaiseLastOSError;
+end;
+
+procedure TNativeCompilerContext.PruneTransport;
+var
+  g: TGarbos;
+  lFailedRoots: TList<string>;
+  lRoot, lFileName, lMarker, lLeaseName: string;
+  lCurrent: TByHandleFileInformation;
+  lLines: TArray<string>;
+  lBytes: TBytes;
+  lStream, lLease: TFileStream;
+  i, j: Integer;
+begin
   GC(lFailedRoots, TList<string>.Create, g);
   for lRoot in TDirectory.GetDirectories(fInvocation.fWorkRoot, 'run-*') do
-    if TFile.Exists(TPath.Combine(lRoot, 'failure.manifest')) then
+    if TFile.Exists(TPath.Combine(lRoot, 'failure.manifest')) or
+      TFile.Exists(TPath.Combine(lRoot, 'run.manifest')) then
       lFailedRoots.Add(lRoot);
   lFailedRoots.Sort(TComparer<string>.Construct(
     function(const aLeft, aRight: string): Integer
@@ -228,35 +264,56 @@ begin
     lMarker := TPath.Combine(lRoot, 'failure.manifest');
     if not ReadContextDirectoryIdentity(lRoot, lCurrent) then
       Continue;
-    // Only completed failure sets have a marker. Exclusive open excludes another
-    // pruner; live successful contexts never enter this retention queue.
-    lStream := TFileStream.Create(lMarker, fmOpenReadWrite or fmShareExclusive);
+    // The lease is held throughout capture/use/cleanup. A crashed process releases
+    // it; exclusive open also serializes pruners. Legacy unmarked folders stay.
+    lLeaseName := TPath.Combine(lRoot, 'run.manifest');
+    lLease := nil;
     try
-      if lStream.Size > 64 * 1024 then
-        Continue;
-      SetLength(lBytes, Integer(lStream.Size));
-      if Length(lBytes) > 0 then
-        lStream.ReadBuffer(lBytes[0], Length(lBytes));
-      lLines := TEncoding.UTF8.GetString(lBytes).Replace(#13, '').Split([#10],
-        TStringSplitOptions.ExcludeEmpty);
-      if (Length(lLines) = 0) or
-        (lLines[0] <> ContextDirectoryIdentityText(lCurrent)) then
-        Continue;
-      for j := 1 to High(lLines) do
-      begin
-        lFileName := lLines[j];
-        if (TPath.GetFileName(lFileName) <> lFileName) or
-          (not MatchText(TPath.GetExtension(lFileName), ['.xml', '.txt', '.cmds', '.log', '.targets'])) then
-          raise EInvalidOpException.Create('Unknown native failure manifest artifact');
-      end;
-      for j := 1 to High(lLines) do
-        if not DeleteFile(PChar(TPath.Combine(lRoot, lLines[j]))) then
-          if GetLastError <> ERROR_FILE_NOT_FOUND then
-            RaiseLastOSError;
-    finally
-      lStream.Free;
+      if TFile.Exists(lLeaseName) then
+        lLease := TFileStream.Create(lLeaseName, fmOpenReadWrite or fmShareExclusive);
+    except
+      on E: EFOpenError do
+        Continue; // A live context or another pruner owns this run.
     end;
-    if not DeleteFile(PChar(lMarker)) then
+    try
+      if TFile.Exists(lMarker) then
+        lStream := TFileStream.Create(lMarker, fmOpenReadWrite or fmShareExclusive)
+      else
+        lStream := lLease;
+      if lStream = nil then
+        Continue;
+      try
+        if lStream.Size > 64 * 1024 then
+          Continue;
+        SetLength(lBytes, Integer(lStream.Size));
+        if Length(lBytes) > 0 then
+          lStream.ReadBuffer(lBytes[0], Length(lBytes));
+        lLines := TEncoding.UTF8.GetString(lBytes).Replace(#13, '').Split([#10],
+          TStringSplitOptions.ExcludeEmpty);
+        if (Length(lLines) = 0) or
+          (lLines[0] <> ContextDirectoryIdentityText(lCurrent)) then
+          Continue;
+        for j := 1 to High(lLines) do
+        begin
+          lFileName := lLines[j];
+          if (TPath.GetFileName(lFileName) <> lFileName) or
+            (not MatchText(TPath.GetExtension(lFileName), ['.xml', '.txt', '.cmds', '.log', '.targets'])) then
+            raise EInvalidOpException.Create('Unknown native failure manifest artifact');
+        end;
+        for j := 1 to High(lLines) do
+          if not DeleteFile(PChar(TPath.Combine(lRoot, lLines[j]))) then
+            if GetLastError <> ERROR_FILE_NOT_FOUND then
+              RaiseLastOSError;
+      finally
+        if lStream <> lLease then
+          lStream.Free;
+      end;
+    finally
+      lLease.Free;
+    end;
+    if TFile.Exists(lMarker) and (not DeleteFile(PChar(lMarker))) then
+      RaiseLastOSError;
+    if TFile.Exists(lLeaseName) and (not DeleteFile(PChar(lLeaseName))) then
       RaiseLastOSError;
     // Unknown files are retained; there is no recursive deletion.
     if not RemoveDirectory(PChar(lRoot)) then
@@ -284,6 +341,10 @@ begin
   for lFileName in fTransportFiles do
     if TFile.Exists(lFileName) and (not DeleteFile(PChar(lFileName))) then
       OutputDebugString(PChar('DAK-414 native transport cleanup failed: ' + lFileName));
+  FreeAndNil(fRunLease);
+  if TFile.Exists(TPath.Combine(fRunRoot, 'run.manifest')) then
+    TFile.Delete(TPath.Combine(fRunRoot, 'run.manifest'));
+  PruneTransport;
   if not RemoveDirectory(PChar(fRunRoot)) then
     OutputDebugString(PChar('DAK-414 native context directory retained: ' + fRunRoot));
 end;
@@ -293,6 +354,10 @@ constructor TNativeCompilerContext.Create(const aInvocation: TDakNativeCompilerI
 begin
   inherited Create;
   fInvocation := aInvocation;
+  // MSBuild 4 serializes the project path into an XML comment during /pp.
+  // Refuse before creating output or launching its crashing WriteComment path.
+  if aInvocation.fProjectFileName.Contains('--') or aInvocation.fSdkRoot.Contains('--') then
+    raise EInvalidOpException.Create('native-context-project-path-double-hyphen');
   fRunner := aRunner;
   fInputLocks := TDakNativeInputLocks.Create;
   fTransportFiles := TList<string>.Create;
@@ -306,6 +371,9 @@ begin
   TDirectory.CreateDirectory(fRunRoot);
   if not ReadContextDirectoryIdentity(fRunRoot, fDirectoryIdentity) then
     raise EInvalidOpException.Create('Native transport directory identity unavailable');
+  fRunLease := TFileStream.Create(TPath.Combine(fRunRoot, 'run.manifest'), fmCreate or fmShareExclusive);
+  WriteRunManifest;
+  PruneTransport;
   Capture;
   fFailed := False;
 end;
@@ -319,6 +387,7 @@ begin
     on E: Exception do
       OutputDebugString(PChar('DAK-414 native transport cleanup failed: ' + E.Message));
   end;
+  fRunLease.Free;
   fTransportFiles.Free;
   inherited;
 end;
@@ -347,6 +416,8 @@ var
   lFileName: string;
 begin
   lFileName := TransportFile(aTag + '.xml');
+  if TFile.Exists(lFileName) then
+    TFile.Delete(lFileName);
   if not RunMetadata('/pp:"' + lFileName + '" /nologo', aTag) then
     raise EInvalidOpException.Create('Native MSBuild context preprocessing failed');
   Result := ReadNativeTransport(lFileName, 4 * 1024 * 1024);
@@ -803,7 +874,7 @@ end;
 function TNativeCompilerContext.InputsAreCurrent: Boolean;
 var
   lArguments: string;
-  lPathsFileName: string;
+  lPathsFileName, lProperty: string;
 begin
   // Immutable inputs stay read-locked; mutable source uses identity and content snapshots.
   // Directory absence is observed again at each proof use;
@@ -817,6 +888,12 @@ begin
       fFailed := True;
       Exit(False);
     end;
+    // A successful process may omit an export; no previous evaluation may satisfy it.
+    for lProperty in cNativeContextProperties do
+      if TFile.Exists(TransportFile(lProperty + '.txt')) then
+        TFile.Delete(TransportFile(lProperty + '.txt'));
+    if TFile.Exists(TransportFile('References.txt')) then
+      TFile.Delete(TransportFile('References.txt'));
     lArguments := StringReplace(fSnapshotArguments, TransportFile('paths.cmds'),
       lPathsFileName, []);
     Result := fInputLocks.InputsAreCurrent and RootSelectionIsCurrent and

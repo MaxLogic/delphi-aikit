@@ -5,6 +5,8 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Fixed
+- `remove-with` reports a blocked semantic plan's reason before session diagnostics and avoids repeated MSBuild evaluations for each source model while retaining proof and apply validation.
+- Native root proofs reject stale evaluation exports, bound abandoned transport retention, and return a diagnostic for invalid witness roots. Project paths containing `--` refuse native proof with `native-context-project-path-double-hyphen` before MSBuild preprocessing.
 - Native root-member proofs use shorter context and witness paths under deep project roots, and report the path length when native outputs cannot fit.
 - `remove-with` retains zero-edit refusals for RTL-rooted statements needing native root-member proof when a source profile with conditional or include directives is rejected.
 - Named-root WITH proofs retain declaration-time helper methods in a separate structural probe and preserve helper order across equivalent namespace or alias spellings.

@@ -3,7 +3,7 @@ unit Dak.RemoveWith.Symbols;
 interface
 
 uses
-  DelphiSemantics.Api, DelphiSemantics.Api.RemoveWith.Compatibility,
+  DelphiSemantics.Api, DelphiSemantics.Api.RemoveWith.Compatibility, DelphiSemantics.RootMemberAbsence,
   Dak.RemoveWith.Model, Dak.Types;
 
 type
@@ -140,6 +140,18 @@ function BuildRemoveWithFactSet(const aOptions: TAppOptions; const aProjectModel
 function BuildRemoveWithFactSet(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
   const aBodyAnalysisSourceFileNames: TArray<string>; out aInventory: TRemoveWithFactSet;
   out aError: string; out aPhaseMetrics: TRemoveWithFactSetPhaseMetrics): Boolean; overload;
+
+{$IFDEF DAK_TRANSACTION_TEST_ACCESS}
+type
+  TRemoveWithNativeOwnerFactoryForTest = reference to function(const aOptions: TAppOptions;
+    out aGuard: IDakRemoveWithPlanInputGuard; out aReason: string):
+    DelphiSemantics.RootMemberAbsence.IDelphiSemanticImplicitRootMemberAbsence;
+  TRemoveWithSemanticBuildForTest = reference to function(const aRequest: TDelphiSemanticRemoveWithRequest):
+    TDelphiSemanticRemoveWithDetailedCombinedResult;
+var
+  RemoveWithNativeOwnerFactoryForTest: TRemoveWithNativeOwnerFactoryForTest;
+  RemoveWithSemanticBuildForTest: TRemoveWithSemanticBuildForTest;
+{$ENDIF}
 
 implementation
 
@@ -808,9 +820,14 @@ begin
   aError := '';
   aResult := Default(TDelphiSemanticRemoveWithDetailedCombinedResult);
   try
-    aResult :=
-      TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFactsAndPlanDetailedResult(
-        aRequest);
+{$IFDEF DAK_TRANSACTION_TEST_ACCESS}
+    if Assigned(RemoveWithSemanticBuildForTest) then
+      aResult := RemoveWithSemanticBuildForTest(aRequest)
+    else
+{$ENDIF}
+      aResult :=
+        TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFactsAndPlanDetailedResult(
+          aRequest);
   except
     on E: Exception do
     begin
@@ -822,9 +839,13 @@ begin
   if not Result then
   begin
     aError := SemanticFactBuildDiagnosticsText(aResult.CombinedResult.Diagnostics);
-    if (Length(aResult.CombinedResult.Diagnostics) = 0) and
-      (aResult.CombinedResult.Plan.Diagnostic <> '') then
-      aError := aResult.CombinedResult.Plan.Diagnostic;
+    if aResult.CombinedResult.Plan.Diagnostic <> '' then
+    begin
+      if Length(aResult.CombinedResult.Diagnostics) > 0 then
+        aError := aResult.CombinedResult.Plan.Diagnostic + sLineBreak + aError
+      else
+        aError := aResult.CombinedResult.Plan.Diagnostic;
+    end;
   end;
 end;
 
@@ -954,8 +975,14 @@ begin
   lRequest.BodyAnalysisSourceFileNames := Copy(aBodyAnalysisSourceFileNames);
   lNativeOptions := aOptions;
   lNativeOptions.fDprojPath := aProjectModel.ProjectPath;
-  lRequest.Options.ImplicitRootMemberAbsence := TryCreateNativeRootRequestOwner(
-    lNativeOptions, lNativeGuard, lCallError);
+{$IFDEF DAK_TRANSACTION_TEST_ACCESS}
+  if Assigned(RemoveWithNativeOwnerFactoryForTest) then
+    lRequest.Options.ImplicitRootMemberAbsence := RemoveWithNativeOwnerFactoryForTest(
+      lNativeOptions, lNativeGuard, lCallError)
+  else
+{$ENDIF}
+    lRequest.Options.ImplicitRootMemberAbsence := TryCreateNativeRootRequestOwner(
+      lNativeOptions, lNativeGuard, lCallError);
   if lRequest.Options.ImplicitRootMemberAbsence = nil then
     aInventory.fNativeRootProofDiagnostic := 'native-root-proof-unavailable: ' + lCallError;
   if not TryBuildSemanticFactsAndPlanWithMetrics(lRequest, aPhaseMetrics,

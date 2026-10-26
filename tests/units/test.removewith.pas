@@ -1835,8 +1835,10 @@ begin
     Assert.AreEqual('with-1', lStatement.GetValue<string>('statementId'), lText);
     Assert.AreEqual('receiver-member-not-found', lStatement.GetValue<string>('reason'), lText);
     Assert.AreEqual('receiver-member-not-found', lStatement.GetValue<string>('detailedReason'), lText);
-    Assert.AreEqual('native-root-proof-unavailable: REMOVE_WITH_COMBINED_BUILD_EXCEPTION: ' +
-      'MODEL_SOURCE_VALIDATION_FAILED: native-request-source-profile-unsupported (' + lProject + ')',
+    Assert.AreEqual('native-root-proof-unavailable: MODEL_SOURCE_VALIDATION_FAILED: ' +
+      'native-request-source-profile-unsupported' + sLineBreak +
+      'REMOVE_WITH_COMBINED_BUILD_EXCEPTION: MODEL_SOURCE_VALIDATION_FAILED: ' +
+      'native-request-source-profile-unsupported (' + lProject + ')',
       lRoot.GetValue<string>('nativeRootProofDiagnostic', ''), lText);
   end else begin
     Assert.AreEqual('', lRoot.GetValue<string>('nativeRootProofDiagnostic', ''), lText);

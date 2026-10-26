@@ -1270,36 +1270,36 @@ var
   lAlias: string;
   lLongestPath: string;
 begin
-  // Bound the generated witness before any directory, compiler or executable is opened.
-  lLongestPath := maxLogic.ioutils.CombinePath([TPath.GetFullPath(aWorkRoot), 'root-member-absence',
-    'run-' + StringOfChar('0', 24), 'Witness_' + StringOfChar('0', 24) + '.pas']);
-  if Length(lLongestPath) >= MAX_PATH then
-  begin
-    aReason := Format('native-root-proof-unavailable: witness path length %d exceeds %d: %s',
-      [Length(lLongestPath), MAX_PATH - 1, lLongestPath]);
-    Exit(nil);
-  end;
-  if not UnitListIsValid(aLookup.fUnitScopeNames) then
-  begin
-    aReason := 'invalid-native-unit-scope-names';
-    Exit(nil);
-  end;
-  for lAlias in aLookup.fUnitAliases do
-    if (not TRegEx.IsMatch(lAlias, '^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*=' +
-      '[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$')) or
-      TRegEx.IsMatch(lAlias, '^(System|SysInit)=', [roIgnoreCase]) then
-    begin
-      aReason := 'unsupported-native-unit-alias';
-      Exit(nil);
-    end;
   Result := nil;
   aReason := '';
-  if not MatchText(ExtractFileName(aCompilerFileName), ['dcc32.exe', 'dcc64.exe']) then
-  begin
-    aReason := 'unsupported-native-compiler';
-    Exit;
-  end;
   try
+    // Bound the generated witness before any directory, compiler or executable is opened.
+    lLongestPath := maxLogic.ioutils.CombinePath([TPath.GetFullPath(aWorkRoot), 'root-member-absence',
+      'run-' + StringOfChar('0', 24), 'Witness_' + StringOfChar('0', 24) + '.pas']);
+    if Length(lLongestPath) >= MAX_PATH then
+    begin
+      aReason := Format('native-root-proof-unavailable: witness path length %d exceeds %d: %s',
+        [Length(lLongestPath), MAX_PATH - 1, lLongestPath]);
+      Exit(nil);
+    end;
+    if not UnitListIsValid(aLookup.fUnitScopeNames) then
+    begin
+      aReason := 'invalid-native-unit-scope-names';
+      Exit(nil);
+    end;
+    for lAlias in aLookup.fUnitAliases do
+      if (not TRegEx.IsMatch(lAlias, '^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*=' +
+        '[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$')) or
+        TRegEx.IsMatch(lAlias, '^(System|SysInit)=', [roIgnoreCase]) then
+      begin
+        aReason := 'unsupported-native-unit-alias';
+        Exit(nil);
+      end;
+    if not MatchText(ExtractFileName(aCompilerFileName), ['dcc32.exe', 'dcc64.exe']) then
+    begin
+      aReason := 'unsupported-native-compiler';
+      Exit;
+    end;
     Result := TNativeImplicitRootMemberAbsence.Create(aCompilerFileName,
       aSdkLibraryDirectory, aWorkRoot, aIO, aLookup);
   except
@@ -1524,7 +1524,7 @@ var
 begin
   Result := False;
   aReason := 'native-request-inputs-changed';
-  if not fContext.InputsAreCurrent then
+  if not fContextObservation.CapturedInputsAreCurrent then
     Exit;
   aReason := 'native-request-source-profile-unsupported';
   if (fProjectFingerprint = '') or

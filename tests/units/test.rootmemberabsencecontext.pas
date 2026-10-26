@@ -22,6 +22,21 @@ type
     [Test]
     procedure OwnerCreationFailureRetainsDiagnostic;
     [Test]
+    procedure BlockedPlanReasonPrecedesSessionDiagnostics;
+    [TestCase('Binding drift', 'drift')]
+    [TestCase('Provenance exception', 'provenance')]
+    procedure SymbolsFinalizationRefusesUnsafePublication(const aMode: string);
+    [TestCase('Empty', 'empty')]
+    [TestCase('Invalid', 'invalid')]
+    procedure InvalidWitnessRootReturnsReason(const aMode: string);
+    [TestCase('XML', 'stale-xml')]
+    [TestCase('Property', 'stale-property')]
+    procedure StaleRevalidationOutputRefuses(const aMode: string);
+    [Test]
+    procedure ModelValidationIsPassive;
+    [Test]
+    procedure DoubleHyphenProjectRefusesBeforeLaunch;
+    [Test]
     [TestCase('XML', 'xml')]
     [TestCase('Property export', 'property')]
     [TestCase('Path export', 'paths')]
@@ -29,6 +44,8 @@ type
     [Test]
     [TestCase('Directory limit', 'count')]
     [TestCase('Artifact byte limit', 'size')]
+    [TestCase('Crashed run limit', 'crash')]
+    [TestCase('Live run lease', 'live')]
     procedure FailedContextArtifactsStayBounded(const aMode: string);
   end;
 
@@ -109,10 +126,10 @@ type
 implementation
 
 uses
-  System.Classes, System.IOUtils, System.JSON, System.RegularExpressions, System.StrUtils, System.SysUtils,
+  System.Classes, System.Diagnostics, System.IOUtils, System.JSON, System.RegularExpressions, System.StrUtils, System.SysUtils,
   AutoFree,
   maxLogic.ioutils,
-  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.ProjectContext,
+  DelphiSemantics.Api, DelphiSemantics.Api.RemoveWith.Compatibility, DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.ProjectContext,
   DelphiSemantics.RootMemberAbsence, DelphiSemantics.Source,
   Dak.Build.NativeContext, Dak.Build.Runner, Dak.Build.Types, Dak.NativeInputLocks, Dak.RemoveWith.Model, Dak.RemoveWith.Symbols,
   Dak.RootMemberAbsence, Dak.Types,
@@ -781,6 +798,7 @@ type
   TThrowingProvenanceGuard = class(TInterfacedObject, IDakRemoveWithPlanInputGuard,
     IDakRemoveWithNativeProofProvenance, IDakRemoveWithNativeProofUsage)
   public
+    fDrift: Boolean;
     function ProofFingerprint: string;
     function ProofWasUsed: Boolean;
     function ValidateInputs(const aExpectedFingerprint: string; out aReason: string): Boolean;
@@ -801,7 +819,9 @@ function TThrowingProvenanceGuard.ValidateInputs(const aExpectedFingerprint: str
   out aReason: string): Boolean;
 begin
   aReason := '';
-  Result := aExpectedFingerprint = 'used-proof';
+  Result := (aExpectedFingerprint = 'used-proof') and (not fDrift);
+  if not Result then
+    aReason := 'native-request-inputs-changed';
 end;
 
 function TThrowingProvenanceGuard.ProvenanceJson: string;
@@ -977,6 +997,8 @@ begin
   if lMatch.Success then
   begin
     lFileName := lMatch.Groups[1].Value;
+    if (fMode = 'stale-xml') and (fCalls > 4) then
+      Exit;
     TFile.WriteAllText(lFileName,
       '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" />', TEncoding.ASCII);
     if fMode = 'xml' then
@@ -997,6 +1019,8 @@ begin
   begin
     lFileName := lMatch.Groups[1].Value;
     lName := TPath.GetFileNameWithoutExtension(lFileName);
+    if (fMode = 'stale-property') and (fCalls > 5) and (lName = 'DCC_Define') then
+      Continue;
     lValue := '';
     if lName = 'BDS' then
       lValue := fSdkRoot
@@ -1087,6 +1111,7 @@ var
   lContext: IDakNativeCompilerContext;
   lRunner: IBuildProcessRunner;
   lDirectories: TArray<string>;
+  lLiveContext: IDakNativeCompilerContext;
   lFileName, lReason: string;
   lStream: TFileStream;
 begin
@@ -1097,16 +1122,27 @@ begin
   lInvocation.fMsBuildFileName := lInvocation.fCompilerFileName;
   lInvocation.fWorkRoot := TPath.Combine(TPath.GetDirectoryName(lInvocation.fProjectFileName),
     '.dak\ContextProbe\native-root-context');
+  if aMode = 'live' then
+  begin
+    lRunner := TNativeTransportRunner.Create('', lInvocation.fSdkRoot);
+    lLiveContext := TryCaptureNativeCompilerContext(lInvocation, lRunner, lReason);
+    Assert.IsTrue(lLiveContext <> nil, lReason);
+  end;
   lRunner := TNativeTransportRunner.Create('xml', lInvocation.fSdkRoot);
   for i := 1 to 4 do
   begin
     lContext := TryCaptureNativeCompilerContext(lInvocation, lRunner, lReason);
     Assert.IsTrue(lContext = nil);
     Assert.IsTrue(lReason.Contains('native-context-output-too-large'), lReason);
+    if aMode = 'crash' then
+      for lFileName in TDirectory.GetFiles(lInvocation.fWorkRoot, 'failure.manifest', TSearchOption.soAllDirectories) do
+        TFile.Delete(lFileName);
   end;
+  if aMode = 'live' then
+    Assert.IsTrue(lLiveContext.InputsAreCurrent, 'Pruning must preserve a live context and its exports');
   lDirectories := TDirectory.GetDirectories(lInvocation.fWorkRoot);
   Assert.IsTrue(Length(lDirectories) > 0, 'Failures must retain bounded diagnostic artifacts');
-  if aMode = 'count' then
+  if (aMode = 'count') or (aMode = 'crash') then
     Assert.IsTrue(Length(lDirectories) <= 3, 'At most three failed transport sets per project');
   if aMode = 'size' then
     for lFileName in TDirectory.GetFiles(lInvocation.fWorkRoot, '*', TSearchOption.soAllDirectories) do
@@ -1118,6 +1154,198 @@ begin
         lStream.Free;
       end;
     end;
+end;
+
+procedure TNativePublicationTests.InvalidWitnessRootReturnsReason(const aMode: string);
+var
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lRoot, lReason: string;
+begin
+  lRoot := '';
+  if aMode = 'invalid' then
+    lRoot := 'invalid' + #0 + 'root';
+  lProvider := TryCreateNativeImplicitRootMemberAbsence('dcc32.exe', '', lRoot, lReason);
+  Assert.IsTrue(lProvider = nil);
+  Assert.IsTrue(lReason <> '', 'Invalid roots must return a reason without raising');
+end;
+
+procedure TNativePublicationTests.StaleRevalidationOutputRefuses(const aMode: string);
+var
+  lInvocation: TDakNativeCompilerInvocation;
+  lContext: IDakNativeCompilerContext;
+  lRunner: IBuildProcessRunner;
+  lReason: string;
+begin
+  lInvocation := Default(TDakNativeCompilerInvocation);
+  lInvocation.fProjectFileName := WriteContextProject('', '');
+  lInvocation.fSdkRoot := 'C:\Program Files (x86)\Embarcadero\Studio\23.0';
+  lInvocation.fCompilerFileName := TPath.Combine(lInvocation.fSdkRoot, 'bin\dcc32.exe');
+  lInvocation.fMsBuildFileName := lInvocation.fCompilerFileName;
+  lInvocation.fWorkRoot := TPath.Combine(TPath.GetDirectoryName(lInvocation.fProjectFileName), '.dak\ContextProbe\native-root-context');
+  lRunner := TNativeTransportRunner.Create(aMode, lInvocation.fSdkRoot);
+  lContext := TryCaptureNativeCompilerContext(lInvocation, lRunner, lReason);
+  Assert.IsTrue(lContext <> nil, lReason);
+  Assert.IsTrue(lContext.InputsAreCurrent, 'First evaluation must produce fresh transport');
+  Assert.IsFalse(lContext.InputsAreCurrent, 'Missing output must never reuse the previous evaluation');
+end;
+
+procedure TNativePublicationTests.ModelValidationIsPassive;
+var
+  lGuard: IDakRemoveWithPlanInputGuard;
+  lProvider: IDelphiSemanticImplicitRootMemberAbsence;
+  lOwner: IDelphiSemanticModelObservationOwner;
+  lProfileOwner: IDelphiSemanticProjectProfileValidator;
+  lMetrics: IDakNativeRootProofMetrics;
+  lOptions: TAppOptions;
+  lProject: TDelphiSemanticProjectInfo;
+  lObservation: TDelphiSemanticModelObservation;
+  lSource: TDelphiSemanticSourceLoadResult;
+  lReason, lFileName: string;
+  lBefore: Integer;
+  lWatch: TStopwatch;
+  i: Integer;
+begin
+  lOptions := ContextOptions(WriteContextProject('', ''));
+  lFileName := TPath.Combine(TPath.GetDirectoryName(lOptions.fDprojPath), 'Observed.pas');
+  TFile.WriteAllText(lFileName, 'unit Observed; interface implementation end.', TEncoding.ASCII);
+  lProvider := TryCreateNativeRootRequestOwner(lOptions, lGuard, lReason);
+  Assert.IsTrue(lProvider <> nil, lReason);
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticProjectProfileValidator, lProfileOwner));
+  Assert.IsTrue(Supports(lProvider, IDelphiSemanticModelObservationOwner, lOwner));
+  Assert.IsTrue(Supports(lGuard, IDakNativeRootProofMetrics, lMetrics));
+  lProject := Default(TDelphiSemanticProjectInfo);
+  lProject.Platform := 'Win32';
+  lProject.Configuration := 'Debug';
+  lProject.Defines := TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform('Win32');
+  lProject.ContextFingerprint := 'passive-model-control';
+  Assert.IsTrue(lProfileOwner.ValidateProjectProfile(lProject, lReason), lReason);
+  lSource := TDelphiSemanticSourceLoader.LoadFile(lFileName);
+  lObservation := Default(TDelphiSemanticModelObservation);
+  lObservation.ProjectContextFingerprint := lProject.ContextFingerprint;
+  lObservation.ModelFileName := lFileName;
+  lObservation.SourceObservations := lSource.SourceObservations;
+  Assert.IsTrue(lOwner.ValidateModelSources(lObservation, lReason), lReason);
+  lBefore := lMetrics.NativeRevalidationCount;
+  lWatch := TStopwatch.StartNew;
+  for i := 1 to 3 do
+    Assert.IsTrue(lOwner.ValidateModelSources(lObservation, lReason), lReason);
+  lWatch.Stop;
+  if GetEnvironmentVariable('DAK_NATIVEPROOF_METRICS') <> '' then
+    TFile.AppendAllText(GetEnvironmentVariable('DAK_NATIVEPROOF_METRICS'),
+      Format('MODEL_VALIDATION models=3 evaluations=%d processes=%d elapsed_ms=%d',
+      [lMetrics.NativeRevalidationCount - lBefore, (lMetrics.NativeRevalidationCount - lBefore) * 2, lWatch.ElapsedMilliseconds]) + sLineBreak);
+  Assert.AreEqual(lBefore, lMetrics.NativeRevalidationCount, 'Models must validate captured inputs without MSBuild');
+  TFile.AppendAllText(lFileName, '// changed', TEncoding.ASCII);
+  Assert.IsFalse(lOwner.ValidateModelSources(lObservation, lReason), 'Passive checks must retain source drift refusal');
+end;
+
+procedure TNativePublicationTests.DoubleHyphenProjectRefusesBeforeLaunch;
+var
+  lInvocation: TDakNativeCompilerInvocation;
+  lContext: IDakNativeCompilerContext;
+  lRunner: IBuildProcessRunner;
+  lProbe: TNativeTransportRunner;
+  lOptions: TAppOptions;
+  lWatch: TStopwatch;
+  lReason, lOriginal: string;
+begin
+  lInvocation := Default(TDakNativeCompilerInvocation);
+  lOriginal := WriteContextProject('', '');
+  lInvocation.fProjectFileName := lOriginal;
+  lInvocation.fProjectFileName := TPath.Combine(TPath.GetDirectoryName(lInvocation.fProjectFileName), 'project--path\ContextProbe.dproj');
+  TDirectory.CreateDirectory(TPath.GetDirectoryName(lInvocation.fProjectFileName));
+  TFile.Copy(lOriginal, lInvocation.fProjectFileName);
+  TFile.Copy(TPath.ChangeExtension(lOriginal, '.dpr'), TPath.ChangeExtension(lInvocation.fProjectFileName, '.dpr'));
+  TDirectory.CreateDirectory(TPath.Combine(TPath.GetDirectoryName(lInvocation.fProjectFileName), 'lookup'));
+  lInvocation.fCompilerFileName := 'dcc32.exe';
+  lInvocation.fWorkRoot := TPath.Combine(TPath.GetDirectoryName(lInvocation.fProjectFileName), '.dak');
+  lProbe := TNativeTransportRunner.Create('', '');
+  lRunner := lProbe;
+  lContext := TryCaptureNativeCompilerContext(lInvocation, lRunner, lReason);
+  Assert.IsTrue(lContext = nil);
+  Assert.IsTrue(lReason.Contains('native-context-project-path-double-hyphen'), lReason);
+  Assert.AreEqual(0, lProbe.fCalls, 'Unsafe MSBuild comment paths must refuse before launching');
+  lOptions := ContextOptions(lInvocation.fProjectFileName);
+  lWatch := TStopwatch.StartNew;
+  Assert.IsFalse(TryReadNativeCompilerContext(lOptions, lContext, lReason));
+  lWatch.Stop;
+  Assert.IsTrue(lReason.Contains('native-context-project-path-double-hyphen'), lReason);
+  if GetEnvironmentVariable('DAK_NATIVEPROOF_METRICS') <> '' then
+    TFile.AppendAllText(GetEnvironmentVariable('DAK_NATIVEPROOF_METRICS'),
+      Format('DOUBLE_HYPHEN native_capture_refusal elapsed_ms=%d', [lWatch.ElapsedMilliseconds]) + sLineBreak);
+end;
+
+procedure TNativePublicationTests.BlockedPlanReasonPrecedesSessionDiagnostics;
+var
+  lOptions: TAppOptions;
+  lInventory: TRemoveWithFactSet;
+  lReason: string;
+begin
+  lOptions := ContextOptions(WriteContextProject('', ''));
+  lOptions.fDelphiVersion := '';
+  RemoveWithSemanticBuildForTest :=
+    function(const aRequest: TDelphiSemanticRemoveWithRequest): TDelphiSemanticRemoveWithDetailedCombinedResult
+    begin
+      Result := Default(TDelphiSemanticRemoveWithDetailedCombinedResult);
+      Result.CombinedResult.Plan.Diagnostic := 'REFERENCE_ACTIVITY_UNVERIFIED';
+      SetLength(Result.CombinedResult.Diagnostics, 1);
+      Result.CombinedResult.Diagnostics[0].Code := 'UNRESOLVED_MSBUILD_MACRO';
+      Result.CombinedResult.Diagnostics[0].Message := 'Earlier session context';
+    end;
+  try
+    Assert.IsFalse(BuildRemoveWithFactSet(lOptions, lInventory, lReason));
+    Assert.IsTrue(Pos('REFERENCE_ACTIVITY_UNVERIFIED', lReason) > 0, lReason);
+    Assert.IsTrue(Pos('UNRESOLVED_MSBUILD_MACRO', lReason) > Pos('REFERENCE_ACTIVITY_UNVERIFIED', lReason), lReason);
+    Assert.IsTrue(lReason.Contains('Earlier session context'), lReason);
+  finally
+    RemoveWithSemanticBuildForTest := nil;
+  end;
+end;
+
+procedure TNativePublicationTests.SymbolsFinalizationRefusesUnsafePublication(const aMode: string);
+var
+  lOptions: TAppOptions;
+  lInventory: TRemoveWithFactSet;
+  lReason: string;
+  lReachedBinding: Boolean;
+  lProbe: TThrowingProvenanceGuard;
+begin
+  lReachedBinding := False;
+  lOptions := ContextOptions(WriteContextProject('', ''));
+  RemoveWithNativeOwnerFactoryForTest :=
+    function(const aOptions: TAppOptions; out aGuard: IDakRemoveWithPlanInputGuard;
+      out aReason: string): IDelphiSemanticImplicitRootMemberAbsence
+    begin
+      lProbe := TThrowingProvenanceGuard.Create;
+      aGuard := lProbe;
+      aReason := '';
+      Result := nil;
+    end;
+  RemoveWithSemanticBuildForTest :=
+    function(const aRequest: TDelphiSemanticRemoveWithRequest): TDelphiSemanticRemoveWithDetailedCombinedResult
+    begin
+      lReachedBinding := True;
+      Result := TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFactsAndPlanDetailedResult(aRequest);
+      Assert.IsTrue(Result.CombinedResult.Success, 'Real semantic planning must succeed');
+      lProbe.fDrift := aMode = 'drift';
+      if aMode = 'drift' then
+        TFile.AppendAllText(TPath.ChangeExtension(aRequest.Options.ProjectFileName, '.dpr'), '// drift', TEncoding.ASCII);
+    end;
+  try
+    Assert.IsFalse(BuildRemoveWithFactSet(lOptions, lInventory, lReason));
+    Assert.IsTrue(lReachedBinding, 'The real semantic bind/plan call must complete before finalization');
+    if aMode = 'drift' then
+      Assert.AreEqual('native-request-inputs-changed', lReason)
+    else begin
+      Assert.IsTrue(lReason.Contains('native-root-proof-finalization-failed'), lReason);
+      Assert.IsTrue(lReason.Contains('deliberate provenance failure'), lReason);
+    end;
+    Assert.AreEqual('', lInventory.fNativeRootProofFingerprint);
+    Assert.AreEqual('', lInventory.fNativeRootProofProvenance);
+  finally
+    RemoveWithSemanticBuildForTest := nil;
+    RemoveWithNativeOwnerFactoryForTest := nil;
+  end;
 end;
 
 initialization
