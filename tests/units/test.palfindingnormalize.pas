@@ -15,6 +15,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TPalFindingNormalizeTests = class
   private
     procedure CopyPalFixtureToTemp(const aSourceRoot, aTempName: string; out aFixtureRoot: string);

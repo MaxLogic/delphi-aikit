@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TLspProtocolTests = class
   public
     [Test]

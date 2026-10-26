@@ -9,6 +9,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TLspContextTests = class
   protected
     function ArrayContainsValue(const aValues: TArray<string>; const aExpected: string): Boolean;
@@ -46,6 +47,7 @@ type
   // file preparation, and failures surfaced through TryRunLspRequest by native
   // test child modes that never implement the protocol.
   [TestFixture]
+  [Category('Slow')]
   TLspRunnerTests = class
   private
     function PrepareContext(const aScenarioName: string; out aContext: TLspContext): string;
@@ -77,6 +79,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TLspArchitectureTests = class
   public
     [Test]
@@ -84,6 +87,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRealLspAcceptanceTests = class
   private
     function FixtureDprojPath: string;

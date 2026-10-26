@@ -8,6 +8,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TDepsTests = class
   private
     function FixtureProjectPath: string;

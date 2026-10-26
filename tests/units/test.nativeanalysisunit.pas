@@ -13,6 +13,7 @@ type
   // project context, then finalizes the report exactly as the project workflow does. These drive the
   // real executable with the DUnitX executable standing in for PALCMD.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisUnitTests = class
   private
     fRoot: string;

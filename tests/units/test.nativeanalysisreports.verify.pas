@@ -10,6 +10,7 @@ type
   // suites (test_ownership_reporting.py and test_pal_rule_policy.py) ported one to one. Policy
   // artifacts (baseline/delta/history/trend) are T-325 controls and are not exercised here.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisVerifyTests = class
   private
     fOutput: string;
@@ -53,6 +54,7 @@ type
   // Synthetic streams from the reference suite (write_summary / finding_streams / write_schema2_seed)
   // driven through the native finalizer and verifier.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisReplayControlTests = class
   private
     fRoot: string;
@@ -98,6 +100,7 @@ type
   // analyze-report CLI contract: replay prints the finalization result, --verify prints the
   // ownership line, exit 3 reports a rejected output and exit 2 a usage error.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisReportCommandTests = class
   private
     fRoot: string;
@@ -125,15 +128,7 @@ uses
   AutoFree,
   Dak.Analysis.JsonText, Dak.Analysis.ReportBundle, Dak.Analysis.ReportReplay, Dak.Analysis.ReportVerify,
   Dak.Analysis.ReportWriters,
-  Test.Support;
-
-const
-  cMigrationRoot = 'projects\.dak\DelphiAIKit\native-analysis-migration';
-
-function MigrationPath(const aRelative: string): string;
-begin
-  Result := TPath.Combine(TPath.Combine(RepoRoot, cMigrationRoot), aRelative);
-end;
+  Test.NativeAnalysisReports.Replay, Test.Support;
 
 procedure CopyTree(const aSource, aDestination: string);
 var

@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Fast')]
   TNativeAnalysisJsonLinesTests = class
   public
     [Test]

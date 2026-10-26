@@ -10,6 +10,7 @@ type
   // test_pal_rule_policy.py and test_workspace_provenance.py that the replay and policy fixtures
   // did not already assert, driven through the native services on real files and Git working copies.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisReportControlTests = class
   private
     fRoot: string;

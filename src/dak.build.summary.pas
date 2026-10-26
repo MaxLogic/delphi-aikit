@@ -14,7 +14,8 @@ function BuildSummaryAsJson(const aProjectPath: string; const aOptions: TAppOpti
 implementation
 
 uses
-  System.Classes, System.IOUtils, System.RegularExpressions, System.StrUtils;
+  System.Classes, System.IOUtils, System.RegularExpressions, System.StrUtils,
+  Dak.Paths;
 
 function SplitList(const aValue: string): TArray<string>;
 var
@@ -100,7 +101,7 @@ begin
   lDir := NormalizeDir(aStartDir);
   while lDir <> '' do
   begin
-    if DirectoryExists(TPath.Combine(lDir, '.git')) or DirectoryExists(TPath.Combine(lDir, '.svn')) then
+    if IsRepositoryRootDirectory(lDir) then
       Exit(lDir);
     lParent := NormalizeDir(ExtractFileDir(lDir));
     if (lParent = '') or SameText(lParent, lDir) then

@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TNativeRunProvenanceTests = class
   public
     [TestCase('SeparateRepositories', '0')]

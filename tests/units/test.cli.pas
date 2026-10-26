@@ -12,6 +12,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TCliTests = class
   private
     function ToWslPath(const aWindowsPath: string): string;

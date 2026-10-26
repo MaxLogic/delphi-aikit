@@ -9,6 +9,7 @@ type
   // T-263: remove-with on a valid project whose verification workspace path passes the classic 260
   // character limit must finish with a structured result instead of an unhandled EInOutError.
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithLongPathTests = class
   public
     [Test]

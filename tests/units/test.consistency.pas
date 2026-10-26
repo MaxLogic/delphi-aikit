@@ -6,6 +6,7 @@ uses DUnitX.TestFramework;
 
 type
   [TestFixture]
+  [Category('Slow')]
   TConsistencyTests = class
   public
     [Test]

@@ -9,6 +9,7 @@ type
   // Pinned Python 3.13.15 json.dumps oracle for Dak.Analysis.JsonText: indented sorted
   // documents, single-line JSONL rows and compact fingerprint text must match byte for byte.
   [TestFixture]
+  [Category('Fast')]
   TNativeAnalysisJsonTextTests = class
   public
     [Test]

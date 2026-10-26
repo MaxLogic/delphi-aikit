@@ -9,6 +9,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TDeadCodeApplyCliTests = class
   private
     procedure CreateFixtureProject(const aRoot: string; const aFailWhenRoutineRemoved: Boolean;

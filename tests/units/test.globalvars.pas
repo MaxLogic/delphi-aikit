@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TGlobalVarsTests = class
   private
     function FixtureProjectPath: string;

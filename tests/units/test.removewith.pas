@@ -23,6 +23,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithSourceProvenanceTests = class(TRemoveWithTestBase)
   public
     [Test]
@@ -30,6 +31,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithCommandTests = class(TRemoveWithTestBase)
   private
     procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath,
@@ -152,6 +154,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithReportTests = class(TRemoveWithTestBase)
   public
     [Test]
@@ -177,6 +180,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithDiscoveryTests = class(TRemoveWithTestBase)
   private
     function RunDiscoveryFixture(const aTargetArgs, aLogName: string; out aExitCode: Cardinal): string;
@@ -192,6 +196,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithRangeTests = class(TRemoveWithTestBase)
   private
     function RunRangeFixture(const aTargetArgs, aLogName: string; out aExitCode: Cardinal): string;
@@ -208,6 +213,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithAstParallelSafetyTests = class(TRemoveWithTestBase)
   public
     [Test]
@@ -229,6 +235,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithProjectModelTests = class(TRemoveWithTestBase)
   public
     [Test]
@@ -236,6 +243,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithUnitModelExtractorTests = class(TRemoveWithTestBase)
   private
     function BuildUnitModelFixture: TRemoveWithProjectModel;
@@ -261,6 +269,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithSemanticBinderTests = class(TRemoveWithTestBase)
   private
     procedure BuildResolverFixture(out aInventory: TRemoveWithFactSet;
@@ -294,6 +303,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithPrecedenceTests = class(TRemoveWithTestBase)
   private
     procedure CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
@@ -307,6 +317,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithSymbolTests = class(TRemoveWithTestBase)
   private
     procedure BuildSymbolFixture(out aInventory: TRemoveWithFactSet);
@@ -334,6 +345,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithExpressionTypeTests = class(TRemoveWithTestBase)
   private
     procedure BuildExpressionFixture(out aInventory: TRemoveWithFactSet);
@@ -351,6 +363,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithSourceModelGoldenTests = class(TRemoveWithTestBase)
   private
     procedure BuildSourceModelFixture(out aInventory: TRemoveWithFactSet);
@@ -372,6 +385,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithAncestorTests = class(TRemoveWithTestBase)
   private
     procedure BuildAncestorHelperFixture(out aInventory: TRemoveWithFactSet);
@@ -388,6 +402,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithHelperTests = class(TRemoveWithTestBase)
   private
     procedure BuildAncestorHelperFixture(out aInventory: TRemoveWithFactSet);
@@ -404,6 +419,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithResolverTests = class(TRemoveWithTestBase)
   private
     procedure BuildResolverFixture(out aInventory: TRemoveWithFactSet;
@@ -430,6 +446,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithInheritedOverrideGoldenTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -442,6 +459,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithInterfaceResolverTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -454,6 +472,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithHelperPrecedenceGoldenTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -466,6 +485,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithGlobalScopeGoldenTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -478,6 +498,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithIndexedPropertyTests = class(TRemoveWithTestBase)
   private
     procedure BuildIndexedPropertyFixture(out aInventory: TRemoveWithFactSet);
@@ -499,6 +520,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithTempPolicyTests = class(TRemoveWithTestBase)
   private
     procedure BuildTempPolicyFixture(out aInventory: TRemoveWithFactSet);
@@ -516,6 +538,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithPlannerTests = class(TRemoveWithTestBase)
   private
     procedure BuildPlannerFixture(out aInventory: TRemoveWithFactSet; out aScanResult: TRemoveWithScanResult;
@@ -543,6 +566,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithCliTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -556,6 +580,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithRewriteShapeTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -586,6 +611,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithTempAggregationTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -603,6 +629,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithTransactionTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -645,6 +672,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithApplyCompileGateTests = class(TRemoveWithTestBase)
   private
     procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
@@ -688,6 +716,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithApplyReportTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -702,6 +731,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithNoEditAndRollbackTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -719,6 +749,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithScopedDeclarationSafetyTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -733,6 +764,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithExpressionRoleRewriteTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -746,6 +778,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithComplexSourceModelTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -758,6 +791,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithExternalRoutineTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -770,6 +804,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithIntrinsicSymbolTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -786,6 +821,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithControlCharacterLiteralTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -799,6 +835,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithImplementationGlobalTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -813,6 +850,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithNestedRoutineScopeTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -827,6 +865,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithEnumConstTypeAliasTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -841,6 +880,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithConditionalDirectiveTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -854,6 +894,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithUnresolvedReasonReportTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -865,6 +906,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithSymbolMapParityReportTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -876,6 +918,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithCorpusSmokeTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -889,6 +932,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithBoundRewriteTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -901,6 +945,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRemoveWithHardeningApplyTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -919,7 +964,7 @@ type
   end;
 
   [TestFixture]
-  [Category('MaxTdbProof')]
+  [Category('MaxTdbProof,Slow')]
   TRemoveWithProprietaryProjectTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;

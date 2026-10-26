@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TNativeWorkspaceCommandTests = class
   public
     [TestCase('Project', '0')]

@@ -73,16 +73,98 @@ point uses this same wrapper and preserves its exit code.
 
 Missing FixInsightCL, PALCMD, or real DelphiLSP acceptance tooling fails by default. Set `DAK_ALLOW_FIXINSIGHT_SKIP=1`, `DAK_ALLOW_PAL_SKIP=1`, or `DAK_ALLOW_LSP_SKIP=1` only when that tool's tests are intentionally outside the run's scope.
 
-Timing note:
+## Shards and fast feedback
 
-- The full DUnitX suite is not a fast smoke test. On Pawel's machine it took about 3.5 minutes on 2026-04-07 (`153` tests, all green).
-- `Test.FixInsight.TFixInsightTests` accounts for most of that time. It runs FixInsight analysis three times (`base`, `exclude`, `ignore-ids`) and took about 190-200 seconds on 2026-04-07.
-- Avoid using a 120s or 240s watchdog for the full suite or the FixInsight fixture; those bounds are short enough to produce false "hang" diagnoses.
-- `run-dunitx.ps1 -TimeoutSeconds` defaults to 14400; `0` means no limit (the run waits for the test process to exit) and a negative value is a parameter error. `summary.json` records `timeoutSeconds` (0 = no limit) and `timedOut`.
-- Size automation timeouts from current runs. On 2026-09-10 the five-test FixInsight fixture passed in 666 seconds; a full 661-test run took 1003 seconds before reporting path-length failures. Allow at least `1800s` for the full suite and `900s` for the FixInsight fixture on this machine, and inspect process progress before diagnosing a hang.
+Build the Win64 Debug candidates once, then run the same binary through either gate:
 
-Keep `DAK_TEST_OUTPUT_ROOT` unset for the full suite unless an alternative root
-has been checked against the deepest fixtures. The runner defaults to
+```powershell
+# Full batch/final gate: four isolated processes, default MaxTdbProof exclusion preserved.
+.\tests\run-shards.ps1 -LogRoot <owned-proof-root> -OutputRoot <short-owned-output-root>
+# Small synthetic fixtures: no real builds, LSP sessions or large corpora.
+.\tests\run-dunitx.ps1 -TestArguments:--include:Fast
+# Discover selection coverage by retaining XML in the serial comparison run.
+.\tests\run-dunitx.ps1 -TestArguments:--xmlfile:<owned-proof-root>\serial.xml
+.\tests\run-shards.ps1 -LogRoot <owned-proof-root> -OutputRoot <short-owned-output-root> -SerialSummary <serial-run>\summary.json
+```
+
+The shard wrapper requires PowerShell 7. Each child has independent TEMP/TMP,
+DAK_TEST_OUTPUT_ROOT, a private migration bundle and synthetic Git clones. LSP
+uses stdio; the suite has no configured fixed TCP test port to allocate.
+Replay and Verify stay in one shard because they share synthetic report output
+paths. Fixtures remain sequential within each process. `-ShardCount` defaults
+to four; `-Run` accepts fixture/unit prefixes for a focused process-isolation check.
+
+The plan uses the measured fixture durations in `scripts/fixture-durations.json`
+(from the 2026-10-25 serial baseline), with longest groups assigned first. The
+roster is enumerated from the actual test binary via `DAK_TEST_LIST_PATH`, using
+DUnitX's registry and the same default exclusion filter without running tests.
+Named fixtures and parameterized cases are included. Every run compares its XML
+identities with this roster; missing, extra or duplicate cases fail even without
+`-SerialSummary`. New fixtures use a small default weight; update their measured
+weight after profiling. Every independent FixInsight case can move separately; its raw
+reports case stays intact. Replay/Verify's weight includes measured relocation work.
+Ordinary groups select whole fixtures so the DUnitX expression parser preserves
+parameterized case names containing commas.
+
+The baseline was 3,887 seconds under contention. The critical FixInsight case
+alone took about 1,174 seconds. The current quiet-machine target is at most
+`max(1200 seconds, measured critical-path case * 1.10)`. No case is dropped or
+weakened to meet that target. The complete suite remains the batch/final gate.
+Fast and Slow categories select routine versus integration work; Fast is a
+curated subset, not an alternative full gate. MaxTdbProof remains opt-in.
+
+`aggregate.json` retains all native/wrapper exits, combined footer/case counts,
+every failing case, shutdown leak reports, timing and the binary hash. Missing or
+empty evidence, duplicate case identities, failure/error/leak/ignored counts and
+unexpected child exits fail the gate. NUnit case results are checked even if the
+fixture says Success. `-SerialSummary` checks the binary hash and compares every
+fixture/case identity and result; missing/extra/changed tests fail. Raw stdout,
+stderr, XML, plan and argument files are retained per shard. The wrapper runs
+all started shards to their own deadlines when one fails, including when its XML
+is truncated or its summary cannot be parsed. Keep successful proof and remove only
+verified owned scratch through the project's cleanup workflow after writers stop.
+
+Migration inputs are provisioned by `scripts/prepare-migration-inputs.ps1`,
+automatically from `run-dunitx.ps1` for full or Replay/Verify selections of the real
+test executable. Fast and unrelated focused selections skip provisioning. It discovers the
+main checkout through Git, copies the exact pinned seed/reference bundles and
+clones the two synthetic repositories without shared objects/hardlinks. It never
+links writable outputs to main or rewrites reference files. Seed subject roots
+are relocated to the private clones. Comparisons normalize only the exact
+canonical checkout, synthetic repository and output root prefixes, with suffix
+boundaries; relative suffixes, findings, ordering, counts and ownership stay exact.
+Durable negative controls reject suffix/finding changes and noncanonical roots.
+Direct execution of the test binary needs `DAK_TEST_MIGRATION_ROOT` pointing to a
+bundle created by this script; prefer the wrapper. Generated bundle inputs remain
+with the run as replayable proof inputs, including on failure.
+
+## Source areas and focused fixtures
+
+| Source area | DUnitX selection (`--run:` prefix) |
+| --- | --- |
+| CLI, app dispatch, environment | `Test.Cli`, `Test.App`, `Test.AnalyzeEnvironment` |
+| Build, compiler context, project XML | `Test.Build`, `Test.MsBuild`, `Test.DakWorkingPaths` |
+| Process lifetime, timeout, crash handling | `Test.ExternalToolProcess`, `Test.CrashReporting`, `Test.Utils` |
+| Diagnostics and source context | `Test.Diagnostics`, `Test.SourceContext` |
+| Analysis workspace, inputs, provenance | `Test.NativeAnalysisWorkspace`, `Test.NativeAnalysisWorkspace.Provenance`, `Test.NativeAnalysisWorkspace.Command` |
+| Doctor and discovery | `Test.NativeAnalysisDoctor` (including its Settings/Paths/Contracts/Remaining/PalHelp units) |
+| Analysis execution/status | `Test.NativeAnalysisProject`, `Test.NativeAnalysisUnit`, `Test.AnalyzeStatus` |
+| Report replay, verification and policy | `Test.NativeAnalysisReports.Replay`, `Test.NativeAnalysisReports.Verify`, `Test.NativeAnalysisPolicy` |
+| Ownership, projections, controls | `Test.NativeAnalysisReports.Ownership`, `Test.NativeAnalysisReports.Projections`, `Test.NativeAnalysisReports.Controls`, `Test.NativeAnalysisReports.OwnershipControls` |
+| JSON, Unicode, numbers, import | `Test.NativeAnalysisReports.JsonText`, `Test.NativeAnalysisReports.Unicode`, `Test.NativeAnalysisReports.Numeric`, `Test.NativeAnalysisReports.Import` |
+| FixInsight/PAL normalization and real tools | `Test.FixInsight`, `Test.PascalAnalyzer`, `Test.PalFindingNormalize`, `Test.ReportPostProcess` |
+| DFM inspection/validation | `Test.DfmInspect`, `Test.DfmCheck` |
+| Semantic index, dependencies, globals, LSP | `Test.SymbolMap`, `Test.Deps`, `Test.GlobalVars`, `Test.Lsp`, `Test.DelphiSemanticsIntegration` |
+| Refactor transactions, consistency, signature | `Test.Refactor`, `Test.Refactor.Preflight`, `Test.Refactor.Transaction`, `Test.Refactor.ApplyCli`, `Test.Consistency`, `Test.SignatureCommand` |
+| Dead code CLI/apply | `Test.DeadCodeCli`, `Test.DeadCodeApplyCli` |
+| Remove-with and root absence | `Test.RemoveWith`, `Test.RemoveWith.LongPath`, `Test.RootMemberAbsence`, `Test.RootMemberAbsenceContext` |
+
+The Fast roster covers synthetic environment parsing, MSBuild XML parsing,
+report projection/numeric/JSON/import rules, refactor preflight and relocation
+controls and repository-marker validation. Use the owning fixture for a touched area outside that roster. Every
+other fixture carries Slow, including the opt-in proprietary corpus fixtures.
+
+Use a short owned `DAK_TEST_OUTPUT_ROOT` for isolated full-suite runs. Validate any alternative root against the deepest fixtures. The runner defaults to
 `tests\temp\run-<PID>-<8 hex>` and isolates each run automatically. Each copied
 project keeps its analysis and refactoring artifacts in its sibling
 `.dak\<ProjectName>` directory, inside DAK.

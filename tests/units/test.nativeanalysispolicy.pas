@@ -10,6 +10,7 @@ type
   // The policy controls from test_analysis_policy.py and test_failure_integrity.py, driven through
   // the native finalizer against a real Git working copy and real files on disk.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisPolicyTests = class
   private
     fRoot: string;

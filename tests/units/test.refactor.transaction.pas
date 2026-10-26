@@ -10,7 +10,7 @@ uses
 
 type
   [TestFixture]
-  [Category('RefactoringLightTransaction')]
+  [Category('RefactoringLightTransaction,Slow')]
   TRefactorTransactionTests = class
   private
     fRoot: string;

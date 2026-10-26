@@ -10,6 +10,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TSourceContextTests = class
   private
     procedure CreateFixtureProject(out aDprojPath: string; out aProjectFilePath: string; out aSearchFilePath: string);

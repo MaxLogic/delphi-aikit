@@ -2590,8 +2590,7 @@ const
     lCurrentDir := Result;
     while lCurrentDir <> '' do
     begin
-      if TDirectory.Exists(TPath.Combine(lCurrentDir, '.git')) or
-        TDirectory.Exists(TPath.Combine(lCurrentDir, '.svn')) then
+      if IsRepositoryRootDirectory(lCurrentDir) then
         Exit(lCurrentDir);
 
       lParentDir := ExcludeTrailingPathDelimiter(TPath.GetDirectoryName(lCurrentDir));
@@ -2991,8 +2990,7 @@ begin
   lCurrentDir := Result;
   while lCurrentDir <> '' do
   begin
-    if TDirectory.Exists(TPath.Combine(lCurrentDir, '.git')) or
-      TDirectory.Exists(TPath.Combine(lCurrentDir, '.svn')) then
+    if IsRepositoryRootDirectory(lCurrentDir) then
       Exit(lCurrentDir);
 
     lParentDir := ExcludeTrailingPathDelimiter(TPath.GetDirectoryName(lCurrentDir));

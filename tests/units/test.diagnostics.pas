@@ -11,6 +11,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TDiagnosticsTests = class
   public
     [Test]

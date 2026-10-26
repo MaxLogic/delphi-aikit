@@ -1,0 +1,1082 @@
+[
+  {
+    "name": "TFixInsightTests",
+    "seconds": 1174.171,
+    "result": "Success",
+    "cases": 5,
+    "selection": "Test.FixInsight.TFixInsightTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRootMemberAbsenceContextTests",
+    "seconds": 333.913,
+    "result": "Failure",
+    "cases": 43,
+    "selection": "Test.RootMemberAbsenceContext.TRootMemberAbsenceContextTests",
+    "failed": 0,
+    "errored": 1
+  },
+  {
+    "name": "TRemoveWithCommandTests",
+    "seconds": 296.139,
+    "result": "Success",
+    "cases": 58,
+    "selection": "Test.RemoveWith.TRemoveWithCommandTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TPascalAnalyzerTests",
+    "seconds": 253.912,
+    "result": "Success",
+    "cases": 24,
+    "selection": "Test.PascalAnalyzer.TPascalAnalyzerTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithRewriteShapeTests",
+    "seconds": 192.559,
+    "result": "Success",
+    "cases": 9,
+    "selection": "Test.RemoveWith.TRemoveWithRewriteShapeTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithTransactionTests",
+    "seconds": 187.332,
+    "result": "Success",
+    "cases": 12,
+    "selection": "Test.RemoveWith.TRemoveWithTransactionTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapCacheTests",
+    "seconds": 143.092,
+    "result": "Success",
+    "cases": 11,
+    "selection": "Test.SymbolMap.TSymbolMapCacheTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithApplyCompileGateTests",
+    "seconds": 127.415,
+    "result": "Success",
+    "cases": 17,
+    "selection": "Test.RemoveWith.TRemoveWithApplyCompileGateTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRootMemberAbsenceTests",
+    "seconds": 111.34,
+    "result": "Success",
+    "cases": 114,
+    "selection": "Test.RootMemberAbsence.TRootMemberAbsenceTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TDfmCheckTests",
+    "seconds": 96.645,
+    "result": "Success",
+    "cases": 74,
+    "selection": "Test.DfmCheck.TDfmCheckTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithHardeningApplyTests",
+    "seconds": 74.324,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.RemoveWith.TRemoveWithHardeningApplyTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisWorkspaceTests",
+    "seconds": 73.545,
+    "result": "Success",
+    "cases": 32,
+    "selection": "Test.NativeAnalysisWorkspace.TNativeAnalysisWorkspaceTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithTempAggregationTests",
+    "seconds": 51.106,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.RemoveWith.TRemoveWithTempAggregationTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TBuildTests",
+    "seconds": 50.564,
+    "result": "Failure",
+    "cases": 210,
+    "selection": "Test.Build.TBuildTests",
+    "failed": 1,
+    "errored": 0
+  },
+  {
+    "name": "TRefactorTransactionTests",
+    "seconds": 49.092,
+    "result": "Success",
+    "cases": 28,
+    "selection": "Test.Refactor.Transaction.TRefactorTransactionTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativePublicationTests",
+    "seconds": 47.483,
+    "result": "Success",
+    "cases": 11,
+    "selection": "Test.RootMemberAbsenceContext.TNativePublicationTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TCliTests",
+    "seconds": 43.453,
+    "result": "Success",
+    "cases": 158,
+    "selection": "Test.Cli.TCliTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisPolicyTests",
+    "seconds": 34.398,
+    "result": "Success",
+    "cases": 40,
+    "selection": "Test.NativeAnalysisPolicy.TNativeAnalysisPolicyTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSignatureCommandTests",
+    "seconds": 31.688,
+    "result": "Success",
+    "cases": 20,
+    "selection": "Test.SignatureCommand.TSignatureCommandTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisProjectTests",
+    "seconds": 25.219,
+    "result": "Success",
+    "cases": 21,
+    "selection": "Test.NativeAnalysisProject.TNativeAnalysisProjectTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithSemanticBinderTests",
+    "seconds": 22.773,
+    "result": "Success",
+    "cases": 6,
+    "selection": "Test.RemoveWith.TRemoveWithSemanticBinderTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRefactorCommandTests",
+    "seconds": 22.218,
+    "result": "Success",
+    "cases": 39,
+    "selection": "Test.Refactor.TRefactorCommandTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithScopedDeclarationSafetyTests",
+    "seconds": 21.497,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithScopedDeclarationSafetyTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRefactorApplyCliTests",
+    "seconds": 21.039,
+    "result": "Success",
+    "cases": 25,
+    "selection": "Test.Refactor.ApplyCli.TRefactorApplyCliTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithNoEditAndRollbackTests",
+    "seconds": 20.901,
+    "result": "Success",
+    "cases": 3,
+    "selection": "Test.RemoveWith.TRemoveWithNoEditAndRollbackTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TConsistencyTests",
+    "seconds": 18.304,
+    "result": "Success",
+    "cases": 48,
+    "selection": "Test.Consistency.TConsistencyTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithCliTests",
+    "seconds": 18.217,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithCliTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithExpressionRoleRewriteTests",
+    "seconds": 15.629,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithExpressionRoleRewriteTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithApplyReportTests",
+    "seconds": 15.603,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.RemoveWith.TRemoveWithApplyReportTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisUnitTests",
+    "seconds": 15.294,
+    "result": "Success",
+    "cases": 10,
+    "selection": "Test.NativeAnalysisUnit.TNativeAnalysisUnitTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithControlCharacterLiteralTests",
+    "seconds": 13.947,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithControlCharacterLiteralTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeRunProvenanceTests",
+    "seconds": 13.83,
+    "result": "Success",
+    "cases": 14,
+    "selection": "Test.NativeAnalysisWorkspace.Provenance.TNativeRunProvenanceTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithExternalRoutineTests",
+    "seconds": 13.413,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithExternalRoutineTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithPlannerTests",
+    "seconds": 11.934,
+    "result": "Success",
+    "cases": 8,
+    "selection": "Test.RemoveWith.TRemoveWithPlannerTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithSymbolTests",
+    "seconds": 11.708,
+    "result": "Success",
+    "cases": 5,
+    "selection": "Test.RemoveWith.TRemoveWithSymbolTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TExternalToolProcessTests",
+    "seconds": 11.302,
+    "result": "Success",
+    "cases": 26,
+    "selection": "Test.ExternalToolProcess.TExternalToolProcessTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithAstParallelSafetyTests",
+    "seconds": 11.073,
+    "result": "Success",
+    "cases": 8,
+    "selection": "Test.RemoveWith.TRemoveWithAstParallelSafetyTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithTempPolicyTests",
+    "seconds": 10.698,
+    "result": "Success",
+    "cases": 4,
+    "selection": "Test.RemoveWith.TRemoveWithTempPolicyTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapDefinitionQueryTests",
+    "seconds": 10.633,
+    "result": "Success",
+    "cases": 20,
+    "selection": "Test.SymbolMap.TSymbolMapDefinitionQueryTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithBoundRewriteTests",
+    "seconds": 10.539,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithBoundRewriteTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisReportControlTests",
+    "seconds": 10.123,
+    "result": "Success",
+    "cases": 26,
+    "selection": "Test.NativeAnalysisReports.Controls.TNativeAnalysisReportControlTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisOwnershipControlTests",
+    "seconds": 10.087,
+    "result": "Success",
+    "cases": 6,
+    "selection": "Test.NativeAnalysisReports.OwnershipControls.TNativeAnalysisOwnershipControlTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TDeadCodeApplyCliTests",
+    "seconds": 8.342,
+    "result": "Success",
+    "cases": 6,
+    "selection": "Test.DeadCodeApplyCli.TDeadCodeApplyCliTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TDepsTests",
+    "seconds": 7.776,
+    "result": "Success",
+    "cases": 21,
+    "selection": "Test.Deps.TDepsTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithResolverTests",
+    "seconds": 7.366,
+    "result": "Success",
+    "cases": 5,
+    "selection": "Test.RemoveWith.TRemoveWithResolverTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithLongPathTests",
+    "seconds": 7.074,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.LongPath.TRemoveWithLongPathTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisReplayControlTests",
+    "seconds": 6.97,
+    "result": "Success",
+    "cases": 14,
+    "selection": "Test.NativeAnalysisReports.Verify.TNativeAnalysisReplayControlTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TAnalyzeStatusTests",
+    "seconds": 6.46,
+    "result": "Success",
+    "cases": 6,
+    "selection": "Test.AnalyzeStatus.TAnalyzeStatusTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TLspProtocolTests",
+    "seconds": 5.927,
+    "result": "Success",
+    "cases": 61,
+    "selection": "Test.Lsp.Protocol.TLspProtocolTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisDoctorRemainingTests",
+    "seconds": 5.727,
+    "result": "Success",
+    "cases": 9,
+    "selection": "Test.NativeAnalysisDoctor.Remaining.TNativeAnalysisDoctorRemainingTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisDoctorTests",
+    "seconds": 5.67,
+    "result": "Success",
+    "cases": 13,
+    "selection": "Test.NativeAnalysisDoctor.TNativeAnalysisDoctorTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TGlobalVarsTests",
+    "seconds": 5.173,
+    "result": "Success",
+    "cases": 18,
+    "selection": "Test.GlobalVars.TGlobalVarsTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithReportTests",
+    "seconds": 4.943,
+    "result": "Success",
+    "cases": 10,
+    "selection": "Test.RemoveWith.TRemoveWithReportTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithHelperTests",
+    "seconds": 4.814,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.RemoveWith.TRemoveWithHelperTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithSourceModelGoldenTests",
+    "seconds": 4.7,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.RemoveWith.TRemoveWithSourceModelGoldenTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithIndexedPropertyTests",
+    "seconds": 4.347,
+    "result": "Success",
+    "cases": 3,
+    "selection": "Test.RemoveWith.TRemoveWithIndexedPropertyTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRealLspAcceptanceTests",
+    "seconds": 4.197,
+    "result": "Success",
+    "cases": 5,
+    "selection": "Test.Lsp.TRealLspAcceptanceTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithAncestorTests",
+    "seconds": 4.011,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.RemoveWith.TRemoveWithAncestorTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithExpressionTypeTests",
+    "seconds": 3.922,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.RemoveWith.TRemoveWithExpressionTypeTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapSourceUnitTests",
+    "seconds": 3.848,
+    "result": "Success",
+    "cases": 10,
+    "selection": "Test.SymbolMap.TSymbolMapSourceUnitTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisReportCommandTests",
+    "seconds": 3.567,
+    "result": "Success",
+    "cases": 4,
+    "selection": "Test.NativeAnalysisReports.Verify.TNativeAnalysisReportCommandTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisUnicodeTests",
+    "seconds": 2.828,
+    "result": "Success",
+    "cases": 5,
+    "selection": "Test.NativeAnalysisReports.Unicode.TNativeAnalysisUnicodeTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithPrecedenceTests",
+    "seconds": 2.659,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithPrecedenceTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeWorkspaceCommandTests",
+    "seconds": 2.572,
+    "result": "Success",
+    "cases": 10,
+    "selection": "Test.NativeAnalysisWorkspace.Command.TNativeWorkspaceCommandTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisDoctorSettingsTests",
+    "seconds": 2.564,
+    "result": "Success",
+    "cases": 10,
+    "selection": "Test.NativeAnalysisDoctor.Settings.TNativeAnalysisDoctorSettingsTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TCrashReportingTests",
+    "seconds": 2.423,
+    "result": "Success",
+    "cases": 3,
+    "selection": "Test.CrashReporting.TCrashReportingTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapIntrinsicProfileTests",
+    "seconds": 2.375,
+    "result": "Success",
+    "cases": 5,
+    "selection": "Test.SymbolMap.TSymbolMapIntrinsicProfileTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapApiTests",
+    "seconds": 2.324,
+    "result": "Success",
+    "cases": 8,
+    "selection": "Test.SymbolMap.TSymbolMapApiTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisDoctorContractTests",
+    "seconds": 2.164,
+    "result": "Success",
+    "cases": 4,
+    "selection": "Test.NativeAnalysisDoctor.Contracts.TNativeAnalysisDoctorContractTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TDfmInspectTests",
+    "seconds": 1.815,
+    "result": "Success",
+    "cases": 12,
+    "selection": "Test.DfmInspect.TDfmInspectTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TDeadCodeCliTests",
+    "seconds": 1.784,
+    "result": "Success",
+    "cases": 4,
+    "selection": "Test.DeadCodeCli.TDeadCodeCliTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithSymbolMapParityReportTests",
+    "seconds": 1.738,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithSymbolMapParityReportTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithDiscoveryTests",
+    "seconds": 1.729,
+    "result": "Success",
+    "cases": 4,
+    "selection": "Test.RemoveWith.TRemoveWithDiscoveryTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithProjectModelTests",
+    "seconds": 1.622,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithProjectModelTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisOwnershipTests",
+    "seconds": 1.414,
+    "result": "Success",
+    "cases": 27,
+    "selection": "Test.NativeAnalysisReports.Ownership.TNativeAnalysisOwnershipTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithHelperPrecedenceGoldenTests",
+    "seconds": 1.385,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithHelperPrecedenceGoldenTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TLspRunnerTests",
+    "seconds": 1.32,
+    "result": "Success",
+    "cases": 14,
+    "selection": "Test.Lsp.TLspRunnerTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithGlobalScopeGoldenTests",
+    "seconds": 1.235,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithGlobalScopeGoldenTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithUnresolvedReasonReportTests",
+    "seconds": 1.168,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithUnresolvedReasonReportTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithComplexSourceModelTests",
+    "seconds": 1.123,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithComplexSourceModelTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithEnumConstTypeAliasTests",
+    "seconds": 1.076,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithEnumConstTypeAliasTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithNestedRoutineScopeTests",
+    "seconds": 0.994,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithNestedRoutineScopeTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithConditionalDirectiveTests",
+    "seconds": 0.979,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithConditionalDirectiveTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithIntrinsicSymbolTests",
+    "seconds": 0.96,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithIntrinsicSymbolTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithImplementationGlobalTests",
+    "seconds": 0.912,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithImplementationGlobalTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithCorpusSmokeTests",
+    "seconds": 0.865,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithCorpusSmokeTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithInheritedOverrideGoldenTests",
+    "seconds": 0.847,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithInheritedOverrideGoldenTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisNumericTests",
+    "seconds": 0.796,
+    "result": "Success",
+    "cases": 4,
+    "selection": "Test.NativeAnalysisReports.Numeric.TNativeAnalysisNumericTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapCliTests",
+    "seconds": 0.759,
+    "result": "Success",
+    "cases": 5,
+    "selection": "Test.SymbolMap.TSymbolMapCliTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithInterfaceResolverTests",
+    "seconds": 0.732,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithInterfaceResolverTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithRangeTests",
+    "seconds": 0.685,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.RemoveWith.TRemoveWithRangeTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisDoctorPathTests",
+    "seconds": 0.681,
+    "result": "Success",
+    "cases": 4,
+    "selection": "Test.NativeAnalysisDoctor.Paths.TNativeAnalysisDoctorPathTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapContextTests",
+    "seconds": 0.592,
+    "result": "Success",
+    "cases": 11,
+    "selection": "Test.SymbolMap.TSymbolMapContextTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapRtlIndexTests",
+    "seconds": 0.566,
+    "result": "Success",
+    "cases": 5,
+    "selection": "Test.SymbolMap.TSymbolMapRtlIndexTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapReferenceQueryTests",
+    "seconds": 0.528,
+    "result": "Success",
+    "cases": 3,
+    "selection": "Test.SymbolMap.TSymbolMapReferenceQueryTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapCentralCacheReuseTests",
+    "seconds": 0.525,
+    "result": "Success",
+    "cases": 9,
+    "selection": "Test.SymbolMap.TSymbolMapCentralCacheReuseTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TLspContextTests",
+    "seconds": 0.489,
+    "result": "Success",
+    "cases": 11,
+    "selection": "Test.Lsp.TLspContextTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapTopLevelDeclarationTests",
+    "seconds": 0.418,
+    "result": "Success",
+    "cases": 3,
+    "selection": "Test.SymbolMap.TSymbolMapTopLevelDeclarationTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TUtilsTests",
+    "seconds": 0.382,
+    "result": "Success",
+    "cases": 15,
+    "selection": "Test.Utils.TUtilsTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TDakWorkingPathTests",
+    "seconds": 0.284,
+    "result": "Success",
+    "cases": 17,
+    "selection": "Test.DakWorkingPaths.TDakWorkingPathTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisProjectionTests",
+    "seconds": 0.251,
+    "result": "Success",
+    "cases": 84,
+    "selection": "Test.NativeAnalysisReports.Projections.TNativeAnalysisProjectionTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSourceContextTests",
+    "seconds": 0.112,
+    "result": "Success",
+    "cases": 11,
+    "selection": "Test.SourceContext.TSourceContextTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TSymbolMapMemberExtractionTests",
+    "seconds": 0.069,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.SymbolMap.TSymbolMapMemberExtractionTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TMsBuildTests",
+    "seconds": 0.068,
+    "result": "Success",
+    "cases": 27,
+    "selection": "Test.MsBuild.TMsBuildTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TPalFindingNormalizeTests",
+    "seconds": 0.064,
+    "result": "Success",
+    "cases": 27,
+    "selection": "Test.PalFindingNormalize.TPalFindingNormalizeTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TFixInsightImportTests",
+    "seconds": 0.031,
+    "result": "Success",
+    "cases": 27,
+    "selection": "Test.NativeAnalysisReports.Import.FixInsight.TFixInsightImportTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRefactorPreflightTests",
+    "seconds": 0.029,
+    "result": "Success",
+    "cases": 18,
+    "selection": "Test.Refactor.Preflight.TRefactorPreflightTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisJsonLinesTests",
+    "seconds": 0.02,
+    "result": "Success",
+    "cases": 16,
+    "selection": "Test.NativeAnalysisReports.Import.TNativeAnalysisJsonLinesTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TReportPostProcessTests",
+    "seconds": 0.013,
+    "result": "Success",
+    "cases": 4,
+    "selection": "Test.ReportPostProcess.TReportPostProcessTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TAnalyzeEnvironmentTests",
+    "seconds": 0.011,
+    "result": "Success",
+    "cases": 15,
+    "selection": "Test.AnalyzeEnvironment.TAnalyzeEnvironmentTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithUnitModelExtractorTests",
+    "seconds": 0.011,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithUnitModelExtractorTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TRemoveWithSourceProvenanceTests",
+    "seconds": 0.003,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.RemoveWith.TRemoveWithSourceProvenanceTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisJsonTextTests",
+    "seconds": 0.002,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.NativeAnalysisReports.JsonText.TNativeAnalysisJsonTextTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TDiagnosticsTests",
+    "seconds": 0.001,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.Diagnostics.TDiagnosticsTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TLspArchitectureTests",
+    "seconds": 0.001,
+    "result": "Success",
+    "cases": 1,
+    "selection": "Test.Lsp.TLspArchitectureTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TPalHelpTests",
+    "seconds": 0.001,
+    "result": "Success",
+    "cases": 14,
+    "selection": "Test.NativeAnalysisDoctor.PalHelp.TPalHelpTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TAppTests",
+    "seconds": 0.0,
+    "result": "Success",
+    "cases": 4,
+    "selection": "Test.App.TAppTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TDelphiSemanticsIntegrationTests",
+    "seconds": 0.0,
+    "result": "Success",
+    "cases": 2,
+    "selection": "Test.DelphiSemanticsIntegration.TDelphiSemanticsIntegrationTests",
+    "failed": 0,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisReplayTests",
+    "seconds": 0.0,
+    "result": "Failure",
+    "cases": 2,
+    "selection": "Test.NativeAnalysisReports.Replay.TNativeAnalysisReplayTests",
+    "failed": 2,
+    "errored": 0
+  },
+  {
+    "name": "TNativeAnalysisVerifyTests",
+    "seconds": 0.0,
+    "result": "Failure",
+    "cases": 12,
+    "selection": "Test.NativeAnalysisReports.Verify.TNativeAnalysisVerifyTests",
+    "failed": 0,
+    "errored": 12
+  }
+]

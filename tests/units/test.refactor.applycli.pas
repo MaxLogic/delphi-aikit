@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TRefactorApplyCliTests = class
   private
     procedure CheckDirectCompilerApply(const aFailPostBuild: Boolean);

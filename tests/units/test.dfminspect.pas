@@ -12,6 +12,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TDfmInspectTests = class
   public
     [Test]

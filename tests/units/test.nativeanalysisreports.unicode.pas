@@ -9,6 +9,7 @@ type
   // Pinned Unicode 15.1 / Python 3.13.15 oracle proof for Dak.Analysis.UnicodeText.
   // Expected values come from the retained fixture receipts, never from the candidate tables.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisUnicodeTests = class
   public
     [Test]

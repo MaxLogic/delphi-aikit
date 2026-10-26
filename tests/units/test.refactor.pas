@@ -12,6 +12,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TRefactorCommandTests = class
   private
     procedure CreateFixtureProject(const aRoot: string; out aDprojPath, aUnitOnePath,
@@ -2047,7 +2048,7 @@ begin
 
   Assert.IsTrue(ContainsText(lNormalizedSource,
     '[TestFixture]' + #10 +
-    '  [Category(''MaxTdbProof'')]' + #10 +
+    '  [Category(''MaxTdbProof,Slow'')]' + #10 +
     '  TRefactorProprietaryRenameTests = class'),
     'Proprietary maxTdb rename dogfood must be categorized as MaxTdbProof.');
 end;
@@ -2070,7 +2071,7 @@ begin
     #10, [rfReplaceAll]);
   Assert.IsTrue(ContainsText(lNormalizedRemoveWithSource,
     '[TestFixture]' + #10 +
-    '  [Category(''MaxTdbProof'')]' + #10 +
+    '  [Category(''MaxTdbProof,Slow'')]' + #10 +
     '  TRemoveWithProprietaryProjectTests = class(TRemoveWithTestBase)'),
     'Proprietary maxTdb remove-with dogfood must be categorized as MaxTdbProof.');
 

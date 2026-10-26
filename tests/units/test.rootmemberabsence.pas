@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TRootMemberAbsenceTests = class
   public
     [TestCase('win32 component G', 'win32,dcc32.exe,component,G,True')]

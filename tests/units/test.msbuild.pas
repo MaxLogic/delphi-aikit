@@ -15,6 +15,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Fast')]
   TMsBuildTests = class
   private
     procedure AssertConditionAccepted(const aCondition: string);

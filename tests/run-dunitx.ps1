@@ -15,6 +15,7 @@ timeoutSeconds (0 = no limit); timedOut is always false when there is no limit.
 param(
     [string]$ExecutablePath = '',
     [string[]]$TestArguments = @(),
+    [string]$ArgumentFile = '',
     [string]$LogRoot = '',
     [ValidateRange(0, 604800)]
     [int]$TimeoutSeconds = 14400
@@ -22,6 +23,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if ($ArgumentFile) { $TestArguments = @([IO.File]::ReadAllText($ArgumentFile) | ConvertFrom-Json) }
 # DAK-380: Windows PowerShell 5.1 leaves $PSScriptRoot empty in parameter defaults
 # under -File, so the defaults are resolved here, where both hosts set it.
 if (-not $ExecutablePath) { $ExecutablePath = Join-Path $PSScriptRoot 'bin\Debug\DelphiAIKit.Tests.exe' }
@@ -48,10 +50,26 @@ $timer = [Diagnostics.Stopwatch]::StartNew()
 $launchError = $null
 $processExitCode = 1
 $timedOut = $false
+$executableHash = $null
 # Stream copies end when every holder of the pipe write ends has exited.
 $streamCloseMilliseconds = 30000
 try {
     $resolvedExecutable = (Resolve-Path -LiteralPath $ExecutablePath).Path
+    $executableHash = (Get-FileHash -LiteralPath $resolvedExecutable -Algorithm SHA256).Hash
+    $selections = @($TestArguments | Where-Object { $_ -match '^--(run|runlist|include):' })
+    $needsMigration = $selections.Count -eq 0
+    foreach ($selection in $selections) {
+        $value = $selection.Substring($selection.IndexOf(':') + 1)
+        if ($selection -match '^--runlist:') { $value = [IO.File]::ReadAllText($value) }
+        if (($selection -match '^--include:' -and $value -ne 'Fast') -or
+            $value -match 'Test\.NativeAnalysisReports\.(Replay|Verify)([.,\r\n]|$)' -or
+            $value -match '(^|[,\r\n])Test(?:\.NativeAnalysisReports)?([,\r\n]|$)') { $needsMigration = $true }
+    }
+    if ($needsMigration -and [IO.Path]::GetFileName($resolvedExecutable) -eq 'DelphiAIKit.Tests.exe') {
+        $migrationRoot = Join-Path $runDirectory 'migration'
+        & (Join-Path $PSScriptRoot 'scripts\prepare-migration-inputs.ps1') -RepositoryRoot (Split-Path $PSScriptRoot -Parent) -Destination $migrationRoot | Out-Null
+        $process.StartInfo.EnvironmentVariables['DAK_TEST_MIGRATION_ROOT'] = $migrationRoot
+    }
     $process.StartInfo.FileName = $resolvedExecutable
     $process.StartInfo.Arguments = (($TestArguments | ForEach-Object { ConvertTo-NativeArgument $_ }) -join ' ')
     $process.StartInfo.WorkingDirectory = $PSScriptRoot
@@ -91,6 +109,9 @@ try {
     else {
         $processExitCode = $process.ExitCode
     }
+    if ((Get-FileHash -LiteralPath $resolvedExecutable -Algorithm SHA256).Hash -ne $executableHash) {
+        throw 'Test executable changed during the run.'
+    }
 }
 catch {
     $launchError = $_.Exception.Message
@@ -117,6 +138,7 @@ $summary = [ordered]@{
     counts = $result.Counts
     shutdownLeakReport = $result.ShutdownLeakReport
     executable = $ExecutablePath
+    executableSha256 = $executableHash
     arguments = $TestArguments
     durationSeconds = [math]::Round($timer.Elapsed.TotalSeconds, 3)
     stdout = $stdoutPath

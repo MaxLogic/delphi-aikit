@@ -4,10 +4,10 @@ program DelphiAIKit_Tests;
 {$STRONGLINKTYPES ON}
 
 uses
-  System.Classes, System.IOUtils, System.StrUtils, System.SysUtils,
+  System.Classes, System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
   Winapi.Windows,
   FireDAC.Phys.SQLiteWrapper.Stat,
-  DUnitX.FilterBuilder,
+  DUnitX.Extensibility, DUnitX.FilterBuilder,
   DUnitX.Loggers.Console,
   DUnitX.Loggers.XML.NUnit,
   DUnitX.TestFramework,
@@ -592,6 +592,43 @@ begin
   Halt(0);
 end;
 
+procedure AppendRegisteredTests(const aFixtures: ITestFixtureList; const aRoster: TJSONArray);
+var
+  lFixture: ITestFixture;
+  lRow: TJSONObject;
+  lTest: ITest;
+begin
+  for lFixture in aFixtures do
+  begin
+    for lTest in lFixture.Tests do
+    begin
+      if (TDUnitX.Filter <> nil) and not TDUnitX.Filter.Match(lTest) then
+        Continue;
+      lRow := TJSONObject.Create;
+      lRow.AddPair('fixture', lFixture.FullName);
+      lRow.AddPair('selector', lTest.FullName);
+      // Match the NUnit logger's fixture.Name and test.Name, including parameterized case names.
+      lRow.AddPair('id', lFixture.Name + '.' + lTest.Name);
+      aRoster.AddElement(lRow);
+    end;
+    if lFixture.HasChildFixtures then
+      AppendRegisteredTests(lFixture.Children, aRoster);
+  end;
+end;
+
+procedure WriteRegisteredTests(const aRunner: ITestRunner; const aPath: string);
+var
+  lRoster: TJSONArray;
+begin
+  lRoster := TJSONArray.Create;
+  try
+    AppendRegisteredTests(aRunner.BuildFixtures as ITestFixtureList, lRoster);
+    TFile.WriteAllText(aPath, lRoster.ToJSON, TEncoding.UTF8);
+  finally
+    lRoster.Free;
+  end;
+end;
+
 procedure ApplyDefaultCategoryExclusions;
 begin
   if (TDUnitX.Options.Run.Count = 0) and
@@ -651,6 +688,12 @@ begin
     Runner.FailsOnNoAsserts := True;
     // Keep DAK RemoveWith tests single-process/sequential. Parallel executions
     // contend for shared test output/temp files and caused runtime 217 failures.
+
+    if GetEnvironmentVariable('DAK_TEST_LIST_PATH') <> '' then
+    begin
+      WriteRegisteredTests(Runner, GetEnvironmentVariable('DAK_TEST_LIST_PATH'));
+      Exit;
+    end;
 
     Logger := TDUnitXConsoleLogger.Create(True);
     Runner.AddLogger(Logger);

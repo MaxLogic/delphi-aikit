@@ -245,7 +245,7 @@ begin
   lDir := NormalizeDir(aStartDir);
   while lDir <> '' do
   begin
-    if DirectoryExists(TPath.Combine(lDir, '.git')) or DirectoryExists(TPath.Combine(lDir, '.svn')) then
+    if IsRepositoryRootDirectory(lDir) then
       Exit(lDir);
     lParent := NormalizeDir(ExtractFileDir(lDir));
     if (lParent = '') or SameText(lParent, lDir) then

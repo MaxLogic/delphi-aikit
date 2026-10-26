@@ -14,6 +14,7 @@ type
   // `analyze --project` must honor the same contract (D2): an explicit switch wins, the environment
   // supplies what the command line left out, and settings supply the rest.
   [TestFixture]
+  [Category('Fast')]
   TAnalyzeEnvironmentTests = class
   private
     fScopes: TArray<IInterface>;

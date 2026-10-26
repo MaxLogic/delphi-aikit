@@ -11,6 +11,7 @@ type
   // project and measured, with its deepest files, against the depth of the kept build log
   // (build\run-<GUID>\stderr.log, DAK-379), whose documented layout stays unchanged.
   [TestFixture]
+  [Category('Slow')]
   TDakWorkingPathTests = class
   private
     function KeptBuildLogDepth: Integer;

@@ -12,7 +12,7 @@ uses
 
 type
   [TestFixture]
-  [Category('MaxTdbProof')]
+  [Category('MaxTdbProof,Slow')]
   TRefactorProprietaryRenameTests = class
   private
     procedure AssertAppliedRename(const aRoot: TJSONObject; const aSymbol, aNewName: string);

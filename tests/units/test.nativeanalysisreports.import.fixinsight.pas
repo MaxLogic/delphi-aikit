@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Fast')]
   TFixInsightImportTests = class
   private
     fRoot: string;

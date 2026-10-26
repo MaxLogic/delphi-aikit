@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TNativePublicationTests = class
   public
     [Test]
@@ -32,6 +33,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TRootMemberAbsenceContextTests = class
   public
     [Test]

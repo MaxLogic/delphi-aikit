@@ -17,12 +17,25 @@ uses
   Dak.Build,
   Dak.Cli,
   Dak.ExternalToolProcess,
+  Dak.Paths,
   Dak.Registry,
   Dak.RsVars,
   Dak.Types,
   Test.Support;
 
 type
+  [TestFixture('Repository marker validation')]
+  [Category('Fast')]
+  TRepositoryMarkerTests = class
+  public
+    [TestCase('relative', 'relative')]
+    [TestCase('absolute', 'absolute')]
+    [TestCase('empty', 'empty')]
+    [TestCase('garbage', 'garbage')]
+    [TestCase('missing', 'missing')]
+    procedure GitFileRequiresExistingTarget(const aKind: string);
+  end;
+
   TCapturingBuildRunner = class(TInterfacedObject, IBuildProcessRunner)
   public
     fArguments: string;
@@ -76,6 +89,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TBuildTests = class
   public
     [Test]
@@ -386,6 +400,15 @@ type
     procedure BuildWarnsWhenWin64NamespacesOmitWinapi;
     [Test]
     procedure BuildSummaryIncludesResolvedSourceContextForErrors;
+    [Test]
+    procedure BuildSummaryRecognizesLinkedWorktreeGitFile;
+    [TestCase('empty', '')]
+    [TestCase('garbage', 'not a git marker')]
+    [TestCase('missing-target', 'gitdir: missing')]
+    procedure BuildSummaryIgnoresInvalidNestedGitFile(const aMarker: string);
+  private
+    procedure AssertBuildSummarySourceContext(aGitFile: Boolean; const aNestedMarker: string = #0);
+  public
     [Test]
     procedure ParseBuildLogsExposesStructuredDiagnostics;
     [Test]
@@ -4249,10 +4272,47 @@ begin
   end;
 end;
 
+procedure TRepositoryMarkerTests.GitFileRequiresExistingTarget(const aKind: string);
+var
+  lContents: string;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'git-marker-' + aKind);
+  TDirectory.CreateDirectory(TPath.Combine(lRoot, 'metadata'));
+  if aKind = 'relative' then
+    lContents := 'gitdir: metadata'
+  else if aKind = 'absolute' then
+    lContents := 'gitdir: ' + TPath.Combine(lRoot, 'metadata')
+  else if aKind = 'empty' then
+    lContents := ''
+  else if aKind = 'garbage' then
+    lContents := 'garbage'
+  else
+    lContents := 'gitdir: nonexistent';
+  WriteUtf8File(TPath.Combine(lRoot, '.git'), lContents + sLineBreak);
+  Assert.AreEqual((aKind = 'relative') or (aKind = 'absolute'), IsRepositoryRootDirectory(lRoot));
+end;
+
 procedure TBuildTests.BuildSummaryIncludesResolvedSourceContextForErrors;
+begin
+  AssertBuildSummarySourceContext(False);
+end;
+
+procedure TBuildTests.BuildSummaryRecognizesLinkedWorktreeGitFile;
+begin
+  AssertBuildSummarySourceContext(True);
+end;
+
+procedure TBuildTests.BuildSummaryIgnoresInvalidNestedGitFile(const aMarker: string);
+begin
+  AssertBuildSummarySourceContext(True, aMarker);
+end;
+
+procedure TBuildTests.AssertBuildSummarySourceContext(aGitFile: Boolean; const aNestedMarker: string);
 var
   lCapturedOutput: string;
   lDprojPath: string;
+  lExpectedRoot: string;
   lError: string;
   lExitCode: Integer;
   lFailingRunner: TFailingBuildRunner;
@@ -4270,6 +4330,19 @@ begin
   if TDirectory.Exists(lProjectRoot) then
     TDirectory.Delete(lProjectRoot, True);
   TDirectory.CreateDirectory(lProjectRoot);
+  lExpectedRoot := lProjectRoot;
+  if aGitFile then
+  begin
+    // The project is below the marker, as in a linked checkout with projects/.
+    TDirectory.CreateDirectory(TPath.Combine(lProjectRoot, 'metadata/worktrees/test'));
+    WriteUtf8File(TPath.Combine(lProjectRoot, '.git'), 'gitdir: metadata/worktrees/test' + sLineBreak);
+  end else begin
+    TDirectory.CreateDirectory(TPath.Combine(lProjectRoot, '.git'));
+  end;
+  lProjectRoot := TPath.Combine(lProjectRoot, 'projects');
+  TDirectory.CreateDirectory(lProjectRoot);
+  if aNestedMarker <> #0 then
+    WriteUtf8File(TPath.Combine(lProjectRoot, '.git'), aNestedMarker);
 
   PrepareMadExceptBuildFixture(lProjectRoot,
     '[GeneralSettings]' + sLineBreak +
@@ -4347,7 +4420,7 @@ begin
   Assert.AreEqual(1, lExitCode, 'Expected scripted build failure exit code.');
   Assert.IsTrue(Pos('BrokenUnit.pas(11): error E2003', lCapturedOutput) > 0,
     'Expected compiler error to be reported in summary output. Output: ' + lCapturedOutput);
-  Assert.IsTrue(lCapturedOutput.Contains(ExtractRelativePath(IncludeTrailingPathDelimiter(RepoRoot),
+  Assert.IsTrue(lCapturedOutput.Contains(ExtractRelativePath(IncludeTrailingPathDelimiter(lExpectedRoot),
     TPath.Combine(lProjectRoot, 'BrokenUnit.pas')) + '(11): error E2003'),
     'The displayed diagnostic must remain repository-relative.');
   Assert.IsTrue(Pos('source context:', LowerCase(lCapturedOutput)) > 0,

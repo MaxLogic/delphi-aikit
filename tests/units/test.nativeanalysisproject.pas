@@ -13,6 +13,7 @@ type
   // and verifies the report, evaluates the gate and maps the result to the documented exit codes.
   // These drive the real executable against a real analyzer fixture, as Test.AnalyzeStatus does.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisProjectTests = class
   private
     fExtraArgs: string;

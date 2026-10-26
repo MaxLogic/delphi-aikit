@@ -6,6 +6,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisDoctorTests = class
   public
     [Test]

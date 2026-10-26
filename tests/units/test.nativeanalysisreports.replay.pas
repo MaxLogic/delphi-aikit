@@ -10,12 +10,30 @@ type
   // artifacts with the retained Python 3.13.15 reference bytes. Only the T-321 allowance is
   // normalized: the triage timestamp, the recorded engine identity and the policy-owned fields.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisReplayTests = class
   public
     [TestCase('report-small', 'report-small')]
     [TestCase('report-large', 'report-large')]
     procedure ReplayMatchesPinnedReference(const aScenario: string);
   end;
+
+  [TestFixture]
+  [Category('Fast')]
+  TMigrationRelocationTests = class
+  public
+    [Test]
+    procedure CanonicalRootsArePortable;
+    [Test]
+    procedure EmbeddedNonCanonicalRootIsUnchanged;
+    [TestCase('suffix', 'suffix')]
+    [TestCase('finding', 'finding')]
+    [TestCase('other-root', 'other-root')]
+    procedure UnapprovedDifferencesRemainVisible(const aMutation: string);
+  end;
+
+function MigrationPath(const aRelative: string): string;
+function NormalizeCanonicalRoot(const aText, aRoot, aPlaceholder: string): string;
 
 implementation
 
@@ -39,8 +57,74 @@ const
   cClockArtifacts: array[0..2] of string = ('triage.md', 'trend.md', 'history.jsonl');
 
 function MigrationPath(const aRelative: string): string;
+var
+  lRoot: string;
 begin
-  Result := TPath.Combine(TPath.Combine(RepoRoot, cMigrationRoot), aRelative);
+  lRoot := GetEnvironmentVariable('DAK_TEST_MIGRATION_ROOT');
+  if lRoot = '' then
+    lRoot := TPath.Combine(RepoRoot, cMigrationRoot);
+  Result := TPath.Combine(lRoot, aRelative);
+end;
+
+function NormalizeCanonicalRoot(const aText, aRoot, aPlaceholder: string): string;
+var
+  lVariant: string;
+begin
+  Result := aText;
+  if aRoot = '' then
+    Exit;
+  // Exact, case-sensitive root plus a path/serialization boundary; never a sibling prefix.
+  for lVariant in [aRoot.Replace('\', '\\'), aRoot.Replace('\', '/'), aRoot] do
+    Result := TRegEx.Replace(Result, '(?<![\w\\/:.-])' + TRegEx.Escape(lVariant) + '(?=[\\/"`]|$)', aPlaceholder);
+end;
+
+function NormalizeMigrationPaths(const aText, aScenario: string): string;
+var
+  lCanonicalCheckout: string;
+  lCanonicalRepo: string;
+  lLocalRepo: string;
+begin
+  lCanonicalCheckout := TFile.ReadAllText(MigrationPath('canonical-checkout.txt'), TEncoding.UTF8);
+  lCanonicalRepo := TPath.Combine(lCanonicalCheckout, cMigrationRoot + '\scratch\' + aScenario + '\repo');
+  lLocalRepo := MigrationPath('scratch\' + aScenario + '\repo');
+  Result := NormalizeCanonicalRoot(aText, TPath.Combine(lCanonicalRepo, '.dak\Sample\policy'), '<output>');
+  Result := NormalizeCanonicalRoot(Result, TPath.Combine(lLocalRepo, '.dak\Sample\policy'), '<output>');
+  Result := NormalizeCanonicalRoot(Result, lCanonicalRepo, '<scratch-repo>');
+  Result := NormalizeCanonicalRoot(Result, lLocalRepo, '<scratch-repo>');
+  Result := NormalizeCanonicalRoot(Result, lCanonicalCheckout, '<checkout>');
+  Result := NormalizeCanonicalRoot(Result, RepoRoot, '<checkout>');
+end;
+
+procedure TMigrationRelocationTests.CanonicalRootsArePortable;
+begin
+  Assert.AreEqual('<repo>\src\Owned.pas warning 10',
+    NormalizeCanonicalRoot('F:\canonical\repo\src\Owned.pas warning 10', 'F:\canonical\repo', '<repo>'));
+end;
+
+procedure TMigrationRelocationTests.EmbeddedNonCanonicalRootIsUnchanged;
+const
+  cEmbedded = 'X:\archive\F:\canonical\repo\src\Owned.pas';
+  cSibling = 'F:\canonical\repo-other\src\Owned.pas';
+begin
+  Assert.AreEqual(cEmbedded, NormalizeCanonicalRoot(cEmbedded, 'F:\canonical\repo', '<repo>'));
+  Assert.AreEqual(cSibling, NormalizeCanonicalRoot(cSibling, 'F:\canonical\repo', '<repo>'));
+end;
+
+procedure TMigrationRelocationTests.UnapprovedDifferencesRemainVisible(const aMutation: string);
+var
+  lActual: string;
+  lExpected: string;
+begin
+  lExpected := 'F:\canonical\repo\src\Owned.pas warning 10';
+  lActual := lExpected;
+  if aMutation = 'suffix' then
+    lActual := lActual.Replace('Owned.pas', 'Other.pas')
+  else if aMutation = 'finding' then
+    lActual := lActual.Replace('warning 10', 'warning 11')
+  else
+    lActual := lActual.Replace('repo\', 'repo-other\');
+  Assert.AreNotEqual(NormalizeCanonicalRoot(lExpected, 'F:\canonical\repo', '<repo>'),
+    NormalizeCanonicalRoot(lActual, 'F:\canonical\repo', '<repo>'));
 end;
 
 function Visible(const aText: string): string;
@@ -121,18 +205,21 @@ begin
     begin
       lExpected := TFile.ReadAllBytes(TPath.Combine(lReference, lArtifact));
       lActual := TFile.ReadAllBytes(TPath.Combine(lOutput, lArtifact));
-      Assert.AreEqual(Visible(TEncoding.UTF8.GetString(lExpected)), Visible(TEncoding.UTF8.GetString(lActual)),
+      Assert.AreEqual(Visible(NormalizeMigrationPaths(TEncoding.UTF8.GetString(lExpected), aScenario)),
+        Visible(NormalizeMigrationPaths(TEncoding.UTF8.GetString(lActual), aScenario)),
         lArtifact + ' must be byte-identical to the reference');
-      Assert.AreEqual(Integer(Length(lExpected)), Integer(Length(lActual)), lArtifact + ' byte length');
+      Assert.AreEqual(Length(TEncoding.UTF8.GetBytes(NormalizeMigrationPaths(TEncoding.UTF8.GetString(lExpected), aScenario))),
+        Length(TEncoding.UTF8.GetBytes(NormalizeMigrationPaths(TEncoding.UTF8.GetString(lActual), aScenario))),
+        lArtifact + ' normalized byte length');
     end;
     for lArtifact in cClockArtifacts do
-      Assert.AreEqual(Visible(NormalizeClocks(TFile.ReadAllText(TPath.Combine(lReference, lArtifact), TEncoding.UTF8))),
-        Visible(NormalizeClocks(TFile.ReadAllText(TPath.Combine(lOutput, lArtifact), TEncoding.UTF8))),
+      Assert.AreEqual(Visible(NormalizeMigrationPaths(NormalizeClocks(TFile.ReadAllText(TPath.Combine(lReference, lArtifact), TEncoding.UTF8)), aScenario)),
+        Visible(NormalizeMigrationPaths(NormalizeClocks(TFile.ReadAllText(TPath.Combine(lOutput, lArtifact), TEncoding.UTF8)), aScenario)),
         lArtifact + ' must match apart from its generated clock');
     for lArtifact in cIdentityArtifacts do
       Assert.AreEqual(
-        Visible(NormalizeEngineIdentity(TFile.ReadAllText(TPath.Combine(lReference, lArtifact), TEncoding.UTF8), lArtifact)),
-        Visible(NormalizeEngineIdentity(TFile.ReadAllText(TPath.Combine(lOutput, lArtifact), TEncoding.UTF8), lArtifact)),
+        Visible(NormalizeMigrationPaths(NormalizeEngineIdentity(TFile.ReadAllText(TPath.Combine(lReference, lArtifact), TEncoding.UTF8), lArtifact), aScenario)),
+        Visible(NormalizeMigrationPaths(NormalizeEngineIdentity(TFile.ReadAllText(TPath.Combine(lOutput, lArtifact), TEncoding.UTF8), lArtifact), aScenario)),
         lArtifact + ' must match apart from the engine identity');
     Assert.IsFalse(TFile.Exists(TPath.Combine(lOutput, 'triage-changed.md')), 'no changed-file triage without DAK_SCOPE');
     Assert.IsFalse(TFile.Exists(TPath.Combine(lOutput, 'triage-snippets.md')), 'no snippets without DAK_TRIAGE_SNIPPETS');
@@ -143,5 +230,6 @@ end;
 
 initialization
   TDUnitX.RegisterTestFixture(TNativeAnalysisReplayTests);
+  TDUnitX.RegisterTestFixture(TMigrationRelocationTests);
 
 end.

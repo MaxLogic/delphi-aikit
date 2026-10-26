@@ -6,6 +6,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisDoctorPathTests = class
   public
     [TestCase('Executable', 'false')]

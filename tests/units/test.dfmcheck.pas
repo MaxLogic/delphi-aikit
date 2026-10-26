@@ -49,6 +49,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TDfmCheckTests = class
   private
     procedure WriteInjectStubs(const aInjectDir: string);

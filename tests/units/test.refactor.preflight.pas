@@ -9,7 +9,7 @@ uses
 
 type
   [TestFixture]
-  [Category('RefactoringLightPreflight')]
+  [Category('RefactoringLightPreflight,Fast')]
   TRefactorPreflightTests = class
   private
     fRoot: string;

@@ -9,6 +9,7 @@ type
   // Pinned Python 3.13.15 oracle proof for Dak.Analysis.NumericText: exact binary64 parsing,
   // repr(float) shortest digits and str(json.loads(token)) presentation.
   [TestFixture]
+  [Category('Fast')]
   TNativeAnalysisNumericTests = class
   public
     [Test]

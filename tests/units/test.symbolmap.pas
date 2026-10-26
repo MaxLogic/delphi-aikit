@@ -14,6 +14,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapContextTests = class
   private
     function FixtureProjectPath: string;
@@ -43,6 +44,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapCacheTests = class
   private
     procedure AssertHotPathIndexesExist(const aStatus: TSymbolMapCacheStatus);
@@ -82,6 +84,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapSourceUnitTests = class
   private
     function FixtureProjectPath: string;
@@ -110,6 +113,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapTopLevelDeclarationTests = class
   private
     function FixtureProjectPath: string;
@@ -127,6 +131,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapMemberExtractionTests = class
   private
     function FixtureProjectPath: string;
@@ -142,6 +147,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapCentralCacheReuseTests = class
   private
     function BuildContext(const aProjectName, aCacheRoot: string; out aContext: TSymbolMapContext): string;
@@ -169,6 +175,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapIntrinsicProfileTests = class
   private
     function BuildFreshResolverExe: string;
@@ -194,6 +201,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapRtlIndexTests = class
   private
     function BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
@@ -215,6 +223,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapDefinitionQueryTests = class
   private
     function BuildFreshResolverExe: string;
@@ -263,6 +272,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapReferenceQueryTests = class
   private
     function BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
@@ -279,6 +289,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapApiTests = class
   private
     function BaseOptions(const aCacheRoot: string): TAppOptions;
@@ -305,6 +316,7 @@ type
   end;
 
   [TestFixture]
+  [Category('Slow')]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);

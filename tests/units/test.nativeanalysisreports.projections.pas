@@ -7,6 +7,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Fast')]
   TNativeAnalysisProjectionTests = class
   public
     [TestCase('mask-slash-case-first', 'mask-slash-case-first')]

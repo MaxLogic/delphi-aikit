@@ -10,6 +10,7 @@ type
   // stability, VCS-neutral path ownership and one mixed-ownership output checked across every
   // published artifact, its verification and the command line.
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisOwnershipControlTests = class
   private
     fRoot: string;

@@ -8,6 +8,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TNativeAnalysisDoctorRemainingTests = class
   private
     fRoot: string;

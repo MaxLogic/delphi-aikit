@@ -10,6 +10,7 @@ uses
 
 type
   [TestFixture]
+  [Category('Slow')]
   TAnalyzeStatusTests = class
   private
     function RunFixInsightFixture(const aExitCode: Integer; out aProcessExit: Cardinal): TJSONObject;

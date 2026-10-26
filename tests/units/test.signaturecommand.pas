@@ -6,7 +6,7 @@ uses DUnitX.TestFramework;
 
 type
   [TestFixture]
-  [Category('RefactoringLightAlign')]
+  [Category('RefactoringLightAlign,Slow')]
   TSignatureCommandTests = class
   public
     [Test] procedure ComparesParseableNameDriftWithoutMutation;

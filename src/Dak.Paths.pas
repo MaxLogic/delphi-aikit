@@ -13,6 +13,9 @@ const
   // (MSBuild, the Delphi compiler) are not long-path aware.
   cClassicPathLimit = 259;
 
+// Shared ownership marker validation for builds and DFM checks.
+function IsRepositoryRootDirectory(const aDirectory: string): Boolean;
+
 function DakProjectRoot(const aProjectDir, aProjectName: string): string;
 function DakProjectRootForProjectPath(const aProjectPath: string): string;
 function DakProjectPath(const aDakProjectRoot: string; const aSegments: array of string): string;
@@ -29,7 +32,7 @@ function TryCheckClassicPathLimit(const aCommand, aTools, aPath: string; out aEr
 implementation
 
 uses
-  System.IOUtils, System.SysUtils,
+  System.Classes, System.IOUtils, System.SysUtils,
   Winapi.Windows,
   maxLogic.IOUtils,
   Dak.Utils;
@@ -41,6 +44,39 @@ const
   cDakRunDirTokensExhausted = 'every drawn name was already taken';
   cDakPathTooLong = '%s path too long: %s is %d characters, and %s accept at most %d (the Windows MAX_PATH ' +
     'limit). Move the project to a shorter directory.';
+
+function IsRepositoryRootDirectory(const aDirectory: string): Boolean;
+var
+  lGitPath: string;
+  lLines: TArray<string>;
+  lTarget: string;
+begin
+  lGitPath := TPath.Combine(aDirectory, '.git');
+  Result := TDirectory.Exists(lGitPath) or TDirectory.Exists(TPath.Combine(aDirectory, '.svn'));
+  if Result or not TFile.Exists(lGitPath) then
+    Exit;
+  // An unreadable or malformed marker cannot establish ownership; callers keep walking upwards.
+  try
+    lLines := TFile.ReadAllLines(lGitPath, TEncoding.UTF8);
+    if (Length(lLines) <> 1) or not lLines[0].StartsWith('gitdir: ') then
+      Exit(False);
+    lTarget := Trim(Copy(lLines[0], Length('gitdir: ') + 1, MaxInt));
+    if lTarget = '' then
+      Exit(False);
+    if not TPath.IsPathRooted(lTarget) then
+      lTarget := TPath.Combine(aDirectory, lTarget);
+    Result := TDirectory.Exists(TPath.GetFullPath(lTarget));
+  except
+    on E: EInOutError do
+      Result := False;
+    on E: EStreamError do
+      Result := False;
+    on E: EArgumentException do
+      Result := False;
+    on E: EEncodingError do
+      Result := False;
+  end;
+end;
 
 function NewDakRunToken: string;
 begin

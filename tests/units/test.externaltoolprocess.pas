@@ -10,6 +10,7 @@ type
   // Concurrent launches with inherited pipes otherwise leak one child's pipe end into the
   // other child, and the first reader only sees EOF when the unrelated child exits.
   [TestFixture]
+  [Category('Slow')]
   TExternalToolProcessTests = class
   public
     [Test]
